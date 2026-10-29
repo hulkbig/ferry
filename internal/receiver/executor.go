@@ -28,6 +28,12 @@ import (
 // ServiceDir is bound at build time for the administrator-installed receiver.
 var ServiceDir = "/var/lib/ferry"
 
+// These values are fixed in the administrator-installed binary, never supplied
+// by a release request. Separate instances must not share ports or a project.
+var ProjectName = "ferry"
+var DataAddress = "127.0.0.1:17810"
+var ManagementAddress = "127.0.0.1:17910"
+
 const (
 	dockerPath  = "/usr/bin/docker"
 	mcPath      = "/usr/local/bin/mc"
@@ -990,7 +996,7 @@ func removeCurrentSymlink(path string) error {
 
 func (e *Environment) compose(ctx context.Context, sha string, args ...string) ([]byte, error) {
 	releaseDir := filepath.Join(e.ServiceDir, "releases", sha)
-	base := []string{"compose", "--project-name", "ferry", "--project-directory", e.ServiceDir,
+	base := []string{"compose", "--project-name", ProjectName, "--project-directory", e.ServiceDir,
 		"--env-file", filepath.Join(releaseDir, ".env"), "-f", filepath.Join(releaseDir, "compose.yml")}
 	base = append(base, args...)
 	return e.run(ctx, nil, dockerPath, base...)
@@ -1069,22 +1075,22 @@ func (e *Environment) waitForServingBoundaries(ctx context.Context, sha string) 
 		if err := ctx.Err(); err != nil {
 			return fmt.Errorf("service readiness: %v: %w", lastErr, err)
 		}
-		lastErr = e.verifyVersion(ctx, "http://127.0.0.1:17810/version", sha)
+		lastErr = e.verifyVersion(ctx, "http://"+DataAddress+"/version", sha)
 		if lastErr == nil {
 			lastErr = e.expectStatus(ctx, http.MethodGet,
-				"http://127.0.0.1:17810/v1/models", "", nil, http.StatusUnauthorized)
+				"http://"+DataAddress+"/v1/models", "", nil, http.StatusUnauthorized)
 		}
 		if lastErr == nil {
 			var authStatus int
 			authStatus, lastErr = e.expectAnyStatus(ctx, http.MethodGet,
-				"http://127.0.0.1:17910/api/auth/status", "", nil, http.StatusOK, http.StatusNotFound)
+				"http://"+ManagementAddress+"/api/auth/status", "", nil, http.StatusOK, http.StatusNotFound)
 			if lastErr == nil && authStatus == http.StatusNotFound {
-				lastErr = e.expectStatus(ctx, http.MethodGet, "http://127.0.0.1:17910/api/state", "", nil, http.StatusOK)
+				lastErr = e.expectStatus(ctx, http.MethodGet, "http://"+ManagementAddress+"/api/state", "", nil, http.StatusOK)
 			} else if lastErr == nil {
-				lastErr = e.expectStatus(ctx, http.MethodGet, "http://127.0.0.1:17910/health", "", nil, http.StatusOK)
+				lastErr = e.expectStatus(ctx, http.MethodGet, "http://"+ManagementAddress+"/health", "", nil, http.StatusOK)
 				if lastErr == nil {
 					_, lastErr = e.expectAnyStatus(ctx, http.MethodGet,
-						"http://127.0.0.1:17910/api/overview", "", nil,
+						"http://"+ManagementAddress+"/api/overview", "", nil,
 						http.StatusUnauthorized, http.StatusPreconditionRequired)
 				}
 			}

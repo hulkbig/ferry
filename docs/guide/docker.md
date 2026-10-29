@@ -10,7 +10,7 @@
 在空目录执行：
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml
 docker compose up -d
 ```
 
@@ -39,7 +39,7 @@ docker run -d --name ferry --restart unless-stopped \
   -p 127.0.0.1:17910:7900 -p 127.0.0.1:17810:7890 \
   -v ferry-data:/data --read-only --tmpfs /tmp:size=32m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  bighulk/ferry:0.1.1
+  bighulk/ferry:1.0.0
 ```
 
 选择 Compose 或 `docker run` 其中一种，不要同时用两种方式启动同一份数据。
@@ -98,7 +98,7 @@ docker compose pull
 docker compose up -d
 ```
 
-正式标签 `0.1.1` 不覆盖，`latest` 会随正式版更新；建议固定版本。需要快速指定版本时，可用 `FERRY_IMAGE=bighulk/ferry:目标版本 docker compose up -d`，随后同步修改 Compose 文件，避免下次启动回到旧版本。
+正式标签 `1.0.0` 不覆盖，`latest` 会随正式版更新；建议固定版本。需要快速指定版本时，可用 `FERRY_IMAGE=bighulk/ferry:目标版本 docker compose up -d`，随后同步修改 Compose 文件，避免下次启动回到旧版本。
 
 首次公开版没有更早的公共版本可供升级验证。旧内部安装可能把数据库直接放在 `/data`，不能直接套用本页的 `/data/state` 布局；需按[迁移指南](migration.md)备份、恢复并验收。回退镜像不能撤销数据库迁移。
 

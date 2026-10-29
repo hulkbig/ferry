@@ -10,7 +10,7 @@ Install Docker Engine with Compose. An existing OrbStack or Docker Desktop insta
 In an empty directory:
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml
 docker compose up -d
 ```
 
@@ -48,7 +48,7 @@ docker run -d --name ferry --restart unless-stopped \
   -p 127.0.0.1:17910:7900 -p 127.0.0.1:17810:7890 \
   -v ferry-data:/data --read-only --tmpfs /tmp:size=32m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  bighulk/ferry:0.1.1
+  bighulk/ferry:1.0.0
 ```
 
 Choose one installation method; never run two processes against the same data.

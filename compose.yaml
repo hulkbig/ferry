@@ -2,7 +2,7 @@
 name: ferry
 services:
   ferry:
-    image: ${FERRY_IMAGE:-bighulk/ferry:0.1.1}
+    image: ${FERRY_IMAGE:-bighulk/ferry:1.0.0}
     restart: unless-stopped
     ports:
       - "127.0.0.1:17910:7900"

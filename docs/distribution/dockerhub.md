@@ -15,18 +15,18 @@ You hand work to an AI agent, then come back to a rate limit or a failed connect
 
 Ferry runs as one Go process with an embedded web console and local SQLite storage. You bring your own upstream API keys or supported subscription accounts. Node.js and an external database are not required at runtime.
 
-![How clients, Ferry, upstreams and agent operations connect](https://raw.githubusercontent.com/hulkbig/ferry/v0.1.1/docs/assets/gateway-overview-en.svg)
+![How clients, Ferry, upstreams and agent operations connect](https://raw.githubusercontent.com/hulkbig/ferry/v1.0.0/docs/assets/gateway-overview-en.svg)
 
 ### Install
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml
 docker compose up -d
 ```
 
-Open **http://localhost:17910** and create the administrator. Image: `bighulk/ferry:0.1.1`, Linux AMD64 / ARM64. No source checkout or separate database is needed.
+Open **http://localhost:17910** and create the administrator. Image: `bighulk/ferry:1.0.0`, Linux AMD64 / ARM64. No source checkout or separate database is needed.
 
-[Installation, remote access, backups and upgrades](https://github.com/hulkbig/ferry/blob/v0.1.1/docs/guide/docker.en.md) · [中文安装指南](https://github.com/hulkbig/ferry/blob/v0.1.1/docs/guide/docker.md) · [Source and issues](https://github.com/hulkbig/ferry)
+[Installation, remote access, backups and upgrades](https://github.com/hulkbig/ferry/blob/v1.0.0/docs/guide/docker.en.md) · [中文安装指南](https://github.com/hulkbig/ferry/blob/v1.0.0/docs/guide/docker.md) · [Source and issues](https://github.com/hulkbig/ferry)
 
 ### What Ferry handles
 
@@ -68,7 +68,7 @@ Ferry's original code is licensed under Apache-2.0. Third-party notices are incl
 
 一个 Go 进程，内置控制台，使用本地 SQLite。运行时无需 Node.js 或外部数据库；上游账号和额度由你提供，配置与请求数据由你保管。
 
-![客户端、Ferry、上游与 AI 运维入口的关系](https://raw.githubusercontent.com/hulkbig/ferry/v0.1.1/docs/assets/gateway-overview-zh.svg)
+![客户端、Ferry、上游与 AI 运维入口的关系](https://raw.githubusercontent.com/hulkbig/ferry/v1.0.0/docs/assets/gateway-overview-zh.svg)
 
 | 核心能力 | 为你做什么 |
 | --- | --- |
