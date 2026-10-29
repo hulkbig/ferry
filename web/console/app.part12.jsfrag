@@ -1,0 +1,928 @@
+
+// Native sign-in is a credential operation; only Save/Create publishes a Provider.
+function nativeProviderRef(value){const m=/^native-oauth:([a-zA-Z0-9][a-zA-Z0-9_.-]{0,95}):([a-zA-Z0-9][a-zA-Z0-9_.-]{0,95})$/.exec(String(value||''));return m?{driver:m[1],account:m[2]}:null}
+function nativeProviderInfo(w){const n=w.nativeOAuth,info=n?.drivers?.find(info=>info.id===n.driver);return info&&n.view?.base_url?{...info,base_url:n.view.base_url,protocol:n.view.protocol}:info}
+function newNativeProviderState(ref=''){return {drivers:[],driver:'',account:'personal',generation:0,loading:false,busy:false,initialized:false,view:null,error:'',callback:'',fields:{location:'us-central1'},...nativeProviderRef(ref)}}
+function nativeProviderInvalidate(w){if(!w)return;if(w.nativeOAuth){w.nativeOAuth.generation++;w.nativeOAuth.busy=false;w.nativeOAuth.loading=false;w.nativeOAuth.callback='';w.nativeOAuth.fields={location:'us-central1'}}w.probeGeneration=(w.probeGeneration||0)+1;w.probing=false}
+function nativeProviderClearSupply(w){
+  nativeProviderInvalidate(w);w.secret='';w.credentialRef='';w.catalog=[];w.probeError='';w.probeCompleted=0;w.probeTotal=0;
+  for(const p of w.protocols){const conversion=p.autoConvert;Object.assign(p,newProviderProtocol(p.protocol));p.autoConvert=conversion}
+  w.modelSync=null;w.modelSyncDirty=true;w.modelSyncRunning=false;w.modelSyncCatalogMode='provider';w.modelSyncCatalog=null;w.modelSyncCatalogReplace=false;w.modelSyncCatalogCredential={accessKeyId:'',secretAccessKey:'',sessionToken:''};
+  w.scheduledMessage.enabled=false;w.scheduledMessage.upstreamModel='';
+}
+function nativeProviderGuard(w){
+  const n=w.nativeOAuth,generation=++n.generation,modal=state.modal,auth=state.auth,driver=n.driver,account=n.account;
+  return ()=>state.modal===modal&&['add-provider','provider-form'].includes(state.modal?.type)&&activeProviderEditor()===w&&state.auth===auth&&state.auth?.authenticated!==false&&w.nativeOAuth===n&&n.generation===generation&&n.driver===driver&&n.account===account;
+}
+function nativeProviderApplyView(w,view){
+  const n=w.nativeOAuth,info=nativeProviderInfo(w),ref=`native-oauth:${n.driver}:${n.account}`;
+  if(!info||view?.driver!==n.driver||view?.account!==n.account||view?.credential_ref!==ref||!['pending','key_pending','relogin_required','expired','connected','disconnected'].includes(view.status))throw new Error('Invalid native sign-in view');
+  // Allowlist public fields even if a future adapter accidentally returns secrets.
+  let link='';try{const u=new URL(view.url);if(u.protocol==='https:'&&!u.username&&!u.password&&!u.hash&&![...u.searchParams.keys()].some(k=>/token|secret|password|verifier/i.test(k)))link=u.href}catch{}
+  const binding={};
+  if(view.protocol&&!providerProtocolMeta.some(p=>p.id===view.protocol))throw new Error('Invalid native protocol');
+  if(view.base_url){const u=new URL(view.base_url);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||!providerProtocolMeta.some(p=>p.id===view.protocol))throw new Error('Invalid native binding');binding.base_url=view.base_url;binding.protocol=view.protocol}
+  n.view={...binding,status:view.status,url:view.status==='pending'?link:'',user_code:view.status==='pending'?String(view.user_code||'').slice(0,256):''};
+  n.callback='';
+  if(view.status==='connected'){w.credentialRef=ref;w.secret='';w.baseUrl=binding.base_url||info.base_url;w.activeProtocol=binding.protocol||info.protocol;for(const p of w.protocols){p.secret='';p.credentialRef='';p.overrideKey=false}}
+  else {w.credentialRef='';for(const p of w.protocols)p.credentialRef=''}
+}
+async function loadNativeProvider(w){
+  const n=w.nativeOAuth;if(!n)return;
+  const active=nativeProviderGuard(w);n.loading=true;n.error='';
+  try{
+    const drivers=await adapter.getNativeOAuthDrivers();if(!active())return;
+    n.drivers=drivers;
+    if(!n.driver)n.driver=drivers[0]?.id||'';
+    // Selection changes the guard key, so status recovery gets a fresh operation.
+    const info=nativeProviderInfo(w);
+    if(info){if(['antigravity','devin','vertex'].includes(info.id))w.modelSyncInterval='off';w.baseUrl=info.base_url||'';w.activeProtocol=info.protocol;n.loading=false;await nativeProviderAction(w,'status');return}
+    n.error='Native sign-in is unavailable for this selection.';
+  }catch{if(active())n.error='Native sign-in is unavailable for this selection.'}
+  finally{if(active()){n.loading=false;renderPortalPreservingView()}}
+}
+function prepareNativeProvider(w){
+  if(!w.nativeOAuth||w.nativeOAuth.initialized)return;
+  w.nativeOAuth.initialized=true;
+  const modal=state.modal;
+  queueMicrotask(()=>{if(state.modal===modal&&activeProviderEditor()===w)loadNativeProvider(w)});
+}
+async function nativeProviderAction(w,action){
+  const n=w.nativeOAuth,info=nativeProviderInfo(w);
+  if(!info||! /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,95}$/.test(n.account)){n.fields={location:'us-central1'};n.callback='';n.error='Use a local account label with letters, numbers, dots, underscores or hyphens.';renderPortalPreservingView();return}
+  if(n.busy&&action!=='disconnect')return;
+  const fields=action==='begin'?(info.id==='vertex'?{service_account:n.fields?.service_account||'',location:n.fields?.location||'us-central1'}:info.id==='antigravity'?{client_id:n.fields?.client_id||'',client_secret:n.fields?.client_secret||''}:{}):{};
+  n.fields={location:n.fields?.location||'us-central1'};
+  if(action==='begin'&&((info.id==='vertex'&&!fields.service_account.trim())||(info.id==='antigravity'&&(!fields.client_id.trim()||!fields.client_secret)))){n.error='Complete the required sign-in fields.';renderPortalPreservingView();return}
+
+  const callback=action==='complete'&&info.mode==='browser'?n.callback:'';
+  if(action==='complete'&&info.mode==='browser'&&n.view?.status!=='key_pending'&&!callback.trim()){n.error='Paste the complete browser callback before finishing sign-in.';renderPortalPreservingView();return}
+  if(action==='disconnect'){nativeProviderClearSupply(w);n.view=null}
+  const active=nativeProviderGuard(w);n.busy=true;n.error='';n.callback='';renderPortalPreservingView();
+  try{
+    const view=action==='begin'?await adapter.beginNativeOAuth(n.driver,n.account,fields):action==='complete'?await adapter.completeNativeOAuth(n.driver,n.account,callback):action==='disconnect'?await adapter.disconnectNativeOAuth(n.driver,n.account):await adapter.getNativeOAuthStatus(n.driver,n.account);
+    if(!active())return;
+    nativeProviderApplyView(w,view);
+  }catch{if(active())n.error='Sign-in could not finish. Check status before trying again.'}
+  finally{if(active()){n.busy=false;renderPortalPreservingView()}}
+}
+function selectNativeProvider(w,driver,account){
+  const n=w.nativeOAuth;
+  nativeProviderClearSupply(w);n.driver=driver;n.account=account;n.view=null;n.error='';
+  const info=nativeProviderInfo(w);w.baseUrl=info?.base_url||'';if(info){w.activeProtocol=info.protocol;if(['antigravity','devin','vertex'].includes(info.id))w.modelSyncInterval='off';}
+}
+function nativeProviderValidation(w){
+  if(!w.nativeOAuth)return '';
+  const n=w.nativeOAuth,info=nativeProviderInfo(w);
+  if(!info||n.busy||n.loading||n.view?.status!=='connected'||w.credentialRef!==`native-oauth:${n.driver}:${n.account}`)return 'Connect the selected native account before saving or verifying.';
+  if(w.baseUrl!==info.base_url||w.secret||w.protocols.some(p=>p.overrideUrl||p.overrideKey||p.secret||(p.models.length&&p.protocol!==info.protocol)))return 'Native credentials require the registered endpoint and native protocol.';
+  return '';
+}
+
+
+function providerEditorFromData(data){
+  const raw=data.provider.raw||{},w=newProviderEditor(),connections=data.connections||[];
+  w.providerId=raw.id||data.provider.id||'';
+  w.name=raw.name||data.provider.name||'';
+  w.baseUrl=raw.base_url||'';
+  w.enabled=data.provider.enabled!==false;
+  w.type=raw.type||(data.provider.logo==='codex'?'cliproxy-codex':'custom');
+  w.modelSyncInterval=providerModelSyncInterval(raw.model_sync_interval);
+  w.modelSync=providerModelSyncState(raw.model_sync);
+  if(raw.model_sync_catalog?.type==='volcengine-plan'){
+    w.modelSyncCatalogMode='volcengine-plan';
+    w.modelSyncCatalog={type:'volcengine-plan',plan:raw.model_sync_catalog.plan==='coding'?'coding':'agent',credentialRef:String(raw.model_sync_catalog.credential_ref||'')};
+    w.modelSyncCatalogReplace=!w.modelSyncCatalog.credentialRef;
+  }
+  if(raw.concurrency){
+    const defaults=providerConcurrencyDefaults(),policy=raw.concurrency;
+    w.concurrencyOverride=true;
+    w.concurrency={
+      maxConcurrent:Number(policy.max_concurrent??defaults.maxConcurrent),
+      maxQueue:Number(policy.max_queue??defaults.maxQueue),
+      maxWaitSeconds:Number(policy.max_wait_seconds??defaults.maxWaitSeconds),
+      queueWhenFull:policy.queue_when_full!==false,
+      queueOnThrottle:policy.queue_on_throttle!==false,
+    };
+  }
+  if(raw.scheduled_message){
+    w.scheduledMessage={
+      enabled:Boolean(raw.scheduled_message.enabled),
+      upstreamModel:String(raw.scheduled_message.upstream_model||''),
+      message:String(raw.scheduled_message.message||''),
+    };
+  }
+  const refs=connections.map(connection=>connection.raw?.credential_ref||'').filter(Boolean);
+  w.credentialRef=refs[0]||'';
+  const conversion=raw.protocol_conversion;
+  for(const protocol of w.protocols){
+    const meta=providerProtocolMeta.find(item=>item.id===protocol.protocol);
+    protocol.autoConvert=meta?.convertible===false?false:conversion==null?true:Boolean(conversion[protocol.protocol]);
+    for(const connection of connections){
+      const native=(connection.models||[]).filter(model=>(model.protocols||[]).includes(protocol.protocol));
+      if(!native.length)continue;
+      protocol.models.push(...native.map(model=>model.upstream_model));
+      for(const model of native){
+        if(!protocol.modelSpecs[model.upstream_model])protocol.modelSpecs[model.upstream_model]={capabilities:providerNormalizedModelCapabilities(protocol.protocol,model.upstream_model,model.capabilities),...(model.plan_id?{plan_id:model.plan_id}:{})};
+      }
+      if(!protocol.connectionId){
+        protocol.connectionId=connection.id;
+        protocol.connectionIdentity=connection.name||connection.account||connection.id;
+        protocol.connectionEnabled=connection.enabled!==false;
+        protocol.connectionConcurrency=connection.raw?.concurrency||null;
+        protocol.credentialRef=connection.raw?.credential_ref||'';
+        protocol.baseUrl=connection.raw?.base_url||connection.baseUrl||'';
+        protocol.fullUrl=connection.raw?.full_url||connection.fullUrl||'';
+      }
+    }
+    protocol.models=[...new Set(protocol.models.filter(Boolean))];
+    protocol.manualModels=[...protocol.models];
+    protocol.urlMode=protocol.fullUrl?'full':'base';
+    protocol.overrideUrl=Boolean(protocol.baseUrl||protocol.fullUrl);
+    protocol.overrideKey=Boolean(protocol.credentialRef&&protocol.credentialRef!==w.credentialRef);
+  }
+  w.catalog=[...new Set([...(data.provider.upstreamModels||[]),...w.protocols.flatMap(protocol=>protocol.models)])];
+  if(w.type==='cliproxy-codex'){
+    w.protocol='openai-responses';
+    w.modelOptions=[];w.modelFilter='';w.modelsLoading=false;w.modelsLoaded=false;w.modelsError='';w.codexModelInput='';
+    w.codexConnections=connections.map(connection=>({
+      id:connection.id,
+      identity:connection.account||connection.name||connection.id,
+      status:connection.status||'Unknown',
+      enabled:connection.enabled!==false,
+      modelNames:[...new Set((connection.models||[]).map(model=>model.upstream_model).filter(Boolean))],
+      modelSpecs:(connection.models||[]).map(model=>({...model,protocols:[...(model.protocols||[])],capabilities:{...(model.capabilities||{})}})),
+      oauthPending:Boolean(connection.raw?.oauth_pending),
+      usage:null,usageLoading:false,usageError:'',authFile:null,authFileName:'',authImporting:false,authImportError:'',
+    }));
+    w.activeCodexConnectionId=w.codexConnections[0]?.id||'';
+  }
+  if(nativeProviderRef(w.credentialRef))w.nativeOAuth=newNativeProviderState(w.credentialRef);
+  w.modelSyncDraftBaseline=providerModelSyncDraftFingerprint(w);
+  return w;
+}
+
+function activeCodexProviderConnection(w){return (w.codexConnections||[]).find(connection=>connection.id===w.activeCodexConnectionId)||w.codexConnections?.[0]||null}
+function codexProviderEditProtocol(model){return String(model||'').trim().toLowerCase()==='gpt-image-2'?'openai-images':'openai-responses'}
+function codexProviderConnectionModels(connection){
+  const existing=new Map((connection.modelSpecs||[]).map(model=>[model.upstream_model,model]));
+  return (connection.modelNames||[]).map(upstreamModel=>{
+    const current=existing.get(upstreamModel),protocol=codexProviderEditProtocol(upstreamModel);
+    return {upstream_model:upstreamModel,protocols:[protocol],capabilities:providerNormalizedModelCapabilities(protocol,upstreamModel,current?.capabilities||{}),...(current?.plan_id?{plan_id:current.plan_id}:{})};
+  });
+}
+
+// Window position is not duration: Pro may report a weekly primary window.
+function codexUsageWindowLabel(window,fallback='Usage window'){
+  const seconds=Number(window?.limit_window_seconds);
+  if(!Number.isFinite(seconds)||seconds<=0)return fallback;
+  if(seconds===604800)return 'Weekly limit';
+  if(seconds===86400)return 'Daily limit';
+  for(const [unit,size] of [['day',86400],['hour',3600],['minute',60]])if(seconds%size===0)return `${seconds/size}-${unit} limit`;
+  return `${seconds}-second limit`;
+}
+function codexUsageDate(value){
+  if(value==null)return 'Not reported';
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?'Not reported':date.toLocaleString(typeof consoleLocale==='undefined'?undefined:consoleLocale,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function codexUsageResetLabel(window,observedAt){
+  const resetAt=Number(window?.reset_at||0),after=Number(window?.reset_after_seconds||0),observed=Date.parse(observedAt);
+  const timestamp=resetAt>0?resetAt*1000:after>0&&Number.isFinite(observed)?observed+after*1000:NaN;
+  if(Number.isFinite(timestamp)){const date=new Date(timestamp);if(!Number.isNaN(date.getTime()))return `Resets ${codexUsageDate(timestamp)}`}
+  return 'Reset time unavailable';
+}
+function codexUsageWindowCard(label,window,observedAt){
+  if(!window)return '';
+  const percent=codexUsagePercent(window),used=percent===null?null:Number(percent),tone=used===null?'empty':used>=90?'danger':used>=70?'warning':'healthy';
+  return `<article class="provider-codex-usage-window ${tone}"><span>${esc(label)}</span><strong>${percent===null?'Not reported':`${esc(percent)}<small>% used</small>`}</strong>${percent===null?'':`<div class="quota-meter" role="meter" aria-label="${esc(label)} used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><i style="width:${percent}%"></i></div>`}<small>${esc(codexUsageResetLabel(window,observedAt))}</small></article>`;
+}
+function codexUsageRateGroup(rate,observedAt){
+  if(!rate)return '<p class="provider-codex-usage-empty">Usage limits not reported.</p>';
+  const windows=[rate.primary_window,rate.secondary_window].filter(Boolean);
+  const status=rate.limit_reached?'Limit reached':rate.allowed===false?'Requests unavailable':'';
+  return `${status?`<p class="provider-quota-status danger">${status}</p>`:''}${windows.length?`<div class="provider-codex-usage-windows">${windows.map(window=>codexUsageWindowCard(codexUsageWindowLabel(window),window,observedAt)).join('')}</div>`:'<p class="provider-codex-usage-empty">No usage window reported.</p>'}`;
+}
+function codexResetDate(value){
+  const time=Date.parse(value);return Number.isFinite(time)?new Date(time).toLocaleString(typeof consoleLocale==='undefined'?undefined:consoleLocale,{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZoneName:'short'}):'Not reported';
+}
+function codexResetExpiry(value){
+  if(value==null)return 'Not reported';
+  const time=Date.parse(value);if(!Number.isFinite(time))return 'Invalid expiration';
+  const hours=Math.ceil((time-Date.now())/3600000);
+  return hours<=0?'Expired':hours<24?`${hours}h remaining`:`${Math.floor(hours/24)}d ${hours%24}h remaining`;
+}
+function codexResetExpiryTone(value,now=Date.now()){
+  if(value==null)return 'unknown';
+  const remaining=Date.parse(value)-now;
+  if(!Number.isFinite(remaining))return 'unknown';
+  return remaining<=0?'expired':remaining<=86400000?'danger':remaining<=604800000?'warning':'healthy';
+}
+function codexResetDisabledReason(usage,credit,target,requests){
+  if(!target?.providerId||!target?.connectionId||!usage.account_id)return 'Account identity unavailable';
+  if(requests.length)return 'Review the pending request first';
+  const available=Number(usage.rate_limit_reset_credits?.available_count);
+  if(!credit.id||credit.status!=='available'||!Number.isFinite(available)||available<1)return 'Selected credit unavailable';
+  if(credit.reset_type!=='codex_rate_limits')return 'Unsupported reset scope';
+  if(credit.expires_at!=null){
+    const expiry=Date.parse(credit.expires_at);
+    if(!Number.isFinite(expiry))return 'Invalid expiration';
+    if(expiry<=Date.now())return 'Expired';
+  }
+  return '';
+}
+// Account identity takes precedence over a reused provider/connection binding.
+function codexResetHistory(usage,target,now=Date.now()){
+  const requests=(typeof state==='undefined'?[]:state.usageResetRequests||[]).filter(r=>usage?.account_id?r.account_id===usage.account_id:target&&r.provider_id===target.providerId&&r.connection_id===target.connectionId);
+  const names={pending:'Awaiting your confirmation',uncertain:'Outcome unknown — review the original request',in_flight:'Submission in progress',reset:'Usage reset completed',already_redeemed:'Credit already redeemed',nothing_to_reset:'No eligible window to reset',no_credit:'Selected credit unavailable',canceled:'Request canceled',expired:'Confirmation expired'};
+  const rows=requests.map(r=>{
+    const status=r.status==='pending'&&Date.parse(r.expires_at)<=now?'expired':r.status;
+    return {id:r.id,creditId:r.credit?.id,title:r.credit?.title,status,source:r.created_by==='system:expiring-codex-credit'?'Automatic trigger':r.created_by?'Manual request':'Trigger unknown',result:names[status]||status,time:r.created_at,timeLabel:'Requested at',connection:r.connection_id,provider:r.provider_id,windows:status==='reset'||status==='nothing_to_reset'?r.windows_reset??0:null,review:['pending','uncertain','in_flight'].includes(status)};
+  });
+  for(const c of usage?.rate_limit_reset_credits?.credits||[]){
+    const related=requests.filter(r=>r.credit?.id===c.id);
+    // A local unknown result cannot prove that another client consumed the card.
+    const redeemed=c.status==='redeemed'||Boolean(c.redeemed_at);
+    const expired=c.status==='expired'||(c.status==='available'&&Date.parse(c.expires_at)<=now);
+    if(redeemed&&!related.some(r=>['reset','already_redeemed'].includes(r.status))){
+      const unknown=(typeof state!=='undefined'&&!state.usageResetHistoryLoaded)||related.some(r=>['uncertain','in_flight'].includes(r.status));
+      rows.push({creditId:c.id,title:c.title,status:'redeemed',source:unknown?'Trigger unknown':'Other channel / source unconfirmed',result:'Credit already redeemed',time:c.redeemed_at,timeLabel:'Redeemed at'});
+    }else if(expired&&!redeemed&&!related.some(r=>['reset','already_redeemed'].includes(r.status))){
+      rows.push({creditId:c.id,title:c.title,status:'expired',source:'Credit expiration',result:'Expired',time:c.expires_at,timeLabel:'Expired at'});
+    }
+  }
+  return rows.sort((a,b)=>(Date.parse(b.time)||0)-(Date.parse(a.time)||0));
+}
+function codexResetHistoryView(usage,target,inline=false){
+  const rows=codexResetHistory(usage,target);
+  const warning=typeof state!=='undefined'&&state.usageResetHistoryError?'<li class="codex-reset-note" role="status">Reset history unavailable. Retrying automatically.</li>':'';
+  const content=rows.map(r=>{
+    const tone=['reset','already_redeemed','redeemed'].includes(r.status)?'used':r.review?'pending':'inactive';
+    return `<li class="codex-reset-row codex-reset-record ${tone}"><div class="codex-reset-name"><div class="codex-reset-summary"><strong>${esc(r.title||'Codex usage reset')}</strong><span class="codex-reset-result">${esc(r.result)}</span></div><small class="codex-reset-provenance"><span>${esc(r.source)}</span> · <time datetime="${esc(r.time||'')}" title="${esc(codexResetDate(r.time))}">${esc(codexUsageDate(r.time))}</time></small></div>${r.review?`<div class="codex-reset-action"><button type="button" class="btn small" data-action="codex-usage-reset-review" data-request="${esc(r.id)}">Review usage reset</button></div>`:''}</li>`;
+  }).join('')+warning;
+  return inline?content:content?`<section class="codex-reset-credits"><div class="codex-reset-caption"><strong>Usage reset credits</strong></div><ul class="codex-reset-list">${content}</ul></section>`:'';
+}
+function codexUsageCreditsView(usage,target){
+  const history=codexResetHistoryView(usage,target,true);
+  const details=usage.rate_limit_reset_credits;if(!details)return codexResetHistoryView(usage,target);
+  const credits=details.credits,available=Array.isArray(credits)?credits.filter(c=>c.status==='available').length:0;
+  const requests=target&&typeof state!=='undefined'?(state.usageResetRequests||[]).filter(r=>(usage.account_id?r.account_id===usage.account_id:r.provider_id===target.providerId&&r.connection_id===target.connectionId)&&['pending','uncertain','in_flight'].includes(r.status)):[];
+  const heading=`<div class="codex-reset-caption"><strong>Usage reset credits</strong>${details.available_count!=null?`<span class="codex-reset-count"><strong>${esc(details.available_count)}</strong> <span>available</span></span>`:''}</div>`;
+  if(!Array.isArray(credits))return `<section class="codex-reset-credits">${heading}${details.available_count===0?'':'<p class="codex-reset-note">Credit details unavailable. Refresh usage to retrieve expiration dates.</p>'}${history?`<ul class="codex-reset-list">${history}</ul>`:''}</section>`;
+  const sorted=credits.filter(c=>c.status==='available'&&codexResetExpiryTone(c.expires_at)!=='expired').sort((a,b)=>(a.status==='available'?0:1)-(b.status==='available'?0:1)||(Date.parse(a.expires_at)||Infinity)-(Date.parse(b.expires_at)||Infinity));
+  const rows=sorted.map(c=>{
+    const reason=codexResetDisabledReason(usage,c,target,requests);
+    const expiry=codexResetExpiryTone(c.expires_at),expiryDate=codexUsageDate(c.expires_at);
+    const status={redeemed:'Credit already redeemed',pending:'Awaiting your confirmation',uncertain:'Outcome unknown — review the original request',in_flight:'Submission in progress'}[c.status];
+    return `<li class="codex-reset-row"><div class="codex-reset-name"><strong>${esc(c.title||'Codex usage reset')}</strong>${status?`<small>${esc(status)}</small>`:''}</div><div class="codex-reset-expiry ${expiry}"><strong>${esc(c.expires_at==null?'Expiration not reported':codexResetExpiry(c.expires_at))}</strong>${expiryDate!=='Not reported'?`<small><span>Expires</span> <time datetime="${esc(c.expires_at)}" title="${esc(codexResetDate(c.expires_at))}">${esc(expiryDate)}</time></small>`:''}</div>${target?`<div class="codex-reset-action"><button type="button" class="btn small" data-action="codex-usage-reset-prepare" data-provider="${esc(target.providerId)}" data-connection="${esc(target.connectionId)}" data-account="${esc(usage.account_id||'')}" data-credit="${esc(c.id)}" ${reason?'disabled':''}>Use reset…</button>${reason?`<small class="codex-reset-disabled-reason">${esc(reason)}</small>`:''}</div>`:''}</li>`;
+  }).join('');
+  const incomplete=available<Number(details.available_count)?`${available} of ${details.available_count} reset credits listed. Refresh usage to load the rest.`:'';
+  return `<section class="codex-reset-credits">${heading}${rows||history?`<ul class="codex-reset-list">${rows}${history}</ul>`:''}${incomplete?`<p class="codex-reset-note">${esc(incomplete)}</p>`:''}</section>`;
+}
+
+function codexCreditBalance(value){
+  const amount=Number(value);
+  return Number.isFinite(amount)?new Intl.NumberFormat(typeof consoleLocale==='undefined'?undefined:consoleLocale,{maximumFractionDigits:2}).format(amount):'Not reported';
+}
+function codexUsageView(usage,target=null){
+  if(!usage)return '<div class="provider-codex-usage-empty">No cached usage yet. Refresh to query this account.</div>'+codexResetHistoryView(null,target);
+  const plans={pro:'Pro',plus:'Plus',free:'Free',go:'Go',team:'Business',business:'Business',enterprise:'Enterprise',edu:'Edu'};
+  const plan=plans[String(usage.plan_type||'').toLowerCase()]||usage.plan_type||'Unknown plan';
+  const facts=[`<span class="plan"><strong>${esc(plan)}</strong><small>Subscription</small></span>`],credits=usage.credits;
+  if(credits){const value=credits.unlimited?'Unlimited':credits.balance!=null&&credits.balance!==''?codexCreditBalance(credits.balance):credits.has_credits?'Available':'None';facts.push(`<span><strong>${esc(value)}</strong><small>Credits</small></span>`)}
+  const spend=usage.spend_control,budget=spend?.individual_limit;
+  const budgetView=budget?`<section class="provider-quota-budget"><h4>Seat spending limit</h4><p>${esc(budget.used||'Not reported')} used · ${esc(budget.remaining||'Not reported')} remaining · ${esc(budget.limit||'Not reported')} limit</p><small>${esc(codexUsageResetLabel(budget,usage.observed_at))}</small></section>`:'';
+  const additional=(usage.additional_rate_limits||[]).map(limit=>`<section class="provider-quota-extra"><h4>${esc(limit.limit_name||limit.metered_feature||'Additional limit')}</h4>${codexUsageRateGroup(limit.rate_limit,usage.observed_at)}</section>`).join('');
+  const observedLabel=codexUsageDate(usage.observed_at);
+  return `<div class="provider-codex-usage-overview"><div class="provider-codex-usage-meta">${facts.join('')}</div><div class="provider-codex-usage-core">${codexUsageRateGroup(usage.rate_limit,usage.observed_at)}</div></div>${codexUsageCreditsView(usage,target)}${spend?.reached?'<p class="provider-quota-status danger">Spending limit reached</p>':''}${budgetView}${additional?`<details class="provider-codex-additional-limits" data-quota-disclosure><summary>Model-specific limits <span>${usage.additional_rate_limits.length}</span></summary><div>${additional}</div></details>`:''}<p class="provider-codex-observed" title="Cached snapshot"><span>Updated</span> ${esc(observedLabel)}</p>`;
+}
+function clearCodexUsageResetState(){
+  state.usageResetEpoch=(state.usageResetEpoch||0)+1;state.usageResetHistoryError=false;state.usageResetHistoryLoaded=false;state.usageResetRequests=[];state.usageResetDismissed=new Set();state.usageResetPreparing=false;
+  if(state.modal?.type==='codex-usage-reset-confirm')state.modal=null;
+}
+function rememberCodexUsageReset(request){
+  state.usageResetRequests=[request,...state.usageResetRequests.filter(item=>item.id!==request.id)];
+}
+function openCodexUsageReset(request){
+  if(state.modal?.busy)return;
+  const previous=state.modal?.type==='codex-usage-reset-confirm'?state.modal.previous:state.modal;
+  state.usageResetDismissed.add(request.id);
+  state.modal={type:'codex-usage-reset-confirm',request:structuredClone(request),previous,busy:false,error:''};
+  renderPortal();
+}
+function dismissCodexUsageReset(){
+  const modal=state.modal;if(modal?.type!=='codex-usage-reset-confirm'||modal.busy)return;
+  state.usageResetDismissed.add(modal.request.id);state.modal=modal.previous||null;renderPortal();
+}
+function codexUsageResetModal(modal){
+  const r=modal.request.status==='pending'&&Date.parse(modal.request.expires_at)<=Date.now()?{...modal.request,status:'expired'}:modal.request,c=r.credit,terminal=!['pending','uncertain','in_flight'].includes(r.status),uncertain=['uncertain','in_flight'].includes(r.status);
+  const names={pending:'Awaiting your confirmation',uncertain:'Outcome unknown — review the original request',in_flight:'Submission in progress',reset:'Usage reset completed',already_redeemed:'Credit already redeemed',nothing_to_reset:'No eligible window to reset',no_credit:'Selected credit unavailable',canceled:'Request canceled',expired:'Confirmation expired'};
+  const facts=[['Provider',r.provider_id],['Connection',r.connection_id],['OAuth account',r.account],['Upstream account',r.account_id],['Email',r.email||'Not reported'],['Credit ID',c.id],['Scope',c.reset_type],['Granted',codexResetDate(c.granted_at)],['Expires',codexResetDate(c.expires_at)],['Requested by',r.created_by],['Request ID',r.id],['Confirm before',codexResetDate(r.expires_at)]];
+  return `<div class="modal-backdrop"><section class="modal codex-reset-modal" data-modal-stop role="dialog" aria-modal="true" aria-labelledby="codex-reset-title"><div class="modal-head"><div><h2 id="codex-reset-title">Confirm Codex usage reset</h2><p>${esc(names[r.status]||r.status)}</p></div><button type="button" class="btn icon" data-action="codex-usage-reset-dismiss" ${modal.busy?'disabled':''} aria-label="Close">×</button></div><div class="modal-body"><div class="notice orange"><strong>Consumes one selected reset credit</strong><span>This resets eligible Codex usage windows for the upstream account shown below. All clients using that account share those windows.</span></div><h3>${esc(c.title||'Codex usage reset')}</h3>${c.description?`<p>${esc(c.description)}</p>`:''}<dl class="codex-reset-facts">${facts.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd data-i18n-skip>${esc(value)}</dd></div>`).join('')}</dl>${codexUsageRateGroup(r.rate_limit,r.created_at)}${r.message?`<div class="notice orange">${esc(r.message)}</div>`:''}${modal.error?`<div class="notice red" role="alert">${esc(modal.error)}</div>`:''}${terminal?`<p>Windows reset: ${esc(r.windows_reset||0)}</p>`:''}</div><div class="modal-foot"><button type="button" class="btn" data-action="codex-usage-reset-dismiss" ${modal.busy?'disabled':''}>Close</button>${r.status==='pending'?`<button type="button" class="btn" data-action="codex-usage-reset-cancel" data-request="${esc(r.id)}" ${modal.busy?'disabled':''}>Cancel request</button>`:''}${terminal?'':`<button type="button" class="btn danger" data-action="codex-usage-reset-confirm" data-request="${esc(r.id)}" ${modal.busy?'disabled':''}>${modal.busy?'Submitting…':uncertain?'Retry this exact request':'Confirm · consume 1 credit'}</button>`}</div></section></div>`;
+}
+async function handleCodexUsageResetAction(action,el){
+  const epoch=state.usageResetEpoch;
+  if(!state.auth?.authenticated)return;
+  if(action==='codex-usage-reset-dismiss'){dismissCodexUsageReset();return;}
+  if(action==='codex-usage-reset-review'){
+    const request=state.usageResetRequests.find(r=>r.id===el.dataset.request);if(request)openCodexUsageReset(request);return;
+  }
+  if(action==='codex-usage-reset-prepare'){
+    if(state.usageResetPreparing)return;
+    const {provider,connection,credit,account}=el.dataset;
+    if(!provider||!connection||!credit||!account)return;
+    state.usageResetPreparing=true;el.disabled=true;
+    try{const request=await adapter.prepareUsageReset(provider,connection,credit,account);if(epoch!==state.usageResetEpoch||!state.auth?.authenticated)return;rememberCodexUsageReset(request);openCodexUsageReset(request)}catch(error){showToast(error.message,'error')}finally{if(epoch===state.usageResetEpoch)state.usageResetPreparing=false;el.disabled=false}
+    return;
+  }
+  const modal=state.modal;
+  if(modal?.type!=='codex-usage-reset-confirm'||modal.busy||modal.request.id!==el.dataset.request)return;
+  if(!['codex-usage-reset-confirm','codex-usage-reset-cancel'].includes(action))return;
+  // Capture the server-bound object before awaiting. A selected row, navigation,
+  // refresh, or another modal can never redirect the submission.
+  const request=structuredClone(modal.request);
+  if(action==='codex-usage-reset-cancel'&&request.status!=='pending')return;
+  if(action==='codex-usage-reset-confirm'&&!['pending','uncertain','in_flight'].includes(request.status))return;
+  modal.busy=true;modal.error='';renderPortal();
+  try{
+    const result=await (action==='codex-usage-reset-confirm'?adapter.confirmUsageReset(request):adapter.cancelUsageReset(request));
+    if(epoch!==state.usageResetEpoch||!state.auth?.authenticated)return;
+    rememberCodexUsageReset(result);modal.request=result;
+    if(['reset','already_redeemed'].includes(result.status)){
+      invalidateProviderCodexUsage(request.provider_id,request.connection_id);
+      // A read-only refresh has its own error state and can never replay consume.
+      void loadSharedCodexUsage(request.provider_id,request.connection_id,{refresh:true});
+    }
+  }catch(error){
+    if(epoch!==state.usageResetEpoch||!state.auth?.authenticated)return;
+    modal.error=error.message||'Unable to read the reset outcome.';
+    if(action==='codex-usage-reset-confirm'){
+      // The response may have been lost. Preserve both IDs even if the journal
+      // read is also unavailable; the only possible retry is the same request.
+      modal.request={...request,status:'uncertain'};
+      try{const requests=await adapter.getUsageResetRequests();if(epoch!==state.usageResetEpoch)return;state.usageResetRequests=requests;modal.request=requests.find(r=>r.id===request.id)||modal.request}catch{}
+      rememberCodexUsageReset(modal.request);
+    }
+  }finally{modal.busy=false;if(state.modal===modal)renderPortal();}
+}
+let codexUsageResetPolling=false;
+async function pollCodexUsageResets(){
+  if(codexUsageResetPolling||!state.auth?.authenticated||state.loading||document.hidden||state.usageResetPreparing||state.modal?.busy)return;
+  const epoch=state.usageResetEpoch;
+  codexUsageResetPolling=true;
+  try{
+    const requests=await adapter.getUsageResetRequests();
+    if(!state.auth?.authenticated||epoch!==state.usageResetEpoch)return;
+    const changed=JSON.stringify(state.usageResetRequests)!==JSON.stringify(requests);
+    state.usageResetRequests=requests;
+    const recovered=state.usageResetHistoryError||!state.usageResetHistoryLoaded;state.usageResetHistoryError=false;state.usageResetHistoryLoaded=true;
+    if((changed||recovered)&&state.modal?.type==='provider-form')renderPortalPreservingView();
+    if((changed||recovered)&&!state.modal&&!state.drawer)render();
+    if(state.modal||state.drawer)return;
+    const requested=new URLSearchParams(location.hash.split('?')[1]||'').get('usage_reset');
+    const candidate=requests.find(r=>r.id===requested&&!state.usageResetDismissed.has(r.id))||requests.find(r=>['pending','uncertain'].includes(r.status)&&!state.usageResetDismissed.has(r.id));
+    if(candidate)openCodexUsageReset(candidate);
+  }catch{
+    if(epoch===state.usageResetEpoch&&state.auth?.authenticated){state.usageResetHistoryError=true;if(state.modal?.type==='provider-form')renderPortalPreservingView()}
+    // Journal read retries never replay consumption.
+  }
+  finally{codexUsageResetPolling=false;}
+}
+
+function codexAccountNeedsRelogin(error){return /needs a new OAuth login|refresh token was rejected|re-login/i.test(String(error||''))}
+function codexAccountOperations(connection){
+  const providerId=state.modal?.providerId;
+  const entry=providerCodexUsageEntry(providerId,connection.id);
+  const recovery=entry.error&&codexAccountNeedsRelogin(entry.error)?`<button type="button" class="btn small" data-action="provider-codex-relogin" data-mode="browser" data-provider="${esc(providerId)}" data-connection="${esc(connection.id)}">Sign in again</button>`:'';
+  const usageBody=entry.error?`<div class="notice red"><strong>Usage refresh failed</strong><span>${esc(entry.error)}</span>${recovery}</div>${entry.usage?codexUsageView(entry.usage,{providerId,connectionId:connection.id}):''}`:codexUsageView(entry.usage,{providerId,connectionId:connection.id});
+  const signInActions=`<div class="provider-codex-auth-actions">${connection.oauthPending?`<button type="button" class="btn" data-action="resume-oauth" data-provider="${esc(providerId)}" data-id="${esc(connection.id)}">Continue pending sign-in</button>`:''}<button type="button" class="btn" data-action="provider-codex-relogin" data-mode="browser" data-provider="${esc(providerId)}" data-connection="${esc(connection.id)}">Sign in with Codex</button><button type="button" class="btn" data-action="provider-codex-relogin" data-mode="device" data-provider="${esc(providerId)}" data-connection="${esc(connection.id)}">Use device code</button></div>`;
+  return `<div class="provider-codex-account-operations"><section class="provider-codex-operation-card provider-codex-usage-card" aria-busy="${entry.loading}" data-quota-owner="${esc(connection.id)}"><header><div><strong>Codex usage</strong><span>Subscription limits for this OAuth account, shown from cache while refreshing on entry.</span></div><button type="button" class="btn small usage-refresh" aria-busy="${entry.loading}" data-action="provider-codex-usage" ${entry.loading?'disabled':''}><span class="usage-refresh-icon" aria-hidden="true">${icon('refresh')}</span><span>${entry.loading?'Refreshing…':'Refresh usage'}</span></button></header>${usageBody}</section><section class="provider-codex-operation-card provider-codex-auth-card"><header><div><strong>Account credential</strong><span>Sign in again to mint a fresh OAuth token when this account's credential is rejected; models and routing stay unchanged.</span></div></header>${signInActions}<label class="provider-codex-auth-file"><input type="file" accept=".json,application/json" data-wizard="provider-codex-auth-file"><span>${connection.authFileName?esc(connection.authFileName):'Choose auth.json'}</span></label>${connection.authImportError?`<p class="provider-codex-auth-error">${esc(connection.authImportError)}</p>`:'<p>Browser sign-in completes by pasting the final redirect URL back; device code works from any machine. auth.json import stays available below — only required OAuth fields are stored and the uploaded file itself is not retained.</p>'}<button type="button" class="btn" data-action="provider-codex-auth-import" ${!connection.authFile||connection.authImporting?'disabled':''}>${connection.authImporting?'Importing…':connection.authFileName?'Import selected file':'Select a file first'}</button></section></div>`;
+}
+
+async function loadCachedCodexUsage(w,providerId){
+  if(!w||!providerId)return;
+  await Promise.all((w.codexConnections||[]).map(async connection=>{const entry=providerCodexUsageEntry(providerId,connection.id);if(entry.promise&&entry.refresh)return entry.promise;await loadSharedCodexUsage(providerId,connection.id);return loadSharedCodexUsage(providerId,connection.id,{refresh:true})}));
+}
+
+// providerCodexUsageSection renders the Provider Workspace usage box: the
+// same subscription windows as the editor, readable without opening Edit.
+// Shared cached snapshots stay visible during entry and explicit refreshes.
+function providerCodexUsageSection(id,p,data,conns){
+  if(!providerIsCodex(p)||!conns?.length)return '';
+  const accounts=conns.map(connection=>{
+    const entry=providerCodexUsageEntry(id,connection.id);
+    const recovery=entry.error&&codexAccountNeedsRelogin(entry.error)?`<button type="button" class="btn small" data-action="provider-codex-relogin" data-mode="browser" data-provider="${esc(id)}" data-connection="${esc(connection.id)}">Sign in again</button>`:'';
+    const body=entry.error?`<div class="notice red"><strong>Usage refresh failed</strong><span>${esc(entry.error)}</span>${recovery}</div>${codexUsageView(entry.usage,{providerId:id,connectionId:connection.id})}`:codexUsageView(entry.usage,{providerId:id,connectionId:connection.id});
+    const identity=connection.account||connection.name||connection.id;
+    return `<section class="provider-codex-operation-card provider-codex-usage-card v3-codex-usage-account" aria-busy="${entry.loading}" data-quota-owner="${esc(connection.id)}"><header><div><strong>${esc(identity)}</strong><span>${esc(connection.status||'Unknown')} · ${connectionIsEnabled(connection)?'enabled for routing':'disabled'} · subscription limits shown from cache</span></div><button type="button" class="btn small usage-refresh" aria-busy="${entry.loading}" data-action="provider-usage-refresh" data-provider="${esc(id)}" data-connection="${esc(connection.id)}" ${entry.loading?'disabled':''}><span class="usage-refresh-icon" aria-hidden="true">${icon('refresh')}</span><span>${entry.loading?'Refreshing…':'Refresh usage'}</span></button></header>${body}</section>`;
+  }).join('');
+  return `<section class="card panel section v3-codex-usage-card"><div class="section-head"><div><h2>Codex Usage</h2><p>Subscription usage for each OAuth account, visible on the Provider page without opening the editor.</p></div></div><div class="v3-codex-usage-accounts">${accounts}</div></section>`;
+}
+
+function codexProviderFormModal(w,modal){
+  const connection=activeCodexProviderConnection(w),configured=connection?.modelNames||[],selected=new Set(configured),filter=String(w.modelFilter||'').trim().toLowerCase();
+  const catalog=[...new Set([...(w.modelOptions||[]),...(w.catalog||[]),...configured])].sort((a,b)=>a.localeCompare(b));
+  const visible=catalog.filter(model=>!filter||model.toLowerCase().includes(filter));
+  const accountTabs=(w.codexConnections||[]).map(account=>`<button type="button" class="provider-codex-account-tab ${account.id===connection?.id?'active':''}" data-action="provider-codex-account" data-id="${esc(account.id)}"><span>${esc(account.identity)}</span><small>${esc(account.status)} · ${(account.modelNames||[]).length} models</small></button>`).join('');
+  const configuredModels=configured.map(model=>`<span class="provider-edit-model-chip"><span>${esc(model)}</span><button type="button" data-action="provider-codex-model-remove" data-model="${esc(model)}" aria-label="Remove ${esc(model)}">×</button></span>`).join('');
+  const catalogModels=catalog.map(model=>`<button type="button" class="provider-edit-model-option ${selected.has(model)?'selected':''}" data-action="provider-codex-model-toggle" data-model="${esc(model)}" data-provider-edit-model-row data-search="${esc(model.toLowerCase())}" ${filter&&!model.toLowerCase().includes(filter)?'hidden':''}><span class="provider-edit-model-check">${selected.has(model)?'✓':'＋'}</span><span>${esc(model)}</span></button>`).join('');
+  const catalogPanel=w.modelsLoading?'<div class="provider-model-empty">Loading the Codex model catalog…</div>':w.modelsError?`<div class="notice red"><strong>Model catalog unavailable</strong><span>${esc(w.modelsError)} Existing and manually entered models remain editable.</span></div>`:w.modelsLoaded?`<div class="provider-edit-model-filter"><input class="input" data-wizard="provider-edit-model-filter" value="${esc(w.modelFilter||'')}" placeholder="Filter models"><span data-provider-edit-model-visible>${visible.length} shown</span><button type="button" class="btn small" data-action="provider-codex-model-select-all" ${visible.length?'':'disabled'}>Select all</button><button type="button" class="btn small" data-action="provider-codex-model-deselect-all" ${configured.length?'':'disabled'}>Deselect all</button></div><div class="provider-edit-model-options">${catalogModels||'<div class="provider-model-empty">No models match this keyword.</div>'}</div>`:'<div class="provider-model-empty">The Codex catalog loads automatically when this editor opens.</div>';
+  const accounts=connection?`<section class="provider-codex-accounts"><div class="provider-codex-section-head"><div><span class="protocol-kicker">OAUTH ACCOUNTS</span><h3>Upstream models by account</h3><p>Choose an account, then manage its routing gate, credential, subscription usage, and proxied models.</p></div><button type="button" class="btn small" data-action="provider-edit-model-discover" ${w.modelsLoading?'disabled':''}>${w.modelsLoading?'Loading…':'Refresh catalog'}</button></div>${w.codexConnections.length>1?`<div class="provider-codex-account-tabs">${accountTabs}</div>`:''}<div class="provider-codex-account-summary"><span><strong>${esc(connection.identity)}</strong><small>${esc(connection.status)} · ${connection.enabled?'enabled':'disabled'} connection · ${configured.length} configured</small></span><label class="provider-admission-switch provider-codex-account-switch"><span><strong>Enabled for routing</strong><small>${connection.enabled?'This account may receive requests':'Test only; Route excludes this account'}</small></span><input type="checkbox" data-wizard="provider-codex-connection-enabled" ${connection.enabled?'checked':''}><i></i></label></div>${codexAccountOperations(connection)}<div class="provider-edit-model-stack"><section class="provider-edit-model-panel"><div class="provider-edit-model-panel-head"><div><strong>Configured models</strong><span>Saved only to this OAuth account; sign-in credentials remain unchanged.</span></div><span>${configured.length} configured</span></div><div class="provider-edit-model-input"><input aria-label="Codex upstream model name" data-wizard="provider-codex-model-input" value="${esc(w.codexModelInput||'')}" placeholder="Enter a model name, then press Enter"><button type="button" class="btn" data-action="provider-codex-model-add">Add</button></div><div class="provider-edit-model-chips">${configuredModels||'<span class="provider-edit-model-empty">No models configured.</span>'}</div></section><section class="provider-edit-model-panel"><div class="provider-edit-model-panel-head"><div><strong>Available through Codex OAuth</strong><span>Selected models are highlighted and added to the active account.</span></div></div>${catalogPanel}</section></div><div class="notice green"><strong>GPT Image 2 supported</strong><span>Select gpt-image-2 to proxy image generation and editing through a supported paid Codex account.</span></div></section>`:`<div class="notice orange"><strong>No OAuth account connection</strong><span>Add and complete a Codex OAuth connection before configuring upstream models.</span></div>`;
+  return `<div class="modal-backdrop provider-editor-backdrop" data-action="close-overlay"><div class="modal provider-codex-edit-modal" data-modal-stop><div class="modal-head"><div><h2>Edit Codex OAuth Provider</h2><div class="cell-sub">Edit Provider settings and the upstream models assigned to each OAuth account.</div></div><button class="btn icon ghost" data-action="close-overlay">×</button></div><div class="modal-body provider-codex-edit-body"><section class="provider-codex-defaults"><div class="field"><label>Name</label><input data-wizard="provider-editor-name" value="${esc(w.name)}"></div><div class="field"><label>Base URL</label><input data-wizard="provider-editor-url" value="${esc(w.baseUrl)}"></div></section>${accounts}${providerModelSyncSettings(w)}${providerAdmissionSettings(w)}${providerScheduledMessageSettings(w)}<label class="checkbox-field provider-enabled"><input type="checkbox" data-wizard="provider-edit-enabled" ${w.enabled?'checked':''}><span><strong>Provider enabled</strong><small>The Provider gate and at least one OAuth account gate above must both be enabled for Route traffic.</small></span></label></div><div class="modal-foot"><button class="btn" data-action="close-overlay">Cancel</button><button class="btn primary" data-action="provider-save" data-id="${esc(modal.providerId)}">Save Changes</button></div></div></div>`;
+}
+
+function providerEditorCanProbe(w){
+  if(w?.nativeOAuth)return !nativeProviderValidation(w);
+  if(!/^https?:\/\//i.test(w?.baseUrl||''))return false;
+  return Boolean(w.secret||w.credentialRef||demoMode)||w.protocols.every(protocol=>protocol.overrideKey&&Boolean(protocol.secret||protocol.credentialRef));
+}
+
+function activeProviderEditor(){return state.modal?.type==='provider-form'?state.wizard.providerEdit:state.wizard.provider}
+
+function updateProviderProbeTimers(w){
+  if(!w?.probing)return;
+  for(const protocol of w.protocols){
+    if(protocol.status!=='probing'||!protocol.probeStartedAt)continue;
+    const target=portal.querySelector(`[data-probe-duration="${protocol.protocol}"]`);
+    if(target)target.textContent=providerProbeDuration(Date.now()-protocol.probeStartedAt);
+  }
+}
+
+async function probeProviderEditor(w){
+  if(!w||w.probing)return;
+  if(!providerEditorCanProbe(w)){w.probeError='Enter a valid Base URL and API key before verification.';renderPortalPreservingView();return}
+  const generation=(w.probeGeneration||0)+1;
+  const targets=w.nativeOAuth?w.protocols.filter(p=>p.protocol===nativeProviderInfo(w)?.protocol):w.protocols;
+  const modal=state.modal,auth=state.auth;
+  w.probeGeneration=generation;w.probing=true;w.probeCompleted=0;w.probeTotal=targets.length;w.probeError='';
+  for(const protocol of targets){protocol.error='';protocol.status='probing';protocol.probeStartedAt=Date.now();protocol.probeElapsedMs=null}
+  renderPortalPreservingView();
+  const timer=setInterval(()=>updateProviderProbeTimers(w),100);
+  const stillActive=()=>w.probeGeneration===generation&&state.modal===modal&&state.auth===auth&&(state.wizard.provider===w||state.wizard.providerEdit===w);
+  const probeOne=async protocol=>{
+    const startedAt=protocol.probeStartedAt;
+    try{
+      const result=await adapter.discoverProviderProtocols({
+        providerId:providerEditorEvidenceID(w),type:'custom',baseUrl:w.baseUrl,secret:w.secret,credentialRef:w.credentialRef,refresh:false,
+        protocols:[{
+          protocol:protocol.protocol,
+          urlMode:protocol.overrideUrl?protocol.urlMode:'base',
+          baseUrl:protocol.overrideUrl&&protocol.urlMode!=='full'?protocol.baseUrl:'',
+          fullUrl:protocol.overrideUrl&&protocol.urlMode==='full'?protocol.fullUrl:'',
+          secret:protocol.overrideKey?protocol.secret:'',
+          credentialRef:protocol.overrideKey?protocol.credentialRef:'',
+          models:[...new Set(protocol.models||[])],
+        }],
+      });
+      if(!stillActive())return;
+      w.catalog=[...new Set([...(w.catalog||[]),...(result.models||[])].map(model=>String(model).trim()).filter(Boolean))];
+      const detected=(result.protocols||[]).find(item=>item.protocol===protocol.protocol);
+      if(!detected)throw new Error(`No ${protocol.protocol} probe result was returned.`);
+      protocol.status=detected.status||'unsupported';
+      protocol.modelResults=[...(detected.model_results||[])];
+      const failed=protocol.modelResults.filter(item=>item.status==='failed');
+      protocol.error=w.nativeOAuth?(detected.error||failed.length?'Native verification failed. Check sign-in status.':''):[detected.error||'',...failed.slice(0,3).map(item=>`${item.model}: ${item.error||'verification failed'}`)].filter(Boolean).join(' · ');
+      if(detected.status!=='error'){
+        const verified=[...(detected.models||[])].map(model=>String(model).trim()).filter(Boolean);
+        protocol.models=[...new Set([...(protocol.manualModels||[]),...verified])];
+        for(const modelResult of protocol.modelResults)applyProviderProbeEvidence(protocol,modelResult);
+      }
+      if(detected.probe_truncated)w.probeError='Only the first 20 configured models were verified for one protocol. Split large connection catalogs or verify the remaining models separately.';
+      else if(result.truncated)w.probeError='The discovered catalog was truncated at 2,000 entries. Add missing model names manually.';
+    }catch(error){
+      if(!stillActive())return;
+      protocol.status='error';protocol.error=w.nativeOAuth?'Native verification failed. Check sign-in status.':error.message||`Unable to probe ${protocol.protocol}.`;
+    }finally{
+      if(!stillActive())return;
+      protocol.probeElapsedMs=Math.max(0,Date.now()-startedAt);protocol.probeStartedAt=0;w.probeCompleted+=1;renderPortalPreservingView();
+    }
+  };
+  try{
+    if(w.nativeOAuth)await Promise.allSettled(targets.map(probeOne));
+    else await Promise.allSettled(w.protocols.map(probeOne));
+  }finally{
+    clearInterval(timer);
+    if(stillActive()){w.probing=false;renderPortalPreservingView()}
+  }
+}
+
+function providerEditorPayload(w){
+  return {
+    name:w.name.trim(),baseUrl:w.baseUrl.trim(),secret:w.secret,credentialRef:w.credentialRef,
+    enabled:w.enabled,concurrency:providerConcurrencyPayload(w),scheduledMessage:providerScheduledMessagePayload(w),modelSyncInterval:providerModelSyncInterval(w.modelSyncInterval),modelSyncCatalog:providerModelSyncCatalogPayload(w),modelSyncCatalogCredential:providerModelSyncCatalogCredentialPayload(w),
+    protocols:w.protocols.map(protocol=>({
+      protocol:protocol.protocol,connectionId:protocol.connectionId,
+      connectionIdentity:protocol.connectionIdentity,connectionEnabled:protocol.connectionEnabled,
+      connectionConcurrency:protocol.connectionConcurrency,
+      autoConvert:protocol.autoConvert,overrideUrl:protocol.overrideUrl,
+      urlMode:protocol.urlMode,baseUrl:protocol.baseUrl.trim(),fullUrl:protocol.fullUrl.trim(),secret:protocol.overrideKey?protocol.secret:'',
+      credentialRef:protocol.overrideKey?protocol.credentialRef:'',
+      models:[...new Set((protocol.models||[]).map(model=>String(model).trim()).filter(Boolean))],
+      modelSpecs:protocol.modelSpecs||{},
+    })),
+  };
+}
+
+function providerModelSyncDraftValue(w){
+  if(w.type!=='cliproxy-codex'){
+    const value=providerEditorPayload(w);
+    if(value.modelSyncCatalogCredential)value.modelSyncCatalogCredential={pending:true,hasSessionToken:Boolean(value.modelSyncCatalogCredential.session_token)};
+    return value;
+  }
+  return {name:w.name.trim(),baseUrl:w.baseUrl.trim(),enabled:Boolean(w.enabled),concurrency:providerConcurrencyPayload(w),scheduledMessage:providerScheduledMessagePayload(w),modelSyncInterval:providerModelSyncInterval(w.modelSyncInterval),connections:(w.codexConnections||[]).map(connection=>({id:connection.id,enabled:Boolean(connection.enabled),models:codexProviderConnectionModels(connection)}))};
+}
+function providerModelSyncDraftFingerprint(w){return JSON.stringify(providerModelSyncDraftValue(w))}
+function providerModelSyncHasDraft(w){return Boolean(w?.modelSyncDraftBaseline&&providerModelSyncDraftFingerprint(w)!==w.modelSyncDraftBaseline)}
+function providerModelSyncConfiguredModels(w){return new Set(w.type==='cliproxy-codex'?(w.codexConnections||[]).flatMap(connection=>connection.modelNames||[]):w.protocols.flatMap(protocol=>protocol.models||[]))}
+function providerUnlistedModels(w){
+  const listed=new Set((state.models||[]).map(model=>String(model?.id||'')));
+  return [...providerModelSyncConfiguredModels(w)].filter(model=>!listed.has(model)).sort((a,b)=>a.localeCompare(b));
+}
+function providerUnlistedSection(w){
+  if(!w||w.type==='cliproxy-codex')return '';
+  const unlisted=providerUnlistedModels(w);
+  if(!unlisted.length)return '';
+  const selected=new Set(w.unlistedSelected||[]),filter=String(w.unlistedFilter||'').trim().toLowerCase();
+  const visible=unlisted.filter(model=>!filter||model.toLowerCase().includes(filter));
+  const rows=visible.map(model=>`<label class="provider-model-option" data-search="${esc(model.toLowerCase())}"><input type="checkbox" data-wizard="provider-unlisted-option" value="${esc(model)}" ${selected.has(model)?'checked':''}><span>${esc(model)}</span></label>`).join('');
+  return `<section class="provider-edit-model-panel provider-unlisted-panel"><div class="provider-edit-model-panel-head"><div><strong>Unlisted models</strong><span>${unlisted.length} upstream model${unlisted.length===1?'':'s'} on this Provider have no same-name Logical Model. Listed aggregators (OpenRouter by default) with more than ${esc(state.settings?.auto_logical_model_limit??10)} upstream models require explicit selection; other providers create missing same-name Logical Models automatically on synchronization.</span></div><span data-provider-unlisted-count>${selected.size} selected</span></div><div class="provider-edit-model-filter"><input class="input" data-wizard="provider-unlisted-filter" value="${esc(w.unlistedFilter||'')}" placeholder="Filter models"><span data-provider-unlisted-shown>${visible.length} shown</span></div><div class="provider-model-options">${rows||'<div class="provider-model-empty">No models match this keyword.</div>'}</div><button type="button" class="btn" data-action="provider-unlisted-promote" ${w.unlistedPromoting||!selected.size?'disabled':''}>${w.unlistedPromoting?'Creating…':`Create ${selected.size} Logical Model${selected.size===1?'':'s'}`}</button></section>`;
+}
+function updateProviderUnlistedUI(w){
+  const panel=portal?.querySelector('.provider-unlisted-panel');if(!panel||!w)return;
+  const selected=(w.unlistedSelected||[]).length;
+  const counter=panel.querySelector('[data-provider-unlisted-count]');if(counter)counter.textContent=`${selected} selected`;
+  const button=panel.querySelector('[data-action="provider-unlisted-promote"]');if(button){button.disabled=!selected||w.unlistedPromoting;button.textContent=w.unlistedPromoting?'Creating…':`Create ${selected} Logical Model${selected===1?'':'s'}`}
+}
+function updateProviderUnlistedFilterUI(){
+  const w=state.wizard.providerEdit;if(!w||w.type==='cliproxy-codex')return;
+  const filter=String(w.unlistedFilter||'').trim().toLowerCase(),panel=portal?.querySelector('.provider-unlisted-panel');if(!panel)return;
+  let shown=0;
+  panel.querySelectorAll('.provider-model-option').forEach(row=>{const match=!filter||String(row.dataset.search||'').includes(filter);row.hidden=!match;if(match)shown++});
+  const counter=panel.querySelector('[data-provider-unlisted-shown]');if(counter)counter.textContent=`${shown} shown`;
+}
+function mergeProviderModelSyncDraft(current,fresh,addedModels){
+  current.modelSync=fresh.modelSync;current.modelSyncRunning=false;current.catalog=[...new Set([...(current.catalog||[]),...(fresh.catalog||[])])];
+  if(current.type==='cliproxy-codex'){
+    current.modelOptions=[...new Set([...(current.modelOptions||[]),...(fresh.modelOptions||[]),...(fresh.catalog||[])])];
+    for(const nextConnection of fresh.codexConnections||[]){const connection=(current.codexConnections||[]).find(item=>item.id===nextConnection.id);if(!connection)continue;const additions=(nextConnection.modelNames||[]).filter(model=>addedModels.has(model));connection.modelNames=[...new Set([...(connection.modelNames||[]),...additions])];const specs=new Map((connection.modelSpecs||[]).map(model=>[model.upstream_model,model]));for(const model of nextConnection.modelSpecs||[])if(addedModels.has(model.upstream_model))specs.set(model.upstream_model,model);connection.modelSpecs=[...specs.values()]}
+  }else{
+    for(const nextProtocol of fresh.protocols||[]){const protocol=current.protocols.find(item=>item.protocol===nextProtocol.protocol);if(!protocol)continue;const additions=(nextProtocol.models||[]).filter(model=>addedModels.has(model));protocol.models=[...new Set([...(protocol.models||[]),...additions])];protocol.manualModels=[...new Set([...(protocol.manualModels||[]),...additions])];for(const model of additions)if(nextProtocol.modelSpecs?.[model])protocol.modelSpecs[model]=nextProtocol.modelSpecs[model]}
+  }
+  current.modelSyncDraftBaseline=fresh.modelSyncDraftBaseline;
+}
+function updateProviderModelSyncDraftUI(w){
+  if(!w?.providerId)return;const dirty=providerModelSyncHasDraft(w),sync=providerModelSyncState(w.modelSync),button=portal.querySelector('[data-action="provider-model-sync-now"]'),note=portal.querySelector('[data-model-sync-save-note]'),badge=portal.querySelector('[data-model-sync-badge]'),next=portal.querySelector('[data-model-sync-next]');
+  if(button){button.disabled=dirty||w.modelSyncRunning||sync.status==='running'||sync.status==='unsupported'&&!providerUsesControlPlaneCatalog(w)||!w.enabled;button.title=dirty?'Save Provider changes before syncing now.':''}
+  if(note)note.hidden=!dirty;if(badge)badge.textContent=dirty?'Pending save':badge.dataset.savedLabel;if(next)next.textContent=dirty?'Updates after save':next.dataset.savedValue;
+}
+
+function validateProviderEditor(w){
+  const nativeError=nativeProviderValidation(w);if(nativeError)return nativeError;
+  if(!w.name.trim())return 'Provider name is required.';
+  if(!/^https?:\/\//i.test(w.baseUrl))return 'An absolute HTTP(S) Base URL is required.';
+  if(!w.protocols.some(protocol=>(protocol.models||[]).length))return 'Configure at least one native upstream model.';
+  for(const protocol of w.protocols){
+    if(!(protocol.models||[]).length)continue;
+    if(protocol.overrideUrl&&protocol.urlMode==='full'&&!/^https?:\/\//i.test(protocol.fullUrl))return `${protocol.protocol} override requires an absolute HTTP(S) Full URL.`;
+    if(protocol.overrideUrl&&protocol.urlMode!=='full'&&!/^https?:\/\//i.test(protocol.baseUrl))return `${protocol.protocol} override requires an absolute HTTP(S) Base URL.`;
+    if(protocol.overrideKey&&!protocol.secret&&!protocol.credentialRef)return `${protocol.protocol} override requires a key.`;
+    if(!protocol.overrideKey&&!w.secret&&!w.credentialRef)return 'A default API key is required.';
+  }
+  return validateProviderModelSyncCatalog(w)||validateProviderConcurrency(w)||validateProviderScheduledMessage(w);
+}
+
+function providerFormModal(modal){
+  const w=state.wizard.providerEdit;
+  if(w.type!=='cliproxy-codex')return providerEditorModal(w,modal);
+  return codexProviderFormModal(w,modal);
+}
+
+// Escape closes overlays in the shared handler; invalidate secrets first.
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!event.defaultPrevented&&state.modal){for(const w of [state.wizard.provider,state.wizard.providerEdit,state.wizard.providerApiDraft])nativeProviderInvalidate(w)}
+},true);
+
+app.addEventListener('click',async event=>{
+  const el=event.target.closest('[data-action]');if(!el)return;
+  const action=el.dataset.action;
+  if(['close-overlay','logout','provider-oauth-mode'].includes(action)){for(const w of [state.wizard.provider,state.wizard.providerEdit,state.wizard.providerApiDraft])nativeProviderInvalidate(w)}
+  if(action.startsWith('provider-signin-')){
+    event.stopImmediatePropagation();const w=activeProviderEditor();if(!w)return;
+    const op=action.slice('provider-signin-'.length);
+    if(op==='native'){if(w.nativeOAuth)return;nativeProviderClearSupply(w);w.nativeOAuth=newNativeProviderState();renderPortalPreservingView();return}
+    if(op==='api'){if(!w.nativeOAuth)return;nativeProviderClearSupply(w);w.nativeOAuth=null;w.baseUrl='';renderPortalPreservingView();return}
+    if(op==='reload'){await loadNativeProvider(w);return}
+    await nativeProviderAction(w,op);return;
+  }
+
+  if(action==='provider-model-sync-now'){
+    event.stopImmediatePropagation();const id=el.dataset.id,w=state.wizard.providerEdit;
+    if(!id||!w||w.modelSyncRunning)return;
+    if(providerModelSyncHasDraft(w)){showToast('Save Provider changes before syncing the model catalog.','error');updateProviderModelSyncDraftUI(w);return}
+    const configuredBefore=providerModelSyncConfiguredModels(w);
+    w.modelSyncRunning=true;w.modelSync={...providerModelSyncState(w.modelSync),status:'running'};renderPortalPreservingView();
+    try{
+      const result=await adapter.syncProviderModels(id);state.providerCache.delete(id);
+      const [detail,providers]=await Promise.all([adapter.getProvider(id),adapter.getProviders()]);state.providerCache.set(id,detail);state.providers=providers;
+      const fresh=providerEditorFromData(detail),addedModels=new Set([...(result.added_model_ids||[]),...[...providerModelSyncConfiguredModels(fresh)].filter(model=>!configuredBefore.has(model))]);
+      const active=state.modal?.type==='provider-form'&&state.modal.providerId===id;if(active){const current=state.wizard.providerEdit;if(providerModelSyncHasDraft(current))mergeProviderModelSyncDraft(current,fresh,addedModels);else state.wizard.providerEdit=fresh;renderPortalPreservingView()}else render();
+      const added=Number(result.added_models??result.added_model_ids?.length??0),created=Number(result.created_logical_models??result.created_logical_model_ids?.length??0),unlistedCount=Math.max(0,added-created);
+      if(result.status==='unsupported')showToast('This Provider has no supported authenticated model catalog.','error');
+      else if(result.status==='disabled')showToast('Enable this Provider before syncing its model catalog.','error');
+      else if(unlistedCount>0)showToast(`Model sync completed · ${added} added · ${created} Logical Models created · ${unlistedCount} stayed unlisted — promote them below the protocol panel`);
+      else showToast(`Model sync completed · ${added} added · ${created} Logical Models created`);
+    }catch(error){
+      state.providerCache.delete(id);
+      try{const detail=await adapter.getProvider(id),fresh=providerEditorFromData(detail);state.providerCache.set(id,detail);if(state.modal?.type==='provider-form'&&state.modal.providerId===id){const current=state.wizard.providerEdit;if(providerModelSyncHasDraft(current))mergeProviderModelSyncDraft(current,fresh,new Set());else state.wizard.providerEdit=fresh}}catch{}
+      if(state.modal?.type==='provider-form'&&state.modal.providerId===id){state.wizard.providerEdit.modelSyncRunning=false;renderPortalPreservingView()}else render();
+      showToast(error.message||'Model sync failed','error');
+    }
+    return;
+  }
+  if(action==='provider-unlisted-promote'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit,providerId=state.modal?.providerId;
+    if(!w||w.type==='cliproxy-codex'||!providerId||w.unlistedPromoting)return;
+    const selected=[...(w.unlistedSelected||[])];if(!selected.length)return;
+    w.unlistedPromoting=true;updateProviderUnlistedUI(w);
+    try{
+      for(const model of [...selected].sort()){
+        await adapter.createModel({id:model,display_name:model,description:`Promoted from Provider ${w.name||providerId} upstream models`,enabled:true,existing_conversation_strategy:'keep-existing',default_route:{steps:[{provider_id:providerId,upstream_model:model}]}});
+      }
+      state.models=await adapter.getModels(state.overviewWindow);
+      w.unlistedSelected=[];w.unlistedFilter='';w.unlistedPromoting=false;
+      showToast(`Created ${selected.length} Logical Model${selected.length===1?'':'s'}`);
+      renderPortalPreservingView();
+    }catch(error){
+      w.unlistedPromoting=false;updateProviderUnlistedUI(w);
+      showToast(error.message||'Unable to create Logical Models','error');
+      try{state.models=await adapter.getModels(state.overviewWindow);renderPortalPreservingView()}catch(_refreshError){}
+    }
+    return;
+  }
+  if(action==='provider-model-sync-catalog-replace'||action==='provider-model-sync-catalog-keep'){
+    event.stopImmediatePropagation();const w=activeProviderEditor();if(!w||w.type==='cliproxy-codex')return;
+    w.modelSyncCatalogReplace=action.endsWith('-replace');
+    w.modelSyncCatalogCredential={accessKeyId:'',secretAccessKey:'',sessionToken:''};
+    renderPortalPreservingView();return;
+  }
+  if(action==='add-provider'){
+    event.stopImmediatePropagation();
+    state.wizard.providerApiDraft=newProviderEditor();state.wizard.providerCodexDraft=null;
+    state.wizard.provider=state.wizard.providerApiDraft;state.modal={type:'add-provider'};renderPortal();return;
+  }
+  if(action==='edit-provider'){
+    event.stopImmediatePropagation();
+    try{
+      const data=await ensureProvider(el.dataset.id);
+      state.wizard.providerEdit=providerEditorFromData(data);
+      state.modal={type:'provider-form',providerId:el.dataset.id};renderPortal();
+      if(state.wizard.providerEdit.type==='cliproxy-codex')await Promise.all([discoverProviderEditModels(),loadCachedCodexUsage(state.wizard.providerEdit,el.dataset.id)]);
+    }catch(error){showToast(error.message,'error')}
+    return;
+  }
+  if(action==='provider-codex-account'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit;
+    if(w?.type!=='cliproxy-codex')return;
+    w.activeCodexConnectionId=el.dataset.id;w.codexModelInput='';renderPortalPreservingView();return;
+  }
+  if(action==='provider-usage-refresh'){
+    event.stopImmediatePropagation();await loadSharedCodexUsage(el.dataset.provider,el.dataset.connection,{refresh:true});return;
+  }
+  if(action==='provider-codex-usage'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit,connection=activeCodexProviderConnection(w),providerId=state.modal?.providerId;
+    if(!connection||!providerId)return;
+    await loadSharedCodexUsage(providerId,connection.id,{refresh:true});return;
+  }
+  if(action==='provider-codex-auth-import'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit,connection=activeCodexProviderConnection(w),providerId=state.modal?.providerId;
+    if(!connection?.authFile||!providerId||connection.authImporting)return;
+    connection.authImporting=true;connection.authImportError='';renderPortalPreservingView();
+    try{await adapter.importConnectionOAuth(providerId,connection.id,connection.authFile);invalidateProviderCodexUsage(providerId,connection.id);await adapter.updateConnection(providerId,connection.id,{enabled:true});connection.authFile=null;connection.authFileName='';connection.enabled=true;connection.status='Standby';await loadSharedCodexUsage(providerId,connection.id);await loadSharedCodexUsage(providerId,connection.id,{refresh:true});showToast('auth.json imported and account enabled for routing')}catch(error){connection.authImportError=error.message||'Unable to import auth.json and enable this account.'}finally{connection.authImporting=false;renderPortalPreservingView()}return;
+  }
+  if(action==='provider-codex-model-toggle'||action==='provider-codex-model-remove'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit,connection=activeCodexProviderConnection(w);
+    if(!connection)return;
+    const models=new Set(connection.modelNames||[]),model=el.dataset.model;
+    if(action==='provider-codex-model-remove'||models.has(model))models.delete(model);else models.add(model);
+    connection.modelNames=[...models];renderPortalPreservingView();return;
+  }
+  if(action==='provider-codex-model-select-all'||action==='provider-codex-model-deselect-all'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit,connection=activeCodexProviderConnection(w);
+    if(!connection)return;
+    const filter=String(w.modelFilter||'').trim().toLowerCase(),configured=new Set(connection.modelNames||[]),catalog=new Set([...(w.modelOptions||[]),...(w.catalog||[]),...configured]),visible=[...catalog].filter(model=>!filter||model.toLowerCase().includes(filter));
+    if(!visible.length)return;
+    if(action==='provider-codex-model-select-all')visible.forEach(model=>configured.add(model));
+    else visible.forEach(model=>configured.delete(model));
+    connection.modelNames=[...configured];renderPortalPreservingView();return;
+  }
+  if(action==='provider-codex-model-add'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit,connection=activeCodexProviderConnection(w);
+    if(!connection)return;
+    const values=String(w.codexModelInput||'').split(/[\n,]/).map(value=>value.trim()).filter(Boolean);
+    if(!values.length){showToast('Enter at least one model name','error');return}
+    connection.modelNames=[...new Set([...(connection.modelNames||[]),...values])];w.codexModelInput='';renderPortalPreservingView();return;
+  }
+  if(action==='provider-protocol-tab'){
+    event.stopImmediatePropagation();const w=activeProviderEditor();
+    w.activeProtocol=el.dataset.protocol;renderPortalPreservingView();return;
+  }
+  if(action==='provider-protocol-detect'){
+    event.stopImmediatePropagation();await probeProviderEditor(activeProviderEditor());return;
+  }
+  if(action==='provider-native-toggle'){
+    if(activeProviderEditor()?.nativeOAuth&&providerEditorProtocol(activeProviderEditor()).protocol!==nativeProviderInfo(activeProviderEditor())?.protocol){event.stopImmediatePropagation();return}
+    event.stopImmediatePropagation();const w=activeProviderEditor(),p=providerEditorProtocol(w);
+    if(!p.models.includes(el.dataset.model))p.models.push(el.dataset.model);
+    providerProtocolModelSpec(p,el.dataset.model);
+    if(!p.manualModels.includes(el.dataset.model))p.manualModels.push(el.dataset.model);renderPortalPreservingView();return;
+  }
+  if(action==='provider-native-remove'){
+    event.stopImmediatePropagation();const w=activeProviderEditor(),p=providerEditorProtocol(w);
+    p.models=p.models.filter(model=>model!==el.dataset.model);p.manualModels=p.manualModels.filter(model=>model!==el.dataset.model);renderPortalPreservingView();return;
+  }
+  if(action==='provider-config-mode'){
+    event.stopImmediatePropagation();
+    if(state.wizard.provider?.type==='cliproxy-codex')state.wizard.providerCodexDraft=state.wizard.provider;
+    state.wizard.provider=state.wizard.providerApiDraft||newProviderEditor();
+    renderPortal();return;
+  }
+  if(action==='provider-oauth-mode'){
+    event.stopImmediatePropagation();
+    if(state.wizard.provider?.type==='custom')state.wizard.providerApiDraft=state.wizard.provider;
+    state.wizard.provider=state.wizard.providerCodexDraft||newCodexProviderEditor();
+    state.wizard.providerCodexDraft=state.wizard.provider;
+    renderPortal();if(providerModelDiscoveryReady(state.wizard.provider))await discoverProviderModels();return;
+  }
+  if(action==='provider-create'){
+    event.stopImmediatePropagation();const w=state.wizard.provider,error=validateProviderEditor(w);if(error){showToast(error,'error');return}
+    try{await adapter.addProvider({...providerEditorPayload(w),type:'custom'});state.providers=await adapter.getProviders();closeOverlay();showToast(`${w.name} provider created`);render()}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='provider-save'){
+    event.stopImmediatePropagation();const w=state.wizard.providerEdit;
+    if(w.type==='cliproxy-codex'){
+      if(!w.name.trim()){showToast('Provider name is required','error');return}
+      if(!/^https?:\/\//i.test(w.baseUrl)){showToast('An absolute HTTP(S) Base URL is required','error');return}
+      const concurrencyError=validateProviderConcurrency(w);if(concurrencyError){showToast(concurrencyError,'error');return}
+      const scheduledMessageError=validateProviderScheduledMessage(w);if(scheduledMessageError){showToast(scheduledMessageError,'error');return}
+      const emptyAccount=(w.codexConnections||[]).find(connection=>!(connection.modelNames||[]).length);
+      if(emptyAccount){showToast(`${emptyAccount.identity} needs at least one upstream model`,'error');return}
+      const connections=(w.codexConnections||[]).map(connection=>({id:connection.id,enabled:connection.enabled,models:codexProviderConnectionModels(connection)}));
+      try{await adapter.updateProvider(el.dataset.id,{name:w.name.trim(),base_url:w.baseUrl.trim(),enabled:w.enabled,scheduled_message:providerScheduledMessagePayload(w),concurrency:providerConcurrencyPayload(w),model_sync_interval:providerModelSyncInterval(w.modelSyncInterval),...(connections.length?{connections}:{})});state.providerCache.delete(el.dataset.id);closeOverlay();showToast('Provider and OAuth account models saved');await refreshProviderResources(el.dataset.id)}catch(e){showToast(e.message,'error')}
+      return;
+    }
+    const error=validateProviderEditor(w);if(error){showToast(error,'error');return}
+    try{await adapter.saveProviderProtocolConfig(el.dataset.id,providerEditorPayload(w));state.providerCache.delete(el.dataset.id);closeOverlay();showToast('Native supply and conversion coverage saved');await refreshProviderResources(el.dataset.id)}catch(e){showToast(e.message,'error')}return;
+  }
+},true);
+
+portal.addEventListener('input',event=>{
+  const el=event.target,w=activeProviderEditor();if(!w)return;
+  if(el.dataset.nativeField&&w.nativeOAuth){if(['service_account','location','client_id','client_secret'].includes(el.dataset.nativeField))w.nativeOAuth.fields[el.dataset.nativeField]=el.value;return}
+  if(el.dataset.wizard==='provider-signin-callback'){if(w.nativeOAuth)w.nativeOAuth.callback=el.value;return}
+  if(el.dataset.wizard==='provider-signin-account'){if(w.nativeOAuth){selectNativeProvider(w,w.nativeOAuth.driver,el.value);renderPortalPreservingView()}return}
+
+  if(el.dataset.wizard==='provider-editor-name')w.name=el.value;
+  if(el.dataset.wizard==='provider-editor-url')w.baseUrl=el.value;
+  if(el.dataset.wizard==='provider-editor-secret')w.secret=el.value;
+  if(el.dataset.wizard==='provider-protocol-url'){const protocol=providerEditorProtocol(w);if(protocol.urlMode==='full')protocol.fullUrl=el.value;else protocol.baseUrl=el.value}
+  if(el.dataset.wizard==='provider-protocol-secret')providerEditorProtocol(w).secret=el.value;
+  if(el.dataset.wizard==='provider-native-input')providerEditorProtocol(w).modelInput=el.value;
+  if(el.dataset.wizard==='provider-codex-model-input')w.codexModelInput=el.value;
+  if(el.dataset.wizard==='provider-scheduled-message')w.scheduledMessage.message=el.value;
+  if(el.dataset.wizard==='provider-catalog-access-key')w.modelSyncCatalogCredential.accessKeyId=el.value;
+  if(el.dataset.wizard==='provider-catalog-secret-key')w.modelSyncCatalogCredential.secretAccessKey=el.value;
+  if(el.dataset.wizard==='provider-catalog-session-token')w.modelSyncCatalogCredential.sessionToken=el.value;
+  if(el.dataset.wizard==='provider-max-concurrent')w.concurrency.maxConcurrent=Number(el.value||0);
+  if(el.dataset.wizard==='provider-max-queue')w.concurrency.maxQueue=Number(el.value||0);
+  if(el.dataset.wizard==='provider-max-wait')w.concurrency.maxWaitSeconds=Number(el.value||0);
+  if(el.dataset.wizard==='provider-model-context')providerProtocolModelSpec(providerEditorProtocol(w),el.dataset.model).capabilities.context_window=Number(el.value||0);
+  if(el.dataset.wizard==='provider-model-max-output')providerProtocolModelSpec(providerEditorProtocol(w),el.dataset.model).capabilities.max_output=Number(el.value||0);
+  updateProviderModelSyncDraftUI(w);
+});
+
+portal.addEventListener('change',async event=>{
+  const el=event.target,w=activeProviderEditor();if(!w)return;
+  if(el.dataset.wizard==='provider-signin-driver'){selectNativeProvider(w,el.value,w.nativeOAuth.account);renderPortalPreservingView();await nativeProviderAction(w,'status');return}
+  if(el.dataset.wizard==='provider-signin-account'){renderPortalPreservingView();await nativeProviderAction(w,'status');return}
+
+  if(el.dataset.wizard==='provider-model-sync-interval'){w.modelSyncInterval=providerModelSyncInterval(el.value);renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-model-sync-catalog-source'){
+    w.modelSyncCatalogMode=el.value==='volcengine-plan'?'volcengine-plan':'provider';
+    if(!w.modelSyncCatalog)w.modelSyncCatalog={type:'volcengine-plan',plan:'agent',credentialRef:''};
+    w.modelSyncCatalogReplace=w.modelSyncCatalogMode==='volcengine-plan'&&!w.modelSyncCatalog.credentialRef;
+    renderPortalPreservingView();return;
+  }
+  if(el.dataset.wizard==='provider-model-sync-plan'){w.modelSyncCatalog.plan=el.value==='coding'?'coding':'agent';renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-channel-preset'){applyProviderChannelPreset(w,el.value);renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-codex-auth-file'){
+    const connection=activeCodexProviderConnection(w),file=el.files?.[0]||null;if(!connection||!file)return;
+    if(!String(file.name||'').toLowerCase().endsWith('.json')){showToast('Choose a .json credential file','error');el.value='';return}
+    if(file.size>128*1024){showToast('auth.json must be 128 KiB or smaller','error');el.value='';return}
+    connection.authFile=file;connection.authFileName=file.name;connection.authImportError='';renderPortalPreservingView();return;
+  }
+  if(el.dataset.wizard==='provider-codex-connection-enabled'){
+    const connection=activeCodexProviderConnection(w);if(!connection)return;
+    connection.enabled=el.checked;connection.status=el.checked?'Standby':'Unavailable';renderPortalPreservingView();return;
+  }
+  if(el.dataset.wizard==='provider-concurrency-override'){w.concurrencyOverride=el.checked;if(!w.concurrency)w.concurrency=providerConcurrencyDefaults();renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-limit-behavior'){w.concurrency.queueWhenFull=el.value==='wait';renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-throttle-behavior'){w.concurrency.queueOnThrottle=el.value==='wait';renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-scheduled-enabled'){w.scheduledMessage.enabled=el.checked;if(el.checked&&!providerScheduledMessageModels(w).includes(w.scheduledMessage.upstreamModel))w.scheduledMessage.upstreamModel=providerScheduledMessageModels(w)[0]||'';renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-scheduled-model'){w.scheduledMessage.upstreamModel=el.value;updateProviderModelSyncDraftUI(w);return}
+  const protocol=w.protocols?.length?providerEditorProtocol(w):null;if(!protocol)return;
+  if(el.dataset.wizard==='provider-model-capability'){providerProtocolModelSpec(protocol,el.dataset.model).capabilities[el.dataset.capability]=el.checked;updateProviderModelSyncDraftUI(w);return}
+  if(el.dataset.wizard==='provider-protocol-conversion'){protocol.autoConvert=el.checked;renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-protocol-override-url'){protocol.overrideUrl=el.checked;if(!protocol.baseUrl)protocol.baseUrl=w.baseUrl;renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-protocol-url-mode'){protocol.urlMode=el.value==='full'?'full':'base';if(protocol.urlMode==='base'&&!protocol.baseUrl)protocol.baseUrl=w.baseUrl;renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-protocol-override-key'){protocol.overrideKey=el.checked;renderPortalPreservingView();return}
+  if(el.dataset.wizard==='provider-edit-enabled'){w.enabled=el.checked;updateProviderModelSyncDraftUI(w);return}
+  // Endpoint/key edits only invalidate prior evidence. Live verification is
+  // always an explicit button action because it can be billable upstream.
+  if(['provider-editor-url','provider-editor-secret','provider-protocol-url','provider-protocol-secret'].includes(el.dataset.wizard)){for(const item of w.protocols){item.status='idle';item.error='';item.modelResults=[]}renderPortalPreservingView()}
+});
+
+portal.addEventListener('keydown',event=>{
+  const el=event.target;if(event.key!=='Enter'||event.isComposing)return;
+  if(el.dataset.wizard==='provider-codex-model-input'){
+    event.preventDefault();const w=activeProviderEditor(),connection=activeCodexProviderConnection(w),values=String(w.codexModelInput||'').split(/[\n,]/).map(value=>value.trim()).filter(Boolean);
+    if(!connection||!values.length)return;
+    connection.modelNames=[...new Set([...(connection.modelNames||[]),...values])];w.codexModelInput='';renderPortalPreservingView();return;
+  }
+  if(el.dataset.wizard!=='provider-native-input')return;
+  if(activeProviderEditor()?.nativeOAuth&&providerEditorProtocol(activeProviderEditor()).protocol!==nativeProviderInfo(activeProviderEditor())?.protocol)return;
+  event.preventDefault();const w=activeProviderEditor(),p=providerEditorProtocol(w),values=String(p.modelInput||'').split(/[\n,]/).map(value=>value.trim()).filter(Boolean);
+  p.models=[...new Set([...p.models,...values])];p.manualModels=[...new Set([...p.manualModels,...values])];for(const value of values)providerProtocolModelSpec(p,value);p.modelInput='';renderPortalPreservingView();
+});
+
+portal.addEventListener('change',event=>{
+  const el=event.target;if(el.dataset.wizard!=='provider-edit-enabled'||!['add-provider','provider-form'].includes(state.modal?.type))return;
+  event.stopImmediatePropagation();const w=activeProviderEditor();if(w){w.enabled=el.checked;updateProviderModelSyncDraftUI(w)}
+},true);
+
+// Queue controls live in Settings; monitoring refreshes independently of drafts.
+let queueData=null,queueError='',queueLoading=false,queueLoaded=false,queueEditing=null,queueSaving=false,queueEditorLoading=false,queueTargetLocation='';
+function queuePolicy(value={}){return {max_concurrent:value?.max_concurrent??0,max_queue:value?.max_queue||256,max_wait_seconds:value?.max_wait_seconds||120,queue_when_full:value?.queue_when_full!==false,queue_on_throttle:value?.queue_on_throttle!==false};}
+function queueSettingsLink(provider='',connection=''){const query=new URLSearchParams();if(provider)query.set('provider',provider);if(connection)query.set('connection',connection);if(!provider)query.set('scope','global');return '#/settings/concurrency?'+query.toString();}
+function queueSource(source){return ({global:nt('Global','全局'),provider:nt('Provider','渠道'),connection:nt('Connection','连接')})[source]||source||'—';}
+function queuePhase(phase){return ({received:nt('Received','已接收'),waiting:nt('Waiting','排队中'),active:nt('Active','执行中'),recovering:nt('Recovering','恢复中'),streaming:nt('Streaming','流式传输中'),delivering:nt('Delivering','交付中')})[phase]||phase;}
+function queueTime(value){return new Date(value).toLocaleTimeString(consoleLocale);}
+async function refreshQueue(){
+ if(queueLoading||queueSaving||!state.auth?.authenticated)return;
+ queueLoading=true;
+ try{queueData=await adapter.getQueue();queueError='';}catch(error){queueError=error.message;}finally{queueLoading=false;queueLoaded=true;const route=currentRoute();if(route.section==='queue'){const node=app.querySelector('[data-queue-live]');if(node){node.innerHTML=queueLiveView();localizeDOM(node);}else render();}else if(route.section==='settings'&&route.id==='concurrency')render();}
+}
+function queueLiveView(){
+ const q=queueData,rows=q?.connections||[];
+ const error=queueError?'<div class="notice orange" role="alert">'+esc(queueError)+' <button class="btn small" data-queue-action="refresh">'+nt('Retry','重试')+'</button></div>':'';
+ if(!q)return error+'<div class="empty">'+nt(queueLoading?'Loading queue…':'No queue snapshot available',queueLoading?'正在加载队列…':'暂无队列快照')+'</div>';
+ const cooling=rows.filter(c=>Date.parse(c.runtime.cooling_until)>Date.now()).length;
+ return error+'<div class="metrics">'+[[q.open_requests??0,nt('Open client requests','未结束的客户端请求')],[q.waiting,nt('Waiting','排队中')],[q.running,nt('Upstream in flight','上游占用中')],[cooling,nt('Cooling connections','冷却连接')]].map(([value,label])=>'<div class="card metric"><div class="metric-label">'+label+'</div><div class="metric-value">'+esc(value)+'</div></div>').join('')+'</div><p class="cell-sub">'+nt('Refresh every 3s · Updated ','每 3 秒刷新 · 更新于 ')+esc(queueTime(q.generated_at))+'</p><section class="card panel section"><h2>'+nt('Live requests','实时请求')+'</h2><div class="table-wrap"><table class="table"><thead><tr>'+[nt('Request','请求'),nt('Phase','阶段'),nt('Model','模型'),nt('Provider / Connection','渠道 / 连接'),nt('Elapsed','已耗时')].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+(q.requests||[]).map(r=>'<tr><td><a class="mono" href="#/requests/'+encodeURIComponent(r.request_id)+'">'+esc(r.request_id)+'</a>'+requestKeySubtitle(r.consumer_key)+'</td><td>'+badge(queuePhase(r.phase))+'</td><td>'+esc(r.logical_model_id||'—')+'</td><td>'+esc(r.provider_id||'—')+' / '+esc(r.connection_id||'—')+'</td><td>'+Math.max(0,Math.floor((Date.now()-Date.parse(r.started_at))/1000))+'s</td></tr>').join('')+'</tbody></table>'+(!(q.requests||[]).length?'<div class="empty">'+nt('No unfinished requests.','当前没有未结束的请求。')+'</div>':'')+'</div></section><section class="card panel section"><h2>'+nt('Connection capacity','连接容量')+'</h2><div class="table-wrap queue-capacity-wrap"><table class="table queue-capacity-table"><thead><tr>'+[nt('Provider / Connection','渠道 / 连接'),nt('Running / limit','运行 / 上限'),nt('Waiting / limit','排队 / 上限'),nt('Wait timeout','等待超时'),nt('Policy / recovery','策略 / 恢复'),nt('Configure','配置')].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(c=>{const r=c.runtime;return '<tr><td><a href="#/providers/'+encodeURIComponent(c.provider_id)+'">'+esc(c.provider_id)+'</a><span class="queue-connection-separator" aria-hidden="true"> / </span><small>'+esc(c.identity||c.connection_id)+(c.enabled?'':' · '+nt('Disabled','已禁用'))+'</small></td><td data-label="'+esc(nt('Running / limit','运行 / 上限'))+'">'+esc(r.in_flight)+' / '+esc(r.max_concurrent||'∞')+'</td><td data-label="'+esc(nt('Waiting / limit','排队 / 上限'))+'">'+esc(r.waiting)+' / '+esc(r.max_queue)+'</td><td data-label="'+esc(nt('Wait timeout','等待超时'))+'">'+esc(r.max_wait_seconds)+'s</td><td data-label="'+esc(nt('Policy / recovery','策略 / 恢复'))+'">'+esc(queueSource(c.policy_source))+(r.recovering?' · '+nt('Serial recovery','串行恢复'):'')+(Date.parse(r.cooling_until)>Date.now()?'<small>'+nt('Cooling until ','冷却至 ')+esc(queueTime(r.cooling_until))+'</small>':'')+'</td><td data-label="'+esc(nt('Configure','配置'))+'"><a class="btn small" href="'+esc(queueSettingsLink(c.provider_id,c.connection_id))+'">'+nt('Configure','配置')+'</a></td></tr>';}).join('')+'</tbody></table>'+(!rows.length?'<div class="empty">'+nt('No connections.','暂无连接。')+'</div>':'')+'</div></section>';
+}
+function queuePolicyForm(){
+ if(!queueEditing)return '';
+ const e=queueEditing,p=e.policy,title=e.connection?nt('Connection override','连接覆盖')+' · '+e.provider+' / '+e.connection:e.provider?nt('Provider override','渠道覆盖')+' · '+e.provider:nt('Global concurrency defaults','全局并发默认值');
+ return '<section class="card panel section" data-queue-editor><h2>'+esc(title)+'</h2><form data-queue-form><div class="grid-2">'+[['max_concurrent',nt('Max concurrent per connection (0 = unlimited)','每连接最大并发（0 = 不限）')],['max_queue',nt('Max queued (0 = 256)','最大排队数（0 = 256）')],['max_wait_seconds',nt('Wait timeout, seconds (0 = 120; max 1800)','等待超时，秒（0 = 120；最大 1800）')]].map(([key,label])=>'<label class="field"><span>'+label+'</span><input class="input" name="'+key+'" type="number" required min="0" step="1" '+(key==='max_wait_seconds'?'max="1800"':'')+' value="'+esc(p[key])+'" '+(queueSaving?'disabled':'')+'></label>').join('')+'</div><p><label><input type="checkbox" name="queue_when_full" '+(p.queue_when_full?'checked':'')+' '+(queueSaving?'disabled':'')+'> '+nt('Queue when concurrency is full','并发已满时排队等待')+'</label></p><p><label><input type="checkbox" name="queue_on_throttle" '+(p.queue_on_throttle?'checked':'')+' '+(queueSaving?'disabled':'')+'> '+nt('Wait through upstream cooldown','上游限流时等待冷却恢复')+'</label></p><p class="cell-sub">'+nt('Applies to new admissions. Existing requests keep their current deadline.','对新进入的请求生效；已有请求保留原等待期限。')+'</p><div class="row-actions"><button class="btn primary" type="submit" '+(queueSaving?'disabled':'')+'>'+nt(queueSaving?'Saving…':'Save',queueSaving?'保存中…':'保存')+'</button>'+(e.provider?'<button class="btn" type="button" data-queue-action="inherit" '+(queueSaving?'disabled':'')+'>'+nt(e.connection?'Inherit Provider / global':'Inherit global',e.connection?'继承渠道 / 全局':'继承全局')+'</button>':'')+'<button class="btn" type="button" data-queue-action="cancel" '+(queueSaving?'disabled':'')+'>'+nt('Cancel','取消')+'</button></div></form></section>';
+}
+function settingsConcurrency(){
+ if(!queueLoaded&&!queueLoading)queueMicrotask(refreshQueue);
+ const target=location.hash;
+ if(queueLoaded&&queueTargetLocation!==target&&!queueEditorLoading){queueTargetLocation=target;const params=new URLSearchParams(target.split('?')[1]||'');if(params.has('provider')||params.get('scope')==='global')queueMicrotask(()=>openQueueEditor(params.get('provider')||'',params.get('connection')||''));}
+ const rows=queueData?.connections||[],defaults=queuePolicy(queueData?.defaults||state.settings?.concurrency),providers=state.providers||[];
+ const policyText=p=>esc(p.max_concurrent||'∞')+' / '+esc(p.max_queue||256)+' / '+esc(p.max_wait_seconds||120)+'s';
+ const editButton=(provider='',connection='')=>'<button class="btn small" data-queue-action="configure" data-provider="'+esc(provider)+'" data-connection="'+esc(connection)+'" '+(queueSaving||queueEditorLoading?'disabled':'')+'>'+nt('Edit limits','编辑限制')+'</button>';
+ return '<div class="section-head"><p class="cell-sub">'+nt('Connection override → Provider override → Global defaults','连接覆盖 → 渠道覆盖 → 全局默认值')+'</p><a class="btn" href="#/queue">'+nt('View queue','查看队列')+'</a></div>'+(queueError?'<div class="notice orange" role="alert">'+esc(queueError)+' <button class="btn small" data-queue-action="refresh">'+nt('Retry','重试')+'</button></div>':'')+(queueEditorLoading?'<p role="status">'+nt('Loading policy…','正在加载策略…')+'</p>':'')+queuePolicyForm()+'<section class="card table-wrap"><table class="table concurrency-settings-table"><thead><tr><th>'+nt('Scope','范围')+'</th><th>'+nt('Policy source','策略来源')+'</th><th>'+nt('Concurrent / queued / timeout','并发 / 排队 / 超时')+'</th><th>'+nt('Actions','操作')+'</th></tr></thead><tbody><tr><td class="concurrency-name">'+nt('Global defaults','全局默认值')+'</td><td class="concurrency-source" data-label="'+nt('Policy source','策略来源')+'">'+nt('Global','全局')+'</td><td class="concurrency-limits" data-label="'+nt('Concurrent / queued / timeout','并发 / 排队 / 超时')+'">'+policyText(defaults)+'</td><td class="concurrency-actions">'+editButton()+'</td></tr>'+providers.map(p=>'<tr><td class="concurrency-name">'+nt('Provider','渠道')+' · '+esc(p.name||p.id)+'</td><td class="concurrency-source" data-label="'+nt('Policy source','策略来源')+'">'+queueSource(p.raw?.concurrency?'provider':'global')+'</td><td class="concurrency-limits" data-label="'+nt('Concurrent / queued / timeout','并发 / 排队 / 超时')+'">'+policyText(queuePolicy(p.raw?.concurrency||defaults))+'</td><td class="concurrency-actions">'+editButton(p.id)+'</td></tr>'+rows.filter(c=>c.provider_id===p.id).map(c=>'<tr><td class="concurrency-name concurrency-connection">'+nt('Connection','连接')+' · '+esc(c.identity||c.connection_id)+'</td><td class="concurrency-source" data-label="'+nt('Policy source','策略来源')+'">'+queueSource(c.policy_source)+'</td><td class="concurrency-limits" data-label="'+nt('Concurrent / queued / timeout','并发 / 排队 / 超时')+'">'+policyText(c.runtime)+'</td><td class="concurrency-actions">'+editButton(p.id,c.connection_id)+'</td></tr>').join('')).join('')+'</tbody></table></section>';
+}
+function pageQueue(){
+ if(!queueLoaded&&!queueLoading)queueMicrotask(refreshQueue);
+ return '<div class="page-head"><div class="head-main"><h1>'+nt('Queue','队列')+'</h1></div><div class="head-actions"><a class="btn primary" href="'+queueSettingsLink()+'">'+nt('Queue settings','队列设置')+'</a><button class="btn" data-queue-action="refresh">'+nt('Refresh','刷新')+'</button></div></div><div data-queue-live>'+queueLiveView()+'</div>';
+}
+async function openQueueEditor(provider='',connection=''){
+ if(queueSaving||queueEditorLoading)return;
+ const target=location.hash;queueEditorLoading=true;render();
+ try{let policy,revision;if(provider){const data=await adapter.getProvider(provider),p=data.provider;if(connection){const c=data.connections.find(c=>c.id===connection);if(!c)throw new Error(nt('Connection no longer exists','连接已不存在'));policy=c.raw?.concurrency||c.concurrency||p.raw?.concurrency||queueData?.defaults;}else policy=p.raw?.concurrency||queueData?.defaults;}else{state.settings=await adapter.getSettings();revision=state.settings.revision;policy=state.settings.concurrency;}if(location.hash!==target)return;queueEditing={provider,connection,revision,policy:queuePolicy(policy)};}
+ catch(error){showToast(error.message,'error');}finally{queueEditorLoading=false;render();}
+}
+async function saveQueuePolicy(policy){
+ if(queueSaving||!queueEditing)return;
+ const edit=queueEditing;queueSaving=true;render();
+ try{if(edit.connection){await adapter.updateConnection(edit.provider,edit.connection,{concurrency:policy});state.providerCache.delete(edit.provider);}else if(edit.provider){await adapter.updateProvider(edit.provider,{concurrency:policy});state.providerCache.delete(edit.provider);}else{state.settings=await adapter.updateSettings({concurrency:policy,expected_revision:edit.revision});}if(edit.provider){const fresh=await adapter.getProvider(edit.provider);state.providers=state.providers.map(p=>p.id===edit.provider?fresh.provider:p);}queueEditing=null;showToast(nt('Concurrency policy saved','并发策略已保存'));}
+ catch(error){showToast(error.message,'error');}
+ finally{queueSaving=false;await refreshQueue();render();}
+}
+app.addEventListener('submit',event=>{
+ if(!event.target.matches('[data-queue-form]'))return;
+ event.preventDefault();const data=new FormData(event.target),policy={};
+ for(const key of ['max_concurrent','max_queue','max_wait_seconds']){policy[key]=Number(data.get(key));if(!Number.isSafeInteger(policy[key])||policy[key]<0||(key==='max_wait_seconds'&&policy[key]>1800)){showToast(nt('Enter valid integer limits','请输入有效整数限制'),'error');return;}}
+ policy.queue_when_full=data.has('queue_when_full');policy.queue_on_throttle=data.has('queue_on_throttle');saveQueuePolicy(policy);
+});
+app.addEventListener('input',event=>{if(queueSaving||!queueEditing||!event.target.closest('[data-queue-form]'))return;const el=event.target;queueEditing.policy[el.name]=el.type==='checkbox'?el.checked:Number(el.value);});
+app.addEventListener('click',async event=>{
+ const el=event.target.closest('[data-queue-action]');if(!el||queueSaving)return;
+ switch(el.dataset.queueAction){
+ case 'refresh':await refreshQueue();return;
+ case 'cancel':queueEditing=null;break;
+ case 'configure':await openQueueEditor(el.dataset.provider||'',el.dataset.connection||'');return;
+ case 'inherit':await saveQueuePolicy(null);return;
+ }render();
+});
+setInterval(()=>{if(currentRoute().section==='queue'&&state.auth?.authenticated&&!document.hidden)refreshQueue();},3000);

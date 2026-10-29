@@ -1,0 +1,13 @@
+{
+  "project": "CLIProxyAPI",
+  "source": "https://github.com/router-for-me/CLIProxyAPI",
+  "reviewed_revision": "2a6b87aca083a5bf498ac1f68a1b636c500d7aaa",
+  "revision_role": "reviewed upstream snapshot; not a claim of original import revision",
+  "license": "MIT",
+  "license_sha256": "879792e89cf1bdd6a8d446033ec87e30496f97dcafc4656dc53f641509b346a6",
+  "local_files": [
+    "internal/oauth/device.go",
+    "internal/oauth/import_usage.go",
+    "internal/oauth/oauth.go"
+  ]
+}

@@ -1,0 +1,9 @@
+# Minimal, local-only first-run configuration. Import once into SQLite.
+# Add providers and create a unique inference API key in the console.
+# This file deliberately contains no credentials, sample keys or upstreams.
+server:
+  data_dir: ./data
+  management_addr: 127.0.0.1:7900
+  proxy_addr: 127.0.0.1:7890
+  timezone: UTC
+  log_retention_days: 30

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 常见问题 / FAQ
+    url: https://github.com/hulkbig/ferry/blob/main/docs/guide/faq.md
+    about: 安装、限流恢复、模型权限与数据。 Installation, recovery, model access and data; English link at the top.
+  - name: 贡献与 PR / Contributing and PRs
+    url: https://github.com/hulkbig/ferry/blob/main/CONTRIBUTING.md
+    about: 修改范围、验证、签署和提 PR 步骤。 Scope, checks, sign-off and PR steps; English link at the top.
+  - name: 安全问题 / Security vulnerabilities
+    url: https://github.com/hulkbig/ferry/blob/main/SECURITY.md
+    about: 通过私密渠道报告，不要发公开 Issue。 Report privately, not in a public issue; English link at the top.

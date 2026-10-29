@@ -1,0 +1,90 @@
+name: Public release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable version, e.g. 0.1.0 (existing tags are never replaced)'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: ferry-public-release
+  cancel-in-progress: false
+jobs:
+  image:
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ inputs.version }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate release inputs
+        shell: bash
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test -f "docs/releases/$VERSION.md"
+          grep -F "bighulk/ferry:$VERSION}" compose.yaml
+      - name: Build exact platform
+        shell: bash
+        run: |
+          docker build --platform "linux/$ARCH" -f deploy/Dockerfile -t "ferry:release-$ARCH" \
+            --build-arg "VERSION=$VERSION" --build-arg "COMMIT=$GITHUB_SHA" \
+            --build-arg "BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg "SOURCE=https://github.com/$GITHUB_REPOSITORY" .
+      - name: Install, authenticate, restart, back up and restore
+        run: python3 scripts/release/container_smoke.py "ferry:release-$ARCH" --platform "linux/$ARCH"
+      - name: Scan image including positive control
+        run: bash scripts/release/check_container_vulnerabilities.sh "ferry:release-$ARCH" docker
+      - name: Generate SBOM and retain checked bytes
+        shell: bash
+        run: |
+          image_id=$(docker image inspect "ferry:release-$ARCH" --format '{{.Id}}')
+          python3 scripts/container_sbom.py "$image_id" "$RUNNER_TEMP/sbom-$ARCH"
+          mkdir -p "$RUNNER_TEMP/release-$ARCH"
+          cp "$RUNNER_TEMP/sbom-$ARCH/container.cdx.json" "$RUNNER_TEMP/release-$ARCH/sbom-$ARCH.cdx.json"
+          docker save "ferry:release-$ARCH" -o "$RUNNER_TEMP/release-$ARCH/image-$ARCH.tar"
+          printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TEMP/release-$ARCH/source-$ARCH.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-${{ matrix.arch }}
+          path: ${{ runner.temp }}/release-${{ matrix.arch }}/
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+  publish:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/checked-images
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Publish checked images inside the public delivery window
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: bash scripts/release/publish_public.sh "$RUNNER_TEMP/checked-images"

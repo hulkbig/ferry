@@ -1,0 +1,58 @@
+    ${nextDetailSelected('providers',id,'configuration')?`<section class="card panel v3-configuration-card"><div class="notice orange resource-impact-notice"><strong>Route dependency</strong><span>${esc(providerImpactText(p))} Delete removes this provider from routes and migrates existing conversations.</span></div><div class="section-head"><div><h2>Provider Configuration</h2><p>One endpoint, credential, and upstream model catalog.</p></div><div class="row-actions"><button class="btn small" data-action="test-provider" data-id="${esc(id)}">Test</button><button class="btn small primary" data-action="edit-provider" data-id="${esc(id)}">Edit Provider</button></div></div><div class="grid-2"><div><div class="cell-sub">Endpoint</div><div class="cell-title mono">${esc(p.raw?.base_url||'—')}</div><div class="cell-sub" style="margin-top:12px">Credential</div><div class="cell-title">${esc(credential?.type||'Not configured')}</div><div class="cell-sub">${esc(credential?.account||'—')}</div></div><div><div class="cell-sub">Detected upstream models · listed aggregators may require manual Logical Model selection</div><div class="model-chip-list">${upstreamModels.map(model=>state.models.some(item=>item.id===model)?`<button class="badge blue model-shortcut" data-action="open-model" data-id="${esc(model)}" title="Open same-name Logical Model">${esc(model)} <span>→ Logical Model</span></button>`:`<span class="badge">${esc(model)} · Not listed</span>`).join('')||'<div class="empty"><strong>No upstream models</strong>Edit the provider to add one or more upstream model names.</div>'}</div></div></div></section>`:''}</div>`;
+}
+async function loadAndRenderProvider(id){try{const data=await adapter.getProvider(id);state.providerCache.set(id,data);render();await loadProviderCodexUsage(id,data)}catch(e){showToast(e.message,'error')}}
+async function loadProviderCodexUsage(id,data){
+  if(!id||!data||!providerIsCodex(data.provider))return;
+  await Promise.all((data.connections||[]).map(connection=>loadSharedCodexUsage(id,connection.id)));
+}
+
+function requestFilters({limit=state.requestLimit,offset=state.requestOffset}={}){
+  const outcome=state.requestFilter==='recovered'?'RECOVERED_SUCCESS':state.requestFilter==='direct'?'DIRECT_SUCCESS':state.requestFilter==='failed'?'FAILED':'';
+  const filters={logical_model:state.requestLogicalModel,participating_provider:state.requestParticipatingProvider,attempt_status:state.requestAttemptStatus,attempt_failure_type:state.requestAttemptFailureType,report_error:state.requestReportError,window:state.requestWindow,q:state.requestSearch,conversation_id:state.requestConversation,model:state.requestModel,provider:state.requestProvider,api_key:state.requestApiKey,connection:state.requestConnection,failure_type:state.requestFailureType,status:['canceled','received','waiting','active','recovering','streaming','delivering'].includes(state.requestFilter)?state.requestFilter:state.requestStatus,runtime_revision:state.requestRevision,outcome,limit,offset};
+  if(state.requestFrom)filters.from=new Date(state.requestFrom).toISOString();if(state.requestTo)filters.to=new Date(state.requestTo).toISOString();return filters;
+}
+let requestLoadGeneration=0;
+async function reloadRequests(){
+  const generation=++requestLoadGeneration;state.requestLoading=true;render();
+  try{const requests=await adapter.getRequests(requestFilters());if(generation!==requestLoadGeneration)return;state.requests=requests;state.requestTotal=Number(requests.total??requests.length);state.requestLastUpdated=new Date();}
+  catch(e){if(generation===requestLoadGeneration)showToast(e.message,'error')}
+  finally{if(generation===requestLoadGeneration){state.requestLoading=false;render()}}
+}
+
+function requestDataSync(id){
+  const detail=state.requestCache.get(id),listed=state.requests.find(r=>r.id===id);
+  if(!detail)return listed;if(!listed)return detail;
+  const cached=detail.raw?.reference_pricing,latest=listed.raw?.reference_pricing;
+  return latest&&(!cached||Date.parse(latest.updated_at)>=Date.parse(cached.updated_at))?{...detail,raw:{...detail.raw,reference_pricing:latest}}:detail;
+}
+function prettyDebug(value){try{return JSON.stringify(value,null,2)}catch{return String(value??'')}}
+async function loadAndRenderRequest(id){try{state.requestCache.set(id,await adapter.getRequest(id));render()}catch(e){showToast(e.message,'error')}}
+function conversationRequestsSort(left,right){const a=Date.parse(left.timestamp||''),b=Date.parse(right.timestamp||'');if(Number.isFinite(a)&&Number.isFinite(b)&&a!==b)return a-b;const time=String(left.time||'').localeCompare(String(right.time||''));return time||String(left.id||'').localeCompare(String(right.id||''))}
+async function loadConversationRequests(conversationId,{force=false}={}){
+  if(!conversationId||conversationId==='—')return [];
+  if(!force&&state.conversationCache.has(conversationId))return state.conversationCache.get(conversationId);
+  if(state.conversationLoading.has(conversationId))return state.conversationLoading.get(conversationId);
+  const pending=(async()=>{try{const collected=[];let offset=0,total=0;do{const page=await adapter.getRequests({window:'720h',conversation_id:conversationId,limit:1000,offset});collected.push(...page);offset+=page.length;total=Number(page.total??collected.length);if(!page.length)break;}while(offset<total);const ordered=collected.sort(conversationRequestsSort);state.conversationCache.set(conversationId,ordered);if(state.drawer?.type==='conversation'&&state.drawer.conversationId===conversationId)state.drawer.error='';return ordered;}catch(error){if(state.drawer?.type==='conversation'&&state.drawer.conversationId===conversationId)state.drawer.error=error.message||'Conversation requests could not be loaded.';throw error;}finally{state.conversationLoading.delete(conversationId);render();}})();
+  state.conversationLoading.set(conversationId,pending);render();return pending;
+}
+async function inspectConversationRequest(id){
+  const drawer=state.drawer;if(!drawer||drawer.type!=='conversation')return;
+  drawer.currentRequestId=id;drawer.error='';
+  const item=(state.conversationCache.get(drawer.conversationId)||[]).find(request=>request.id===id);if(item&&!state.requestCache.has(id))state.requestCache.set(id,item);
+  history.replaceState(null,'',`#/requests/${encodeURIComponent(id)}`);render();
+  try{state.requestCache.set(id,await adapter.getRequest(id));render()}catch(error){drawer.error=error.message||'Request detail could not be loaded.';render();}
+}
+function decorateRequestConversationTrigger(request){
+  const conversationId=request.conversation;if(!conversationId||conversationId==='—')return;
+  if(!state.conversationCache.has(conversationId)&&!state.conversationLoading.has(conversationId))loadConversationRequests(conversationId).catch(()=>{});
+  const summary=app.querySelector('.request-model-summary'),chip=summary?.querySelector('.request-conversation-summary');if(!chip||chip.classList.contains('request-conversation-trigger')||currentRoute().id!==request.id)return;
+  const count=state.conversationCache.get(conversationId)?.length,button=document.createElement('button');button.type='button';button.className=`${chip.className} request-conversation-trigger`;button.dataset.action='open-conversation-trail';button.dataset.conversation=conversationId;button.dataset.id=request.id;button.title=`Open all requests in ${conversationId}`;button.innerHTML=`<span class="request-conversation-icon">${icon('route')}</span><strong class="mono">${esc(conversationId)}</strong><small>Conversation · ${count===undefined?'Loading trail…':`${count} request${count===1?'':'s'}`}</small>`;chip.replaceWith(button);
+}
+function decorateRequestWindowOptions(){
+ const select=app.querySelector('[data-action="request-window"]');if(!select)return;
+ for(const [value,label] of [['168h',nt('7 days','7 天')],['720h',nt('30 days','30 天')]])if(!select.querySelector(`option[value="${value}"]`))select.add(new Option(label,value));
+ if(state.requestFrom||state.requestTo){const option=new Option(nt('Exact time range','精确时间范围'),'exact');option.disabled=true;select.add(option);select.value='exact';}else select.value=state.requestWindow;
+ for(const [action,value,label] of [['request-model',state.requestLogicalModel,nt('Exact match','精确匹配')],['request-provider',state.requestParticipatingProvider,nt('Participating','参与尝试')],['request-filter',state.requestStatus||state.requestAttemptStatus||state.requestAttemptFailureType||state.requestReportError,nt('Report outcome filter','报表结果筛选')]]){
+  const field=app.querySelector(`[data-action="${action}"]`);if(!value||!field)continue;const option=new Option(`${value} · ${label}`,'report-scope');option.disabled=true;field.add(option);field.value='report-scope';
+ }
+}

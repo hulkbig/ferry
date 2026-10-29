@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import vm from 'node:vm';
+import {MockFerryAdapter} from './api.js';
+const source=await fs.readFile(new URL('./app.part6.jsfrag',import.meta.url),'utf8');
+const state={settings:{}};const patches=[];
+const context=vm.createContext({state,Number,esc:String,showToast(){},render(){},adapter:{async updateSettings(patch){patches.push(structuredClone(patch));return structuredClone(patch)}}});
+vm.runInContext(source.slice(source.indexOf('function settingsCodexUsageProtection()')),context);
+assert.match(context.settingsCodexUsageProtection(),/value="98"/);
+assert.doesNotMatch(context.settingsCodexUsageProtection(),/data-action="codex-allow-credits"\s+checked/);
+await context.updateCodexUsageProtectionSetting({dataset:{action:'codex-usage-threshold'},value:'96.5'});
+await context.updateCodexUsageProtectionSetting({dataset:{action:'codex-allow-credits'},checked:true});
+assert.deepEqual(patches.at(-1),{codex_usage_protection:{max_used_percent:96.5,allow_credits:true}});
+for(const value of ['','NaN','0','-1','101'])await context.updateCodexUsageProtectionSetting({dataset:{action:'codex-usage-threshold'},value});
+assert.equal(patches.length,2);
+const mock=new MockFerryAdapter();assert.deepEqual((await mock.getSettings()).codex_usage_protection,{max_used_percent:98,allow_credits:false});
+await mock.updateSettings(patches[1]);assert.deepEqual((await mock.getSettings()).codex_usage_protection,patches[1].codex_usage_protection);
+console.log('Codex usage protection: PASS');

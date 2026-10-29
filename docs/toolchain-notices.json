@@ -1,0 +1,20 @@
+{
+  "version": "go1.26.10",
+  "notices": [
+    {
+      "path": "LICENSES/toolchain/go1.26.10/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "source": "LICENSE"
+    },
+    {
+      "path": "LICENSES/toolchain/go1.26.10/PATENTS",
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+      "source": "PATENTS"
+    },
+    {
+      "path": "LICENSES/toolchain/go1.26.10/time/README",
+      "sha256": "0746c930fbd8f0237c008313f1c37561735487d5d59a8f658ebd01ede3dc6b66",
+      "source": "lib/time/README"
+    }
+  ]
+}

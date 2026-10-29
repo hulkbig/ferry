@@ -1,0 +1,110 @@
+async function ensureRequest(id) {
+  if (!state.requestCache.has(id)) state.requestCache.set(id, await adapter.getRequest(id));
+  return state.requestCache.get(id);
+}
+
+const demoOverviewWindows={'15m':15,'1h':60,'24h':1440,'168h':10080};
+function scaleDemoTrafficSeries(series,factor,windowMinutes,fixtureTo){
+  const points=series.points||[],fromMS=fixtureTo-windowMinutes*60000,bucketMS=windowMinutes*60000/Math.max(1,points.length);
+  const scaledPoints=points.map((point,index)=>({from:new Date(fromMS+bucketMS*index).toISOString(),to:new Date(fromMS+bucketMS*(index+1)).toISOString(),requests:Number(point.requests||0)*factor,succeeded:Number(point.succeeded||0)*factor,failed:Number(point.failed||0)*factor}));
+  const requests=scaledPoints.reduce((sum,point)=>sum+point.requests,0),succeeded=scaledPoints.reduce((sum,point)=>sum+point.succeeded,0);
+  return {...series,requests,succeeded,failed:requests-succeeded,successRate:requests?succeeded/requests*100:null,points:scaledPoints};
+}
+function scenarioView(selectedWindow=state.overviewWindow) {
+  if (!demoMode) {
+    const overview = state.overview || emptyOverview();
+    const hasTraffic=overview.hasTraffic !== false;
+    return {
+      system:overview.systemStatus || 'Unavailable', model:null, provider:null, description:'Live runtime data',
+      direct:hasTraffic?Number(overview.directSuccessPct || 0):null, recovered:hasTraffic?Number(overview.recoveredPct || 0):null, failed:hasTraffic?Number(overview.failedPct || 0):null,
+      recoveredCount:Number(overview.recoveredCount || 0), fallbacks:overview.providerFallbacks,
+      modelTraffic:[], needs:Number(overview.needsAttention || 0), hasTraffic,
+    };
+  }
+  const scenario = scenarios[state.scenario] || scenarios.protected;
+  const windowMinutes=demoOverviewWindows[selectedWindow]||15,factor=windowMinutes/15,scale=value=>Number(value||0)*factor;
+  const outcomes=scenario.outcomes||{},directCount=scale(outcomes.direct),recoveredCount=scale(outcomes.recovered),failedCount=scale(outcomes.failed),totalRequests=directCount+recoveredCount+failedCount;
+  const fixtureTo=Date.parse(scenario.trend?.at(-1)?.to||'')||Date.now(),scalePoints=points=>scaleDemoTrafficSeries({points},factor,windowMinutes,fixtureTo).points;
+  const trafficTrends=Object.fromEntries(Object.entries(scenario.trafficTrends||{}).map(([dimension,series])=>[dimension,(series||[]).map(item=>scaleDemoTrafficSeries(item,factor,windowMinutes,fixtureTo))]));
+  const providerRecovered=scale(scenario.providerRecovered),providerFailed=scale(scenario.providerFailed),fallbacks=scale(scenario.fallbacks),modelOutcomes=Object.fromEntries(Object.entries(scenario.modelOutcomes||{}).map(([key,value])=>[key,scale(value)]));
+  const managedEvents=scenario.id==='healthy'?[]:scenario.id==='protected'?[{kind:'ok',title:'Primary capacity recovered automatically',detail:`${providerRecovered} requests retried or moved · no client errors`}]:scenario.id==='exhausted'?[{kind:'ok',title:'Fallback providers carried client traffic',detail:`${fallbacks} requests recovered · no client errors`}]:[{kind:'error',title:'Logical model unavailable',detail:`${failedCount} client requests failed in the selected window`}];
+  return {...scenario,outcomes:{direct:directCount,recovered:recoveredCount,failed:failedCount},modelOutcomes,providerRecovered,providerFailed,fallbacks,trafficTrends,trend:scalePoints(scenario.trend||[]),managedEvents,totalRequests,recoveredCount,failedCount,windowMinutes,requestRate:Math.round(totalRequests/windowMinutes*100)/100,totalTokens:scale(scenario.usage?.tokens),estimatedCost:new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(scale(scenario.usage?.estimatedCost)),
+    direct:totalRequests?directCount/totalRequests*100:0,recovered:totalRequests?recoveredCount/totalRequests*100:0,failed:totalRequests?failedCount/totalRequests*100:0};
+}
+
+function render() {
+  if(typeof syncImportRoute==='function')syncImportRoute();
+  if (state.loading) {
+    app.innerHTML = `<div style="min-height:100vh;display:grid;place-items:center;color:#667085">Loading Ferry Console…</div>`;
+    if(typeof localizeDOM==='function')localizeDOM(app);
+    return;
+  }
+  if (state.error) {
+    app.innerHTML = `<div style="max-width:680px;margin:80px auto" class="card panel"><h2>Console failed to load</h2><p>${esc(state.error.message)}</p><button class="btn primary" data-action="reload">Retry</button></div>`;
+    if(typeof localizeDOM==='function')localizeDOM(app);
+    return;
+  }
+  if (!state.auth?.initialized || !state.auth?.authenticated) {
+    app.innerHTML = authenticationPage();
+    localizeDOM(app);
+    return;
+  }
+  const route = currentRoute();
+  app.innerHTML = shell(route, renderPage(route));
+  renderPortal();
+  localizeDOM(app);
+  bindImportFileInputs();
+}
+
+function authenticationPage() {
+  const initialize = !state.auth?.initialized;
+  return `<div class="auth-shell"><section class="card auth-card"><div class="brand auth-brand"><div class="brand-mark"><img class="brand-primary" src="./brand.svg?brand=interlock-v1" width="29" height="29" alt="" aria-hidden="true"><img class="brand-reverse" src="./brand-reverse.svg?brand=interlock-v1" width="29" height="29" alt="" aria-hidden="true"></div><div class="brand-name">Ferry</div></div><h1>${initialize?'Initialize administrator':'Administrator sign in'}</h1><p>${initialize?'Create the only administrator for this Local Ferry runtime. Initialization closes permanently after success.':'Sign in to manage models, providers, routing and API keys.'}</p><div class="next-auth-preferences"><button class="btn ghost" data-next="locale">◎ Language / 语言</button>${consoleThemeControl()}</div><form data-form="${initialize?'initialize':'login'}" class="stack"><div class="field"><label for="auth-username">Username</label><input id="auth-username" name="username" autocomplete="username" required maxlength="64" value="${esc(state.wizard.authUsername||'')}"></div><div class="field"><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" autocomplete="${initialize?'new-password':'current-password'}" required minlength="12"></div>${initialize?'<div class="field"><label for="auth-confirmation">Confirm password</label><input id="auth-confirmation" name="confirmation" type="password" autocomplete="new-password" required minlength="12"></div><div class="notice orange"><strong>First-access boundary</strong><span>Finish initialization immediately after deployment. Any visitor who reaches an uninitialized console can claim the sole administrator.</span></div>':''}<button class="btn primary" type="submit">${initialize?'Create administrator':'Sign in'}</button></form></section></div>`;
+}
+
+function shell(route, content) {
+  const nav = [
+    ['overview','Overview','overview'], ['models','Models & Routing','models'], ['providers','Providers','providers'], ['queue','Queue','route'], ['requests','Requests','requests'], ['billing','Usage & Billing','requests'], ['api-keys','API Keys','keys'], ['settings','Settings','settings']
+  ];
+  const active = route.section === 'api-keys' ? 'api-keys' : route.section;
+  return `
+    <div class="app-shell visual-v3" data-visual-version="next">
+      <aside id="main-navigation" class="sidebar ${state.mobileNav ? 'open':''}">
+        <div class="brand"><div class="brand-mark"><img class="brand-primary" src="./brand.svg?brand=interlock-v1" width="29" height="29" alt="" aria-hidden="true"><img class="brand-reverse" src="./brand-reverse.svg?brand=interlock-v1" width="29" height="29" alt="" aria-hidden="true"></div><div class="brand-name">Ferry</div></div>
+        <nav class="nav">${nav.map(([id,label,ic]) => `<a class="nav-link ${active===id?'active':''}" href="#/${id}" data-nav><span class="nav-icon">${icon(ic)}</span>${label}</a>`).join('')}</nav>
+        <div class="sidebar-spacer"></div>
+        <div class="sidebar-status">
+          <div class="runtime-pill"><span class="status-dot ${state.partialErrors.length?'orange':'green'}"></span><span>${state.partialErrors.length?'Runtime partially available':'Runtime connected'}</span></div>
+          <div class="sidebar-utilities"><button class="sidebar-utility" data-action="alerts-open">${icon('alert')}<span>Alerts</span>${state.alertUnread?`<b>${state.alertUnread}</b>`:''}</button></div>
+          ${demoMode?`<label class="sidebar-scenario"><span>Demo scenario</span><select class="select" data-action="scenario-change">${Object.values(scenarios).map(s => `<option value="${s.id}" ${s.id===state.scenario?'selected':''}>${esc(s.label)}</option>`).join('')}</select></label>`:''}
+          <div class="user-row"><div class="avatar">${esc((state.auth?.username||'A').slice(0,1).toUpperCase())}</div><div><strong>${esc(state.auth?.username||'Administrator')}</strong><small>Administrator</small></div><button class="btn icon ghost" title="Sign out" aria-label="Sign out" data-action="logout">${icon('logout')}</button></div>
+        </div>
+      </aside>
+      ${state.mobileNav?'<button class="mobile-scrim" data-action="mobile-menu" aria-label="Close navigation"></button>':''}
+      <header class="topbar">
+        <div class="topbar-left"><button class="btn icon mobile-menu" data-action="mobile-menu" aria-label="Toggle navigation" aria-controls="main-navigation" aria-expanded="${state.mobileNav}">${icon('menu')}</button><div class="breadcrumb">${breadcrumb(route)}</div></div>
+        <div class="topbar-right"><button class="btn ghost next-preference" data-next="locale" aria-label="Switch language">◎ <span>Language</span></button>${consoleThemeControl()}
+          <button class="btn icon alert-bell" data-action="alerts-open" title="Alerts">${icon('alert')}${state.alertUnread?`<span>${state.alertUnread}</span>`:''}</button>
+          ${demoMode?`<div class="scenario-wrap"><span class="scenario-label">Demo Scenario</span><select class="select" data-action="scenario-change">${Object.values(scenarios).map(s => `<option value="${s.id}" ${s.id===state.scenario?'selected':''}>${esc(s.label)}</option>`).join('')}</select></div>`:'<span class="badge green"><span class="status-dot green"></span>Live API</span>'}
+        </div>
+      </header>
+      <div class="main-grid">
+        <main class="main-content" id="app-main">${state.partialErrors.length?`<div class="notice orange" style="margin-bottom:14px"><strong>Some console data is unavailable.</strong><span>${state.partialErrors.map(item=>esc(item.key)).join(', ')} failed; available sections remain live.</span></div>`:''}${content}</main>
+      </div>
+    </div>`;
+}
+
+function breadcrumb(route) {
+  const map = {queue:'Queue',overview:'Overview',models:'Models & Routing',providers:'Providers',requests:'Requests',billing:'Usage & Billing','api-keys':'API Keys',settings:'Settings'};
+  const parent=map[route.section] || esc(route.section);
+  const detail=route.section==='settings'?({general:'General',concurrency:'Queue & Concurrency',import:nt('Import & Migration','导入与迁移'),backup:'Backups',revisions:'Audit & Revisions',security:'Security'}[route.id]||route.id):route.id;
+  return route.id ? `<a class="breadcrumb-parent" href="#/${esc(route.section)}" data-nav>${parent}</a> <span aria-hidden="true">›</span> <span aria-current="page">${esc(detail)}</span>` : `<strong>${parent}</strong>`;
+}
+
+function renderPage(route) {
+  if (route.section === 'queue') return pageQueue();
+  if (route.section === 'billing') return pageBillingNext();
+  if (route.section === 'overview') return pageOverviewNext();
+  if (route.section === 'models' && route.id) return pageModel(route.id);
+  if (route.section === 'models') return pageModels();
+  if (route.section === 'providers' && route.id) return pageProvider(route.id);
+  if (route.section === 'providers') return pageProviders();

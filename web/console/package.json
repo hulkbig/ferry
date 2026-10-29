@@ -1,0 +1,9 @@
+{
+  "name": "ferry-console",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node ./smoke.mjs && node ./http-adapter.test.mjs && node ./request-speed.test.mjs && node ./statistics.test.mjs && node ./analytics.test.mjs && node ./ui-state.test.mjs && node ./quota-cache.test.mjs && node ./subscription-usage.test.mjs && node ./usage-reset.test.mjs && node ./usage-reset-auto.test.mjs && node ./usage-protection.test.mjs && node ./relogin.test.mjs && node ./queue.test.mjs && node ./theme.test.mjs && node ./locale-regression.test.mjs && node ./first-output-timeout.test.mjs && node ./skill-install.test.mjs && node ./provider-presets.test.mjs && node ./native-oauth.test.mjs && node ./import.test.mjs && node ./verify-source.mjs",
+    "serve": "python3 -m http.server 4173"
+  }
+}

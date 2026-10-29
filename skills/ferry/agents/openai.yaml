@@ -1,0 +1,8 @@
+interface:
+  display_name: "Ferry Operator"
+  short_description: "Operate Ferry with token-gated controls"
+  brand_color: "#5D52D9"
+  default_prompt: "Use $ferry to inspect my Ferry runtime and explain anything that needs attention."
+
+policy:
+  allow_implicit_invocation: true

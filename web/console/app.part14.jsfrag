@@ -1,0 +1,1349 @@
+
+// Exact UI copy only; identifiers, code, secrets and user input are preserved.
+const consoleMessages=Object.fromEntries(`
+Import accounts|导入账号
+Next page|下一页
+Non-streaming|非流式
+Response mode|响应模式
+Required capabilities|所需能力
+First frame / TTFT|首帧 / 首响应
+Complete response|完成耗时
+Input tokens|输入 Token
+Output tokens|输出 Token
+Cache read tokens|缓存读取 Token
+Cache write tokens|缓存写入 Token
+Reasoning tokens|推理 Token
+Attempts|尝试次数
+Provider fallbacks|渠道回退次数
+Conversation rebind|会话重新绑定
+Recovery overhead|恢复额外耗时
+Continuity|连续性
+Failure message|失败信息
+Request Received|已接收请求
+Receiving Request Body|正在接收请求体
+Request Body Received|已接收请求体
+Request Body Receive Failed|请求体接收失败
+Parsing Request Body|正在解析请求体
+Request Body Parsed|已解析请求体
+Request Body Parse Failed|请求体解析失败
+Planning Route|正在规划路由
+Logical Model Resolved|已解析逻辑模型
+Route Plan Resolved|已解析路由方案
+Route Planning Completed|路由规划完成
+Route Planning Failed|路由规划失败
+Route Planning Canceled|路由规划已取消
+Checking Request Compatibility|正在检查请求兼容性
+Request Compatibility Checked|请求兼容性检查完成
+Connection Admission Completed|连接准入完成
+First Upstream Event Received|已收到上游首个事件
+Routing Override Matched|已匹配路由覆盖规则
+Candidate Excluded|已排除候选
+Connection Selected|已选择连接
+Provider Retry|渠道内重试
+Provider Fallback|渠道回退
+Conversation Route Migration|会话路由迁移
+Conversation Continuation Reused|已复用会话续接
+Conversation Rehydrate|正在恢复会话上下文
+Conversation Rehydrated|会话上下文已恢复
+Response Committed|响应已开始交付
+Response Completed|响应完成
+Recovery Stopped|恢复已停止
+
+Enter explicit model IDs for this account. Automatic catalog sync is off; verify configured models to establish capabilities.|请输入此账号的明确模型 ID。自动目录同步已关闭；验证已配置模型后才能确认能力。
+Service account JSON|服务账号 JSON
+Sensitive credentials are cleared on submission.|敏感凭据在提交时清除。
+Location|区域
+OAuth client ID|OAuth 客户端 ID
+OAuth client secret|OAuth 客户端密钥
+Use your authorized matching OAuth client. Credentials are not imported from the environment.|请使用你已获授权且匹配的 OAuth 客户端。不会从环境自动导入凭据。
+Complete the required sign-in fields.|请填写必要的登录字段。
+Import account|导入账号
+Complete import|完成导入
+API key configuration|API 密钥配置
+Native provider sign-in|原生渠道登录
+Sign-in saves account credentials only. Save the Provider separately to apply configuration.|登录仅保存账号凭据。需另行保存渠道才能应用配置。
+Native sign-in is unavailable in demo mode.|演示模式不支持原生登录。
+Native provider|原生渠道
+Select a provider|选择渠道
+Local account label|本地账号名称
+Letters, numbers, dots, underscores and hyphens.|可使用字母、数字、点、下划线和连字符。
+Signed in|已登录
+Waiting for sign-in|等待登录
+Sign-in expired|登录已过期
+Not signed in|尚未登录
+Authorization received; finish account setup|已获授权，请完成账号设置
+Sign in again|请重新登录
+Finish account setup|完成账号设置
+Loading sign-in options…|正在加载登录选项…
+This provider requires a managed credential import. Check status after importing the account.|此渠道需要通过管理接口导入凭据。导入账号后请检查状态。
+Start sign-in|开始登录
+Refresh sign-in status|刷新登录状态
+Reload providers|重新加载渠道
+Disconnect account|断开账号
+Open sign-in page|打开登录页面
+Sign-in code|登录验证码
+Browser callback|浏览器回调
+Paste the full callback URL or code#state|粘贴完整回调 URL 或 code#state
+Complete sign-in|完成登录
+Check sign-in|检查登录
+Native sign-in is unavailable for this selection.|当前选择暂不支持原生登录。
+Use a local account label with letters, numbers, dots, underscores or hyphens.|本地账号名称须使用字母、数字、点、下划线或连字符。
+Paste the complete browser callback before finishing sign-in.|完成登录前请粘贴完整浏览器回调。
+Sign-in could not finish. Check status before trying again.|登录未能完成。重试前请先检查状态。
+Connect the selected native account before saving or verifying.|保存或验证前请先登录所选原生账号。
+Native credentials require the registered endpoint and native protocol.|原生凭据只能用于登记的地址和原生协议。
+Native supply uses the selected provider protocol. Conversion settings remain available here.|原生模型使用所选渠道的协议。此处仍可配置协议转换。
+Native verification failed. Check sign-in status.|原生验证失败，请检查登录状态。
+Native sign-in is unavailable. Check the account status and try again.|原生登录暂不可用，请检查账号状态后重试。
+Subscription plans|订阅套餐
+Subscription API key|订阅 API 密钥
+GLM Coding Plan|GLM Coding Plan 订阅
+Z.ai Coding Plan|Z.ai Coding Plan 订阅
+Alibaba Coding Plan|阿里云 Coding Plan
+Alibaba Token Plan|阿里云 Token Plan
+Volcengine Ark Coding Plan|豆包火山方舟 Coding Plan
+Volcengine Ark Agent Plan|豆包火山方舟 Agent Plan
+Kimi Coding China|Kimi Coding 国内站
+Kimi Coding International|Kimi Coding 国际站
+MiniMax China M Plan|MiniMax 国内站 M Plan
+MiniMax International M Plan|MiniMax 国际站 M Plan
+Baidu Qianfan Coding Plan (legacy)|百度千帆 Coding Plan（存量套餐）
+Baidu Qianfan Token Plan|百度千帆 Token Plan
+Use a dedicated subscription API key. Protocol and model availability must be detected for this account.|使用订阅专用 API 密钥。需探测当前账号可用的协议和模型。
+Use a dedicated subscription API key. Plan model discovery requires separate Volcengine control-plane AK/SK credentials.|使用订阅专用 API 密钥。套餐模型目录需要独立的火山引擎控制平面 AK/SK 凭据。
+For existing Coding Plan subscriptions only. New subscriptions use Token Plan; credentials are not migrated automatically.|仅供已有 Coding Plan 订阅使用。新订阅使用 Token Plan；凭据不会自动迁移。
+Recovering|恢复中
+Protected|已保护
+Provider Exhausted|渠道容量耗尽
+Model Unavailable|模型不可用
+Provider recovery active|渠道正在恢复
+Provider capacity reduced|渠道可用容量减少
+Search providers, endpoints or models…|搜索渠道、端点或模型…
+Primary capacity is reduced. Ferry is recovering traffic without client-visible errors.|主渠道容量减少，Ferry 正在恢复流量，客户端未受到错误影响。
+Recovery time is not reported.|未提供恢复时间。
+The upstream connection is temporarily unavailable.|上游连接暂时不可用。
+Recovery validation in progress|正在验证恢复状态
+Waiting for recovery validation|等待验证恢复状态
+Administrator action required|需要管理员处理
+Quota unavailable|额度不可用
+Connection cooling down|连接冷却中
+Connection unavailable|连接不可用
+Overview|运行概览
+Disabling or deleting a provider immediately changes eligible Logical Model routes. New requests may use fallbacks or fail when no route remains; existing conversations migrate and in-flight requests finish on their current revision.|停用或删除渠道会立即影响可用的逻辑模型路由。新请求可能转入备用渠道，无可用路由时将失败；现有会话会迁移，执行中的请求继续使用当前版本完成。
+→ Logical Model|→ 逻辑模型
+Open same-name Logical Model|打开同名逻辑模型
+upstream|上游模型
+logical models|逻辑模型
+Models & Routing|模型与路由
+Models|模型
+Providers|渠道
+Requests|请求日志
+API Keys|API 密钥
+Read Only (Analytics)|只读（统计）
+Settings|设置
+Workspace|工作空间
+Production workspace|生产工作空间
+Runtime connected|运行时已连接
+Runtime partially available|运行时部分可用
+Runtime Insights|运行洞察
+Runtime revision|运行版本
+Alerts|告警
+Administrator|管理员
+Language|English
+Switch language|切换语言
+Switch theme|切换主题
+Sign out|退出登录
+Live API|已连接 API
+Toggle navigation|展开导航
+Close navigation|关闭导航
+Close dialog|关闭弹窗
+Skip to content|跳至内容
+Loading Ferry Console…|正在加载 Ferry 控制台…
+Console failed to load|控制台加载失败
+Some console data is unavailable.|部分控制台数据暂不可用。
+Administrator sign in|管理员登录
+Initialize administrator|初始化管理员
+Sign in to manage models, providers, routing and API keys.|登录后管理模型、渠道、路由及 API 密钥。
+Create the only administrator for this Local Ferry runtime. Initialization closes permanently after success.|为此 Ferry 创建唯一管理员。成功后将永久关闭初始化入口。
+Username|用户名
+Password|密码
+Confirm password|确认密码
+First-access boundary|首次访问保护
+Finish initialization immediately after deployment. Any visitor who reaches an uninitialized console can claim the sole administrator.|部署后请立即完成初始化。未初始化的控制台可被任意访问者注册为唯一管理员。
+Create administrator|创建管理员
+Sign in|登录
+Retry|重试
+Add|添加
+Create|创建
+Edit|编辑
+Save|保存
+Save Changes|保存更改
+Cancel|取消
+Close|关闭
+Back|返回
+Next|下一步
+Previous|上一页
+Done|完成
+Delete|删除
+Remove|移除
+Copy|复制
+Reveal|显示
+Hide|隐藏
+Enable|启用
+Disable|停用
+Enabled|已启用
+Disabled|已停用
+Enabled for routing|参与路由
+Disabled model preview|已停用模型预览
+Active|活跃
+Inactive|未激活
+Status|状态
+Name|名称
+Display name|显示名称
+Description|描述
+Actions|操作
+Details|详情
+Configure|配置
+Configuration|配置
+Refresh|刷新
+Test|测试
+Testing…|测试中…
+Testing connection…|正在测试连接…
+Clear|清除
+Clear filters|清除筛选
+All|全部
+All Models|全部模型
+All Providers|全部渠道
+All API Keys|全部 API 密钥
+All Outcomes|全部结果
+All Status|全部状态
+All Types|全部类型
+Advanced|高级
+Advanced filters|高级筛选
+Selected window|统计周期
+Last 15 min|近 15 分钟
+Last hour|近 1 小时
+Last 24 hours|近 24 小时
+Last 7 days|近 7 天
+15 min|15 分钟
+1 hour|1 小时
+24 hours|24 小时
+7 days|7 天
+30 days|30 天
+Time|时间
+From|开始
+To|结束
+Cost|费用
+Cost · USD|费用 · USD
+Cost & Pricing|费用与计价
+USD · Cost & pricing|USD · 费用与计价
+Recorded Cost|账本费用
+Recorded cost|账本费用
+Estimated Cost|预估费用
+Reference estimate|参考估值
+Current reference price|当前参考价格
+Price source|价格来源
+Total|总计
+Usage|用量
+Usage & Billing|用量与费用
+Usage & Recovery|用量与恢复
+Total Requests|总请求数
+Total requests|总请求数
+Total Tokens|总 Token 数
+Tokens|Token 用量
+Input / Output Tokens|输入 / 输出 Token
+Tokens · In / Out|Token · 输入 / 输出
+Tokens / min|Token / 分钟
+Avg / 1K Tokens|平均每千 Token 费用
+Requests / min|请求 / 分钟
+Requests per minute|每分钟请求数
+Request ID|请求 ID
+Request Cost|请求费用
+Codex Usage Protection|Codex 额度保护
+Maximum subscription usage (%)|订阅额度使用上限（%）
+Allow paid Credits|允许使用付费 Credits
+Enabling Credits bypasses the threshold and allows paid usage.|开启 Credits 后可越过阈值，并产生付费消耗。
+Enter a percentage greater than 0 and at most 100.|请输入大于 0 且不超过 100 的百分比。
+Codex usage protection saved.|已保存 Codex 额度保护设置。
+Automatic Codex Reset Cards|自动使用 Codex 重置卡
+Use available reset cards before they expire.|在可用重置卡到期前自动使用。
+Remaining validity (minutes)|剩余有效期（分钟）
+Default 20 minutes. Checks enabled Codex connections every 30 seconds. Expired cards, unknown expiry dates, and accounts awaiting reset review are skipped.|默认 20 分钟。每 30 秒检查已启用的 Codex 连接，跳过已过期、有效期不明的卡及有待确认重置记录的账户。
+Enter a whole number from 1 to 1440.|请输入 1 至 1440 之间的整数。
+Automatic reset settings saved.|自动重置设置已保存。
+Request Debug|请求调试
+Debug Request|请求内容
+Debug Response|响应内容
+Failure type|失败类型
+Failures|失败记录
+Failed|失败
+Canceled|已取消
+Direct|直接成功
+Direct Success|直接成功
+Recovered|恢复成功
+Recovered Requests|恢复成功请求
+Recovered requests / 15min|恢复成功请求 / 15 分钟
+Failed requests / 15min|失败请求 / 15 分钟
+Recovered / 15min|恢复成功 / 15 分钟
+Client Success|客户端成功率
+Client Experience|客户端体验
+First token|首响应
+First Token (avg)|首响应（平均）
+First Frame / TTFT|首帧 / 首响应
+Complete Response|完整响应
+Complete (avg)|完成耗时（平均）
+Median Latency|延迟中位数
+Timing|耗时
+Prompt Cache|提示词缓存
+Prompt Cache Hit Rate|提示词缓存命中率
+Overall cache hit rate|整体缓存命中率
+Cache writes|缓存写入
+Execution Trace|执行轨迹
+Attempt Path|尝试路径
+Candidate Exclusions|候选排除原因
+Conversation|会话
+Conversation trail unavailable|会话轨迹暂不可用
+Loading conversation trail…|正在加载会话轨迹…
+Loading request…|正在加载请求…
+No matching requests|没有匹配的请求
+No linked requests found|未找到关联请求
+No attempt path recorded.|没有记录尝试路径。
+No candidates were excluded.|没有排除候选项。
+No trace events recorded|没有执行事件
+No debug payload was recorded|未记录调试内容
+No requests recorded in this window.|当前周期暂无请求记录。
+No requests in the last 30 days.|近 30 天没有请求记录。
+Clear filters or widen the window.|清除筛选或扩大统计周期。
+View Requests|查看请求
+View requests|查看请求
+View attempts and pricing versions →|查看尝试及计价版本 →
+Recent requests|最近请求
+Events are ordered by recorded time. Expand a row for evidence.|事件按记录时间排列，展开后查看明细。
+One client request with grouped routing decisions, provider attempts, and structured evidence.|查看单次客户端请求的路由决策、渠道尝试及执行证据。
+This request may be outside the retained ledger window.|此请求可能已超出账本保留期限。
+Scroll horizontally to inspect response timing and actions.|横向滚动查看响应耗时及操作。
+Costs are recorded estimates. Unobserved cost is shown as —; unknown prices do not imply free usage.|费用为记录的估算值。未观测费用显示为 —；未知价格不代表免费。
+Recorded estimates in USD. Missing prices do not mean free usage.|以 USD 显示账本估算费用，缺少价格不代表免费。
+Historical attempts preserve pricing versions. Exact unit rates are not retained on old attempt records.|历史尝试保留计价版本；旧记录没有保存具体单价。
+Logical Model|逻辑模型
+Logical model|逻辑模型
+Logical models|逻辑模型
+Model ID|模型 ID
+Model detail|模型详情
+Model capabilities|模型能力
+Models this key may use|此密钥可用的模型
+Actual Model|实际模型
+Upstream Model|上游模型
+Returned Model|返回模型
+Requested service tier|请求服务等级
+Returned service tier|返回服务等级
+Actual upstream model|实际上游模型
+Actual model ·|实际模型 ·
+Provider / Upstream Model|渠道 / 上游模型
+Manage logical client-facing models and their protected upstream routes.|管理面向客户端的逻辑模型及其上游恢复路由。
+No models|暂无模型
+No models configured.|尚未配置模型。
+No logical models are configured.|尚未配置逻辑模型。
+Loading model…|正在加载模型…
+Add Model|添加模型
+Create Model|创建模型
+Create Logical Model|创建逻辑模型
+Add Logical Model|添加逻辑模型
+Edit Model|编辑模型
+Delete Model|删除模型
+Routing|路由
+Routing & configuration|路由与配置
+Routing impact|路由影响
+Edit Routing|编辑路由
+Conditional Routing|条件路由
+Default route|默认路由
+Effective route|生效路由
+Route order|路由顺序
+Route dependency|路由依赖
+Route Simulation|路由模拟
+Run Simulation|运行模拟
+Running Simulation…|正在模拟…
+Exact planner preview|真实规划器预览
+Evaluating the same planner used for live requests…|正在使用实际请求的规划器计算…
+No route|没有路由
+No route configured|尚未配置路由
+No route steps|没有路由步骤
+No eligible route|没有可用路由
+No candidates|没有候选项
+No conditional rules|暂无条件规则
+Add route|添加路由
+Add Route|添加路由
+Add rule|添加规则
+Add Rule|添加规则
+Save Conditional Rule|保存条件规则
+This model has no configured route.|此模型尚未配置路由。
+Add a route before enabling or simulating this model.|启用或模拟此模型前，请先添加路由。
+Configure the model default route first.|请先配置模型的默认路由。
+The model will be saved now without receiving traffic. Add routing from its workspace before enabling it.|模型先保存为停用状态。启用前请在详情页添加路由。
+Every request uses the default route shown above.|每次请求均使用上方的默认路由。
+Requests start at route 1. Each non-final route controls exactly which upstream failures advance.|请求从路由 1 开始；每一步指定哪些上游失败可进入下一路由。
+Final route · no further recovery|最终路由 · 不再继续恢复
+Final route · no recovery progression|最终路由 · 不再继续恢复
+Recovery|恢复
+Connection candidates|候选连接
+Matched Conditional Rule|命中的条件规则
+Request requirements|请求条件
+Required request capabilities|请求所需能力
+Capabilities|能力
+Context window|上下文窗口
+Maximum output|最大输出
+Minimum context tokens|最小上下文 Token
+Minimum output tokens|最小输出 Token
+Minimum context tokens (0 = no minimum)|最小上下文 Token（0 为不限）
+Minimum output tokens (0 = no minimum)|最小输出 Token（0 为不限）
+Required capabilities (none = no capability restriction)|必需能力（留空为不限）
+Tokens; 0 means unknown.|Token 数；0 表示未知。
+Protocol|协议
+Client protocol|客户端协议
+Final upstream protocol|最终上游协议
+Protocol Key|协议密钥
+API protocols this key may use|此密钥可用的 API 协议
+Streaming|流式
+Streaming request|流式请求
+Response Mode|响应模式
+When|当
+Then|则
+When this request matches|当请求满足条件
+Then adjust routing|调整路由
+Caller|调用方
+Caller / API Key ID|调用方 / API 密钥 ID
+Caller / API Key IDs (comma separated)|调用方 / API 密钥 ID（逗号分隔）
+Schedule|时间规则
+Time window (blank = any time)|时间窗口（留空为不限）
+Weekdays (none = any day)|星期（留空为任意一天）
+Timezone context|时区
+Simulated date and time|模拟日期和时间
+Change Inputs|修改输入
+Keep order|保持顺序
+Prefer first|优先使用
+Avoid|排除
+Use custom route|使用自定义路由
+Adjust default route|调整默认路由
+How groups combine|条件组合方式
+Inside a group:|组内：
+Between groups:|组间：
+Review|审核
+Review Changes|审核更改
+Review before apply|应用前审核
+Review routing changes|审核路由更改
+Apply Changes|应用更改
+Check before applying|应用前检查
+Draft validation|草稿验证
+Validated apply|验证后应用
+Cannot review this route|无法审核此路由
+Revision conflict|版本冲突
+Existing conversations|现有会话
+New requests|新请求
+In-flight requests|进行中的请求
+Existing conversations after this change|更改后现有会话的处理
+Finish on their current revision|在当前版本完成
+Move to the new route on the next request|下次请求迁移到新路由
+Keep their current route while it remains eligible|当前路由可用时继续使用
+A new configuration revision will be created.|将创建新的配置版本。
+Changes are validated and applied as an immutable revision.|更改经过验证后，以不可变版本应用。
+Provider|渠道
+Provider detail|渠道详情
+Provider Name|渠道名称
+Provider Configuration|渠道配置
+Provider configuration & live status|渠道配置与实时状态
+Provider enabled|渠道已启用
+Provider type|渠道类型
+Add Provider|添加渠道
+Edit Provider|编辑渠道
+Delete Provider|删除渠道
+Test Provider|测试渠道
+Loading provider…|正在加载渠道…
+No providers|暂无渠道
+Each provider is one upstream channel: endpoint, credential, capacity, and models.|每个渠道包含端点、凭据、容量及上游模型。
+Add one upstream channel to begin.|添加一个上游渠道即可开始。
+Provider-level serving and client impact.|查看渠道的服务状态及客户端影响。
+Endpoint|端点
+Base URL|基础 URL
+Base URL · append protocol path|基础 URL · 自动追加协议路径
+Full URL · use exactly|完整 URL · 原样使用
+Endpoint format|端点格式
+Override endpoint|覆盖端点
+Override key|覆盖密钥
+API Configuration|API 配置
+API Key|API 密钥
+API Key / Token|API 密钥 / Token
+Authentication|认证
+Account authentication|账户认证
+Account credential|账户凭据
+Credential|凭据
+Credential Reference|凭据引用
+Credential reference|凭据引用
+Credential required|需要凭据
+Existing Credential|已有凭据
+Credential name|凭据名称
+Credential file|凭据文件
+Credential isolation|凭据隔离
+Credential lifecycle|凭据生命周期
+Change Key|更换密钥
+Connection Identity|连接标识
+Connection Type|连接类型
+Add Connection|添加连接
+Edit Connection|编辑连接
+No credential configured|未配置凭据
+Channel|上游渠道
+Channel preset|渠道预设
+Channel model catalog|渠道模型目录
+Model catalog unavailable|模型目录暂不可用
+Model discovery failed|模型发现失败
+No upstream models|暂无上游模型
+Upstream Models|上游模型
+Upstream models|上游模型
+Upstream models by account|各账户的上游模型
+Configured native models|已配置的原生模型
+Configured models|已配置模型
+Confirmed Upstream Models|已确认的上游模型
+Configured|已配置
+Native fallback|原生回退
+Native first · lossless conversion fallback|原生优先 · 无损转换回退
+Native image API|原生图像 API
+Automatic conversion|自动转换
+Protocol automatic conversion|协议自动转换
+Converted access|转换访问
+Detect native support|检测原生支持
+Select all|全选
+Deselect all|取消全选
+Select shown|选中当前展示项
+No models match this keyword.|没有匹配的模型。
+Loading models from the Provider…|正在加载渠道模型目录…
+Automatic model sync|自动同步模型
+Automatic GitHub updates|自动跟随 GitHub 版本
+Release channel|版本通道
+Stable releases|稳定版
+Include prereleases|含预发布版
+Manual client version|手动指定版本
+Manual versions always win. Clear this field to follow automatic updates. Checks run hourly; pausing retains the last automatic version.|手动版本始终优先。清空后可跟随自动更新；每小时检查一次，关闭开关会保留最后一次自动版本。
+Manual version takes precedence|正在使用手动版本
+Clear the manual version and publish to start automatic updates.|清空手动版本并发布后，才会开始自动更新。
+Automatic updates are off|自动更新已关闭
+Waiting for next check|等待检查
+Release check succeeded|版本检查成功
+Release check failed|版本检查失败
+Update state unavailable|无法读取更新状态
+Last automatic version|最后一次自动版本
+Published update status|已发布配置的更新状态
+Last release check|上次版本检查
+Next release check|下次版本检查
+Last check error|上次检查错误
+Updates never downgrade. Stable mode waits until a newer stable release is available.|自动更新不会降级；稳定版通道会等待更高版本的稳定版发布。
+Catalog refresh follows the existing model sync switches and automatic model limit.|目录刷新遵循现有模型同步开关和自动创建模型数量上限。
+Codex Client Version|Codex 客户端版本
+Effective version|生效版本
+Leave blank to follow the bundled default. Publishing schedules enabled Codex providers for a fresh catalog read.|留空使用内置默认版本。发布后，已启用定时同步的 Codex 渠道将重新读取目录。
+Client version|客户端版本
+Publish the request version used for model discovery and Codex inference.|发布用于模型发现和 Codex 推理的请求版本。
+Review & Publish|审核并发布
+Publish Codex client version|发布 Codex 客户端版本
+Existing models and custom routes will be retained.|现有模型和自定义路由将保留。
+Codex client version published|Codex 客户端版本已发布
+Enter a semantic version, or leave blank to use the automatic or bundled version.|请输入语义版本号，或留空使用自动版本或内置默认版本。
+Scheduled Model Sync|定时同步模型
+Sync now|立即同步
+Sync models|同步模型
+Catalog source|目录来源
+Catalog refresh|目录刷新
+Every 30 minutes|每 30 分钟
+Every hour|每小时
+Every 5 hours|每 5 小时
+Off|关闭
+Last successful sync|最近同步成功
+Next scheduled sync|下次定时同步
+Automatic Logical Models|自动创建逻辑模型
+Maximum upstream models per listed aggregator|白名单聚合渠道的上游模型上限
+SCHEDULER CONTRACT|调度器约定
+RUNTIME LIMITS|运行限制
+QUICK START|快速开始
+MODEL CATALOG|模型目录
+UPSTREAM SUPPLY|上游支持
+TEXT CLIENT ACCESS|文本客户端访问
+FERRY BRIDGES|FERRY 协议桥接
+ROUTING|路由
+Admission policy|准入策略
+Admission override|准入覆盖
+Override global defaults|覆盖全局默认值
+Max concurrent requests|最大并发请求
+Maximum queued requests|最大排队请求
+Queue wait timeout|排队超时
+When the limit is reached|达到限制时
+After an upstream 429|收到上游 429 后
+Block and wait (FIFO)|阻塞等待（先进先出）
+Fail immediately (429)|立即失败（429）
+Reset Cooldowns|重置冷却
+Reset All Cooldowns|重置所有冷却
+Reset Model Cooldowns|重置模型冷却
+Cooling down|冷却中
+Available Capacity|可用容量
+Capacity|容量
+Current Load|当前负载
+Serving Status|服务状态
+Codex OAuth account|Codex OAuth 账户
+Codex account label|Codex 账户名称
+Edit Codex OAuth Provider|编辑 Codex OAuth 渠道
+Codex Usage|Codex 用量
+Codex usage|Codex 用量
+Subscription usage|订阅用量
+Refresh usage|刷新用量
+Refreshing…|刷新中…
+Weekly limit|每周额度
+Daily limit|每日额度
+Usage window|用量窗口
+Reset time unavailable|暂无重置时间
+Limit reached|已达到用量上限
+Requests unavailable|暂不可发起请求
+OAUTH ACCOUNTS|OAUTH 账户
+Subscription|订阅
+Plan|套餐
+Coding Plan|编程套餐
+Agent Plan|Agent 套餐
+Credits|积分
+No usage window reported.|未返回用量窗口。
+Usage limits not reported.|未返回用量限制。
+No cached usage yet. Refresh to query this account.|暂无用量缓存。刷新以查询此账户。
+Usage refresh failed|用量刷新失败
+Updating usage…|正在更新用量…
+Seat spending limit|席位费用上限
+Spending limit reached|已达到费用上限
+Sign in with Codex|使用 Codex 登录
+Sign in with a ChatGPT/Codex subscription account|使用 ChatGPT / Codex 订阅账户登录
+Sign in again|重新登录
+Complete sign-in|完成登录
+Complete Codex sign-in|完成 Codex 登录
+Complete Codex device sign-in|完成 Codex 设备登录
+Continue OAuth|继续 OAuth 登录
+Continue pending sign-in|继续待完成的登录
+OAuth sign-in pending|OAuth 登录待完成
+Waiting for authorization|等待授权
+Device code|设备码
+Device sign-in failed|设备登录失败
+Use device code|使用设备码
+Import auth.json|导入 auth.json
+Cancel sign-in|取消登录
+Callback URL|回调 URL
+Paste the complete callback URL after authorizing.|授权后粘贴完整回调 URL。
+Open authorization page ↗|打开授权页面 ↗
+Open verification page ↗|打开验证页面 ↗
+Finish later|稍后完成
+Do not close this step|请勿关闭此步骤
+Available through Codex OAuth|可通过 Codex OAuth 使用
+Available from Provider|渠道可用模型
+Loading the Codex model catalog…|正在加载 Codex 模型目录…
+No OAuth account connection|没有 OAuth 账户连接
+Create API Key|创建 API 密钥
+Edit API Key Access & Limits|编辑 API 密钥权限与限制
+Create a least-privilege client key.|创建具有最小所需权限的客户端密钥。
+Access|权限
+Access & Limits|权限与限制
+Access & limits|权限与限制
+No API keys|暂无 API 密钥
+Allowed models (comma separated, blank = all)|允许的模型（逗号分隔，留空为全部）
+Allowed protocols (comma separated, blank = all)|允许的协议（逗号分隔，留空为全部）
+Comma-separated Logical Model IDs. Leave blank for all.|逻辑模型 ID，以逗号分隔；留空允许全部。
+Expiration (optional)|到期时间（可选）
+Expires at|到期时间
+Created|创建时间
+Last used|最近使用
+Rate limit (RPM)|频率上限（次 / 分钟）
+Monthly budget (USD)|月度预算（USD）
+Monthly spend limit (USD)|月度费用上限（USD）
+Exact compatibility only|仅允许完全兼容
+Revoke|撤销
+Revoke API Key?|撤销 API 密钥？
+Revoke Now|立即撤销
+Revoke permanently|永久撤销
+Retire|退役
+Rotate|轮换
+Rotate Credential|轮换凭据
+Budgets and warnings|预算与提醒
+Backups|备份
+Schedule & retention|计划与保留
+Scheduled S3 Backup|S3 定时备份
+S3 connection|S3 连接
+Configure S3 connection|配置 S3 连接
+S3 directory|S3 目录
+Save backup policy|保存备份策略
+Include request and conversation history|包含请求与会话历史
+Access Key ID|访问密钥 ID
+Secret Access Key|访问密钥 Secret
+Session token|会话 Token
+Addressing style|寻址方式
+Path style (MinIO / compatible)|路径方式（MinIO / 兼容存储）
+Virtual hosted (Amazon S3)|虚拟主机方式（Amazon S3）
+Stored securely when you save.|保存时安全存储。
+Reference Price Sync|参考价格同步
+Update every (hours)|更新间隔（小时）
+Local runtime behavior, usage, revisions and administrator security.|管理运行行为、用量、配置版本及管理员安全。
+Runtime Behaviors|运行行为
+Audit & Revisions|审计与版本
+Management Authentication|管理认证
+Management Tokens|管理 Token
+Create Management Token|创建管理 Token
+Edit Management Token|编辑管理 Token
+Create token|创建 Token
+Save token|保存 Token
+No management tokens|暂无管理 Token
+Create one for the independent Ferry Skill.|为独立的 Ferry Skill 创建一个 Token。
+Allow high-risk operations|允许高风险操作
+High-risk|高风险
+High-risk is controlled per token|高风险权限按 Token 独立控制
+Least privilege|最小权限
+For the independent Ferry Skill or another trusted automation.|供独立的 Ferry Skill 或受信任自动化使用。
+Copy this token now|立即复制此 Token
+Change administrator password|修改管理员密码
+Change password|修改密码
+Current password|当前密码
+New password|新密码
+Confirm new password|确认新密码
+Session revocation|会话撤销
+Every existing management session will be revoked.|所有现有管理会话都将被撤销。
+Saving signs out this browser and every other administrator session.|保存后，本浏览器及其他管理员会话都将退出登录。
+Application-owned protection for the single administrator.|由应用提供的单管理员访问保护。
+Recent Security Events|最近安全事件
+Recent Runtime Events|最近运行事件
+No security events|暂无安全事件
+No recent runtime events.|暂无运行事件。
+No runtime revisions are available|暂无运行版本
+No alerts|暂无告警
+Unread|未读
+Acknowledge|标为已读
+Latest alerts and automatic recovery activity.|最近告警及自动恢复活动。
+Persistent Local Ferry runtime notifications|Ferry 持久化运行通知
+Open alerts|打开告警
+Open resource|打开资源
+Open|打开
+Secret|密钥
+Delete metadata|删除元数据
+No secret metadata.|暂无密钥元数据。
+Reconciliation|对账
+Ledger-backed|基于账本
+Traffic Trends|流量趋势
+Traffic (req/min)|流量（请求 / 分钟）
+Protected traffic|受保护流量
+Recorded client impact|客户端影响记录
+Active Conversations|活跃会话
+Active conversations|活跃会话
+Active conversation bindings|活跃会话绑定
+Single provider|单渠道
+Multi-provider|多渠道
+Last successful request|最近成功请求
+Select a Provider / upstream model…|选择渠道 / 上游模型…
+Select a Provider for the new route…|为新路由选择渠道…
+Select the actual upstream model…|选择实际上游模型…
+Select a text model…|选择文本模型…
+Search models…|搜索模型…
+Search providers…|搜索渠道…
+Search requests…|搜索请求…
+optional|可选
+leave empty for no expiry|留空表示永不过期
+seconds|秒
+selected|已选
+Not routed|未参与路由
+Not a routing policy|不是路由策略
+Safe creation|安全创建
+BEFORE|更改前
+AFTER|更改后
+Demo Scenario|演示场景
+Demo scenario|演示场景
+Automatic message|自动消息
+Enable automatic message|启用自动消息
+Custom message|自定义消息
+Upstream text model|上游文本模型
+Auto refresh|自动刷新
+Verification could not finish|验证未完成
+Store it once|一次存储
+Administrator-visible secret|管理员可查看的密钥
+Model-specific limits|模型专属限制
+Not available|暂不可用
+Unavailable|不可用
+Unknown|未知
+Never|从未
+Unlimited|不限
+Healthy|健康
+Degraded|降级
+Failed to load|加载失败
+Saved|已保存
+Copied|已复制
+MiniMax International|MiniMax 国际站
+MiniMax China|MiniMax 中国站
+Baidu Qianfan|百度千帆
+Tencent Hunyuan|腾讯混元
+CLIProxyAPI bridge|CLIProxyAPI 桥接
+Uses the Groq OpenAI-compatible endpoint; supported parameters vary by model.|使用 Groq 的 OpenAI 兼容端点；支持的参数因模型而异。
+Uses the Together OpenAI-compatible endpoint; select an exact model ID from the account catalog.|使用 Together 的 OpenAI 兼容端点；请从账户目录选择准确的模型 ID。
+Uses the Fireworks inference endpoint; model IDs and available deployments come from your account.|使用 Fireworks 推理端点；模型 ID 与可用部署以您的账户为准。
+Uses the Cerebras OpenAI-compatible endpoint; dedicated deployments may require an endpoint ID as the model.|使用 Cerebras 的 OpenAI 兼容端点；专用部署可能需要以端点 ID 作为模型字段。
+Uses the international MiniMax OpenAI-compatible endpoint; use credentials for this region.|使用 MiniMax 国际站的 OpenAI 兼容端点；请提供对应站点的凭据。
+Uses the China MiniMax OpenAI-compatible endpoint; use credentials for this region.|使用 MiniMax 中国站的 OpenAI 兼容端点；请提供对应站点的凭据。
+Uses Qianfan v2 with an API key; legacy access-token APIs and Coding Plan endpoints are separate.|使用千帆 v2 API key 接口；旧版 access-token API 与 Coding Plan 使用独立端点。
+Uses the Hunyuan OpenAI-compatible API key endpoint, not Tencent Cloud SecretId/SecretKey authentication.|使用混元 OpenAI 兼容 API key 端点，不使用腾讯云 SecretId/SecretKey 鉴权。
+Uses NVIDIA hosted inference; self-hosted NIM deployments require their own reachable Base URL.|使用 NVIDIA 托管推理；自建 NIM 部署需要填写其自身可达的 Base URL。
+Uses the Hugging Face chat router with an inference-enabled token; other task APIs are outside this preset.|使用 Hugging Face 对话路由与具有推理权限的 token；其他任务 API 不在此预设范围内。
+Enter the reachable CLIProxyAPI /v1 Base URL and its client API key, not its management key. Upstream sign-in and token refresh belong to the bridge; this is not native Ferry OAuth.|填写可达的 CLIProxyAPI /v1 Base URL 与客户端 API key，不要使用管理 key。上游登录与令牌刷新由桥接服务负责；这不是 Ferry 原生 OAuth。
+Install Ferry Skill|安装 Ferry Skill
+Install directly from this instance. No marketplace required.|直接从当前实例安装，无需市场。
+Copy installation prompt|复制安装提示词
+Installation prompt|安装提示词
+Skill installation prompt|Skill 安装提示词
+Installation guide|安装说明
+Download Skill|下载 Skill
+Credentials are configured separately. Ready means management access has been verified.|凭据单独配置；管理访问验证成功后才算就绪。
+Copied to clipboard|已复制到剪贴板
+No changes|没有更改
+Required|必填
+Success|成功
+Error|错误
+Warning|提醒
+Pending|待处理
+Loading…|加载中…
+
+Action failed|操作失败
+Completed|已完成
+Copy details|复制详情
+Close notification|关闭通知
+Skip to content|跳转到内容
+Provider enabled|渠道已启用
+Provider disabled|渠道已停用
+Provider saved|渠道已保存
+Logical model enabled|逻辑模型已启用
+Logical model disabled|逻辑模型已停用
+Logical model deleted|逻辑模型已删除
+Connection enabled|连接已启用
+Connection disabled|连接已停用
+Connection not found|找不到连接
+Management token rotated|管理 Token 已轮换
+Management token revoked|管理 Token 已撤销
+Management token deleted|管理 Token 已删除
+API key deleted|API 密钥已删除
+Grace secret retired|宽限期密钥已退役
+Conditional rule deleted|条件规则已删除
+Provider and dependent route references deleted|渠道及相关路由引用已删除
+Connection and dependent route supply removed|连接及相关路由资源已移除
+Rotate this management token? The current value stops working immediately.|轮换此管理 Token？当前值将立即失效。
+Permanently revoke this management token? Any Skill using it will immediately lose access.|永久撤销此管理 Token？使用它的 Skill 将立即失去访问权限。
+Delete this revoked management token metadata?|删除此已撤销管理 Token 的元数据？
+Change this key? A new key value will be generated. The current value moves to Grace and remains usable until you explicitly retire it.|更换此密钥？系统将生成新值，旧值进入宽限期，直到手动退役前仍可使用。
+Permanently delete this disabled API key and all of its secret metadata?|永久删除此已停用 API 密钥及其全部密钥元数据？
+Permanently retire this Grace secret? Clients still using it will immediately fail.|永久退役此宽限期密钥？仍使用它的客户端将立即失败。
+Delete this conditional rule and apply a new revision?|删除此条件规则并应用新版本？
+
+More|更多
+More model actions|更多模型操作
+Close dialog|关闭弹窗
+Simulate|模拟请求
+Edit order|编辑顺序
+Add Conditional Rule|添加条件规则
+Route available|路由可用
+Starts here|请求起点
+No failure progression|不继续下一路由
+The primary route and configured protection capacity are available.|主路由和已配置的恢复容量均可用。
+Healthy capacity|容量正常
+Reduced capacity|容量减少
+Provider exhausted|渠道容量耗尽
+Not recorded|暂无记录
+This provider is serving normally.|此渠道服务正常。
+This provider has reduced capacity and may retry internally.|此渠道容量减少，可能在内部重试。
+No usable capacity remains. Logical Model routes may use fallback providers.|暂无可用容量，逻辑模型路由可能转入备用渠道。
+Provider cannot serve requests.|此渠道当前无法处理请求。
+Visible Errors|存在可见错误
+No failures in window|当前周期无失败
+Refresh catalog & verify configured|刷新目录并验证已配置模型
+Leave blank to keep current key|留空保留当前密钥
+Upstream model name|上游模型名称
+Native + automatic conversion|原生支持 + 自动转换
+Automatic conversion|自动转换
+Not tested|未测试
+Not configured|未配置
+Pending schedule|等待调度
+Not yet|尚未执行
+Waiting|等待中
+Waiting for the first scheduled catalog read.|等待首次定时读取模型目录。
+Disabled for this Provider|此渠道未启用
+Text|文本
+Streaming|流式输出
+Tools|工具调用
+Parallel tools|并行工具
+Native|原生
+Client|客户端
+Delete automatically removes this provider from routes, disables Logical Models left without a default route, and migrates existing conversations.|删除后将自动移除此渠道的路由、停用失去默认路由的逻辑模型，并迁移现有会话。
+No logical model route currently references this provider.|目前没有逻辑模型路由引用此渠道。
+A custom route may use any configured Provider supply and replaces the default only when this rule matches. Each non-final step has its own explicit operational recovery conditions. Compatibility failures detected before response commit advance automatically.|自定义路由可使用任意已配置渠道，仅在规则匹配时替换默认路由。除最后一步外，每一步单独指定恢复条件；响应提交前发现的兼容性失败会自动进入下一步。
+A request may use any one of the selected protocols.|请求可使用任一选定协议。
+AUTOMATIC MESSAGE|自动消息
+Add a connection before enabling this provider for traffic.|启用渠道前请先添加连接。
+Add and complete a Codex OAuth connection before configuring upstream models.|配置上游模型前请先添加并完成 Codex OAuth 连接。
+Add native models in another protocol tab to create conversion coverage.|在其他协议页添加原生模型，即可建立转换支持。
+Adds the stream capability requirement.|要求具备流式输出能力。
+Allow this client protocol to use models native in other text protocol tabs.|允许此客户端协议使用其他文本协议页的原生模型。
+Any listed caller or API Key ID may match.|匹配任一所列调用方或 API 密钥 ID 即可。
+Authorization headers, cookies, API keys, tokens, secrets, and credential fields are never recorded. Each request and response side is limited to 256 KB and follows request-history retention.|不记录授权头、Cookie、API 密钥、Token 及凭据字段。请求与响应各限 256 KB，并遵循请求历史保留策略。
+Automatically refresh provider model catalogs and keep capability metadata current.|自动刷新渠道模型目录及能力元数据。
+Automatically update the online reference catalog. Recorded bills and configured rate cards retain their original values.|自动更新在线参考目录；历史账本与已配置价目表保留原值。
+Back up current configuration, accounts and keys. Request history, conversations, old revisions and drafts are excluded.|仅备份当前配置、账号和密钥，不含请求历史、会话、旧版本和草稿。
+Capture detailed request and response payloads for troubleshooting.|记录请求与响应详情，用于排查问题。
+Change the reviewed default route or replace it with an ordered custom route.|调整已审核的默认路由，或替换为有序自定义路由。
+Choose a known channel to prefill the editable endpoint and Ferry text conversion policy. Credentials are never supplied by a preset.|选择渠道预设以填入端点和文本协议转换策略；预设不包含凭据。
+Choose an API configuration or a dedicated Codex OAuth flow.|选择 API 配置或专用 Codex OAuth 流程。
+Choose an account, then manage its routing gate, credential, subscription usage, and proxied models.|选择账户后，管理其路由开关、凭据、订阅用量和代理模型。
+Choose at least one route.|至少选择一条路由。
+Choose whether Ferry appends the standard protocol path or uses one exact request URL.|选择自动拼接标准协议路径，或使用完整请求 URL。
+Client impact detected.|检测到客户端影响。
+Combines saved declarations with cached endpoint evidence for this Provider, model and native protocol.|结合此渠道、模型、原生协议的已保存声明与端点验证缓存。
+Create the connection, then complete OAuth callback.|创建连接后完成 OAuth 回调。
+Default 10. Applies only to aggregators listed in logical_model_policy.json (OpenRouter by default). Other providers have no automatic creation limit. Set 0 to require manual selection for listed aggregators. Existing Logical Models stay intact.|默认 10，仅限制 logical_model_policy.json 白名单中的聚合渠道（默认 OpenRouter）。其他渠道自动创建不限数量；设为 0 时白名单渠道需手动选择。已有逻辑模型保留。
+Demo:|演示：
+Detected upstream models · listed aggregators may require manual Logical Model selection|已发现的上游模型 · 白名单聚合渠道可能需手动选择逻辑模型
+Disabled rules keep their position but never match.|停用的规则保留位置，但不会匹配。
+Discovered catalog · not capability evidence|已发现目录 · 不代表能力验证结果
+Edit Provider settings and the upstream models assigned to each OAuth account.|编辑渠道设置及各 OAuth 账户关联的上游模型。
+Edit the endpoint, credential identity, and upstream model catalog, then save.|编辑端点、凭据及上游模型目录后保存。
+Edit the provider to add one or more upstream model names.|编辑渠道以添加上游模型名称。
+Enable Request Debug in Settings before sending a request. The setting applies only to new requests.|发送请求前在设置中开启请求调试；仅对新请求生效。
+Endpoint, key, protocols, and native models|端点、密钥、协议与原生模型
+Estimated affected traffic|预计受影响流量
+Every catalog model is already configured for this protocol.|此协议已配置目录中的全部模型。
+Every condition group below must pass. A group with no selection adds no restriction and passes automatically.|下方条件组需全部满足；未选择内容的组不增加限制。
+Exact time, API key, failure and revision|精确时间、API 密钥、失败原因与版本
+Export includes exact counts, token and cost dimensions, and UTC window boundaries. Cancellations are separate above and count as unsuccessful in client success rates. Costs cover recorded amounts only.|导出包含精确次数、Token、费用维度和 UTC 周期边界。取消请求单独列出，并计入未成功请求；费用仅包含已记录金额。
+Export reconciliation JSON|导出对账 JSON
+Fail this connection immediately and let routing recover|立即结束此连接，由路由进行恢复
+Fetched directly from this Provider using its current credential.|使用当前凭据直接从此渠道获取。
+First catalog read will follow this schedule.|首次目录读取将按此计划执行。
+For example: openai-chat, openai-responses.|例如：openai-chat、openai-responses。
+Fresh verification evidence is reused|复用有效的验证结果
+GPT Image 2 supported|支持 GPT Image 2
+Hold requests through Retry-After, then drain serially|按 Retry-After 等待，随后依次执行
+Identity|身份
+Image-only models cannot receive messages.|纯图像模型不能接收文本消息。
+Independent Skills authenticate with bearer tokens. Raw values are shown only when created or rotated.|独立 Skill 使用 Bearer Token 认证，原值仅在创建或轮换时显示。
+Inherit the global runtime defaults, or set limits for every connection in this Provider.|继承全局运行限制，或为此渠道的所有连接单独设置。
+It cannot be revealed again. Rotating a token invalidates its previous value immediately.|原值无法再次查看；轮换后旧 Token 立即失效。
+Keep the recommended runtime timezone unless this schedule follows a different region.|除非计划遵循其他地区时间，否则保留建议的运行时区。
+Keep this value out of logs, screenshots and source control.|请勿将此值写入日志、截图或代码仓库。
+Latest route:|最新路由：
+Legacy provider layout|旧版渠道结构
+Login, token, and credential lifecycle events.|登录、Token 和凭据生命周期事件。
+Matching conditional rules and collecting candidate evidence.|正在匹配条件规则并收集候选依据。
+Maximum 16 KiB. Responses are used only for runtime health and quota accounting.|最多 16 KiB，响应仅用于运行健康与额度统计。
+May increase each backup by several GB. Leave off for small configuration backups.|可能使每次备份增加数 GB；轻量配置备份请保持关闭。
+Metadata and expiry do not reveal or replace the token value.|元数据和有效期更改不会显示或替换 Token 原值。
+Mode|模式
+Model, protocol, compatibility, expiry, rate, and budget policies are enforced by the data-plane Scheduler.|模型、协议、兼容性、有效期、速率和预算策略由数据面调度器执行。
+Models explicitly assigned to this protocol endpoint. Catalog entries are suggestions until selected and verified.|明确分配给此协议端点的模型；目录条目需选择并验证后才作为能力依据。
+New conversations use the new revision. In-flight requests always finish on the revision they started with.|新会话使用新版本，执行中的请求继续使用开始时的版本。
+New requests may use this provider when its route is eligible.|路由符合条件时，新请求可使用此渠道。
+No native models detected. Type a model and press Enter to add it manually.|未检测到原生模型；输入模型名称并按回车手动添加。
+No reference catalog snapshot available.|暂无参考目录快照。
+No resources configured.|暂无已配置资源。
+No traffic recorded for this dimension.|此维度暂无流量记录。
+Observed requests|已观测请求
+One endpoint configuration with native protocol supply and explicit Ferry conversion coverage.|统一管理端点、原生协议支持及 Ferry 协议转换范围。
+One endpoint, credential, and upstream model catalog.|统一管理端点、凭据与上游模型目录。
+Only the checked recovery failures or no eligible connection advance to the next route. Client request errors stop immediately.|仅在选定失败条件或无合格连接时进入下一路由；客户端请求错误立即结束。
+Open a revision for its actor, source, resources, and before/after diff.|打开版本查看操作人、来源、资源和前后差异。
+OpenAI Images remains native-only|OpenAI Images 仅支持原生路径
+Ordinary tokens can inspect, draft, validate and simulate. The switch additionally permits activation, secrets, credentials, API key lifecycle, OAuth writes, and runtime overrides.|普通 Token 可查看、起草、校验和模拟。开启后额外允许配置生效、密钥与凭据管理、API 密钥生命周期、OAuth 写入及运行覆盖。
+Per connection. 0 keeps concurrency unlimited.|按连接设置；0 表示不限制并发。
+Per-key monthly budgets are enforced against recorded cost. Missing prices can undercount budget consumption. Runtime quota/cooling and key spikes produce persistent in-app alerts.|每个密钥的月预算按已记录费用执行；缺失价格可能导致低估。额度、冷却和流量突增会生成持续的应用内告警。
+Permits activation, credential and secret changes, API key lifecycle, OAuth writes, and manual runtime overrides. This can be changed later.|允许配置生效、凭据和密钥更改、API 密钥生命周期、OAuth 写入及手动运行覆盖，之后可调整。
+Rank and exclusion evidence from the same planner used for live requests.|使用与真实请求相同的规划器，展示排序与排除依据。
+Read from model routes and immutable revisions.|读取模型路由及不可变版本。
+Read this channel’s model catalog independently from capability verification.|单独读取此渠道的模型目录，不执行能力验证。
+Reference an existing store:, env:, or oauth: credential.|引用现有的 store:、env: 或 oauth: 凭据。
+Reject safe mappings and cross-protocol conversion before any upstream attempt.|在调用上游前拒绝安全映射及跨协议转换。
+Request volume and success rate across the selected window. Provider charts use the actual upstream that handled each request.|展示当前周期的请求量与成功率，渠道图表按实际处理请求的上游统计。
+Requests moved|迁移请求数
+Requests prefer a healthy native path for their client protocol. Other native protocols remain available as conversion fallback.|请求优先使用对应客户端协议的健康原生路径，其他原生协议可作为转换回退。
+Requests using this key will fail immediately. This action is intentionally separate from editing scope.|使用此密钥的请求将立即失败；撤销与编辑权限范围分别操作。
+Requests without an upstream selection remain in the totals.|未选中上游的请求仍计入总数。
+Restore Draft → Validate → Review → Apply|恢复草稿 → 校验 → 审核 → 应用
+Result|结果
+Reveal and copy remain available from the API Keys page.|之后仍可在 API 密钥页查看并复制。
+Rules run from top to bottom. The first enabled rule whose conditions all match adjusts the default route.|规则从上到下执行，首个已启用且满足全部条件的规则调整默认路由。
+Runs during the daily backup window when due. Each upload is downloaded and verified. Temporary verification copies are removed. Deployment rollback backups always include all databases.|到期后在每日备份窗口执行，每次上传后下载校验并移除临时校验副本。发布回滚备份始终包含全部数据库。
+Runtime signals are healthy.|运行指标正常。
+STARTING NATIVE PROBE|正在开始原生验证
+Save Provider changes before syncing now.|立即同步前请先保存渠道更改。
+Scheduled catalog sync is unavailable|定时目录同步不可用
+Select gpt-image-2 to proxy image generation and editing through a supported paid Codex account.|选择 gpt-image-2，通过受支持的付费 Codex 账户代理图像生成与编辑。
+Selected catalog models are highlighted in green and added to the configured list. Existing capabilities are preserved for unchanged models.|选中的目录模型会突出显示并加入配置列表；未更改的模型保留原有能力。
+Selected models are highlighted and added to the active account.|选中的模型会突出显示并加入当前账户。
+Selected weekdays and the time window are combined with AND. Leave either one blank to allow any day or any time.|星期与时间段需同时满足；任一项留空则不限制该项。
+Send this Provider a canonical user message through its selected text model. Each Provider is configured independently.|通过选定文本模型向此渠道发送标准用户消息，各渠道独立配置。
+Shared by concurrency and upstream-throttle waiters. 0 uses 256.|并发和上游限流等待共用队列，0 表示使用默认值 256。
+Ferry uses this separate credential only to list models for the selected Plan. It is never replaced with the Provider API key and never used for inference or capability probes.|此独立凭据仅用于读取所选套餐的模型目录，不会替换渠道 API 密钥，也不用于推理或能力验证。
+Ferry will load the Codex catalog automatically.|Ferry 将自动加载 Codex 模型目录。
+Standard text-token estimate in USD, excluding tools, media, service-tier adjustments and recovery attempts. It is not the subscription charge or the historical bill.|按标准文本 Token 估算的美元金额，不含工具、媒体、服务等级调整及恢复尝试；不代表订阅费用或历史账单。
+Start with route 1. Continue only for the failure types selected on that route, or when it has no eligible connection. Client request errors stop immediately.|从路由 1 开始，仅在该路由选定的失败类型或无合格连接时继续。客户端请求错误立即结束。
+Starts after creation|创建后开始
+Store a new secret in SQLite without echoing it.|将新密钥写入 SQLite，且不回显原值。
+Strict fallback · no silent downgrade|严格回退 · 不静默降级
+Structured Runtime|结构化运行状态
+Subscription limits for this OAuth account, shown from cache while refreshing on entry.|展示此 OAuth 账户的订阅额度；进入时刷新，同时显示缓存结果。
+Subscription usage for each OAuth account, visible on the Provider page without opening the editor.|直接在渠道页查看各 OAuth 账户订阅用量，无需打开编辑器。
+Supported paid Codex accounts can proxy gpt-image-2 image generation and editing after authentication.|受支持的付费 Codex 账户完成认证后可代理 gpt-image-2 图像生成与编辑。
+The Codex catalog loads automatically when this editor opens.|打开编辑器时自动加载 Codex 目录。
+The Provider gate and at least one OAuth account gate above must both be enabled for Route traffic.|只有渠道开关与至少一个 OAuth 账户开关同时启用，才能承接路由流量。
+The Provider must be enabled and expose a supported catalog.|渠道须已启用并提供受支持的目录。
+The connection exists but remains unauthenticated until callback completion.|连接已创建，完成回调前仍未认证。
+The connection is enabled after its configuration and credential are accepted.|配置和凭据校验通过后启用连接。
+The effective route produced no connection candidates.|生效路由没有产生候选连接。
+The full key remains available to authenticated administrators.|已认证管理员之后仍可查看完整密钥。
+The persisted login can be continued after a restart.|重启后可继续已保存的登录流程。
+The raw bearer token is shown once after creation. Ferry stores only its verifier hash.|Bearer Token 原值仅在创建后显示一次，Ferry 仅保存校验哈希。
+The request must satisfy every selected capability and every non-zero token minimum.|请求须满足全部选定能力及所有非零 Token 下限。
+The review preserves the selected failure conditions and conversation strategy. Nothing changes until Apply succeeds.|审核保留所选失败条件与会话策略；应用成功后才生效。
+The same Provider may appear more than once with different upstream models.|同一渠道可使用不同上游模型多次出现在路由中。
+The selected time is sent as RFC3339 and evaluated in each conditional rule's configured timezone. Runtime health, quota and capability evidence remain read-only.|所选时间以 RFC3339 发送，并按各条件规则的时区求值；运行健康、额度和能力依据仅供读取。
+The server validates the configuration before applying it. Imported OAuth token fields go only to the protected local credential store.|服务端校验配置后才应用，导入的 OAuth Token 仅写入受保护的本地凭据存储。
+The upstream catalog loads automatically when this editor opens.|打开编辑器时自动加载上游目录。
+These settings only restrict what this API key may call and consume. They do not change Provider or Logical Model routing.|这些设置仅限制此 API 密钥的调用和消费，不更改渠道或逻辑模型路由。
+This Provider has no supported authenticated model catalog. Ferry will not substitute capability probes or inference requests.|此渠道没有受支持的认证模型目录，Ferry 不会改用能力验证或推理请求。
+This route was simulated without enabling client traffic.|已模拟此路由，未启用客户端流量。
+This switch gates the global schedule only. Each Provider keeps its own interval (30 min / 1 hour / off), and Sync now always remains available.|此开关仅控制全局定时计划，各渠道保留自己的周期（30 分钟 / 1 小时 / 关闭），仍可立即同步。
+Token-weighted cached input over protocol-normalized eligible input for the selected window.|当前周期内按 Token 加权的缓存输入占比，分母为协议归一化后的可缓存输入。
+Total includes serving and recovery, with the legacy cash fallback. Subscription allocation is included in those amounts.|总计包含服务和恢复费用，并兼容历史现金费用字段；订阅分摊已包含其中。
+Type a model name or select one from the catalog below.|输入模型名称，或从下方目录选择。
+Unlisted models|未列出的模型
+Usage is scoped to this Local Ferry runtime.|用量统计仅覆盖当前 Ferry 实例。
+Use a subdirectory inside ferry/ (or the existing smart-api/ prefix). The bucket must already exist.|使用 ferry/ 下的子目录，已有 smart-api/ 路径仍可用。存储桶须已存在。
+Use an existing Codex CLI session without retaining the uploaded file.|使用现有 Codex CLI 会话，不保留上传的文件。
+Use the browser OAuth flow after creation.|创建后通过浏览器完成 OAuth 流程。
+Use the channel’s supported authenticated model catalog. The Provider API key remains scoped to that channel.|使用此渠道支持的认证模型目录，渠道 API 密钥仅用于该渠道。
+Use your own S3 or compatible storage. Leave off to use the server’s project MinIO connection.|使用自己的 S3 或兼容存储；关闭时使用服务端项目 MinIO 连接。
+Volcengine Plan control plane|火山引擎套餐控制面
+Your reviewed route:|已审核路由：
+Catalog discovery is read-only. Only uncached Provider / endpoint / model / protocol combinations send a minimal, potentially billable request; the whole catalog is never probed. Forced refresh remains available through the management API.|目录发现仅读取数据。仅对未缓存的渠道、端点、模型与协议组合发送最小验证请求，可能产生费用；不会验证整个目录。可通过管理 API 强制刷新。
+Verification can record Text, Streaming, Images, Tools, Parallel tools, Reasoning, native Structured output, and Vision. A complete cache hit sends no inference request; only Management API refresh=true forces re-verification. Context window and Maximum output remain authoritative catalog or operator-configured fields.|验证可记录文本、流式输出、图像、工具、并行工具、推理、原生结构化输出与视觉能力。完整命中缓存时不发送推理请求，仅管理 API 的 refresh=true 强制重新验证。上下文窗口和最大输出仍取权威目录或管理员配置。
+New upstream models are added without removing configured models. Missing same-name Logical Models are created automatically with this Provider route; existing custom models and routes are preserved. Catalog sync does not run inference or capability probes.|同步仅添加新上游模型，不移除已配置模型；缺少同名逻辑模型时自动创建并关联此渠道，保留现有自定义模型与路由。目录同步不执行推理或能力验证。
+New requests may use fallback providers or fail when no eligible route remains.|新请求可能使用备用渠道，无可用路由时将失败。
+Existing conversation bindings and in-flight recovery can be affected.|现有会话绑定和执行中的恢复可能受影响。
+Ferry will automatically disable and remove it.|Ferry 将自动停用并移除此连接。
+Routes that lose their last upstream supply will be detached, and models left without a default route will be disabled.|失去最后一个上游模型的路由将被移除；没有默认路由的模型将被停用。
+In-flight requests finish on their current revision.|执行中的请求继续使用当前版本完成。
+New requests may recover on another connection, fall back to another provider, or fail when no eligible route remains.|新请求可能通过其他连接恢复或转到备用渠道，无可用路由时将失败。
+New requests for this model will stop routing.|此模型的新请求将停止路由。
+Existing conversation bindings may migrate or fail, while in-flight requests finish on their current revision.|现有会话绑定可能迁移或失败，执行中的请求继续使用当前版本完成。
+Existing conversation bindings will be dropped; in-flight requests finish on their current revision.|现有会话绑定将被移除，执行中的请求继续使用当前版本完成。
+This cannot be undone except by restoring a previous revision.|此操作只能通过恢复之前的版本撤销。
+Models left without a default route will be disabled, and existing conversations will migrate or fail if no route remains.|没有默认路由的模型将被停用；无剩余路由时，现有会话将迁移或失败。
+Delete automatically removes this provider from routes, disables Logical Models left without a default route, and migrates existing conversations.|删除将自动从路由移除此渠道，停用没有默认路由的逻辑模型，并迁移现有会话。
+Reset history unavailable. Retrying automatically.|历史记录暂时不可用，正在自动重试读取。
+Reset history|Reset 历史记录
+Automatic trigger|自动触发
+Manual request|手动请求
+Trigger unknown|触发来源未知
+Other channel / source unconfirmed|其他渠道使用／来源未确认
+Credit expiration|卡片到期
+Requested at|请求时间
+Redeemed at|使用时间
+Expired at|到期时间
+Windows reset|重置窗口数
+No reset history available.|暂无 Reset 历史记录。
+Local requests and upstream-reported card history. External usage source may be unknown.|展示本地请求及上游返回的卡片历史；外部使用的具体来源可能无法确认。
+Usage reset credits|用量重置券
+Review usage reset|审核用量重置
+Credit details unavailable. Refresh usage to retrieve expiration dates.|重置券明细暂不可用，请刷新用量以获取到期时间。
+Refresh usage to load the rest.|请刷新用量以加载其余重置券。
+Granted|发放时间
+Expires|到期于
+Updated|更新于
+Cached snapshot|缓存快照
+% used|% 已用
+Action|操作
+Use reset…|使用重置券…
+Account identity unavailable|账号身份暂不可用
+Review the pending request first|请先处理此账号已有的重置申请
+Unsupported reset scope|不支持此重置范围
+Confirm Codex usage reset|确认重置 Codex 用量
+Consumes one selected reset credit|将消耗一张指定重置券
+This resets eligible Codex usage windows for the upstream account shown below. All clients using that account share those windows.|此操作重置下方上游账号符合条件的 Codex 用量窗口。使用同一账号的所有客户端共享这些窗口。
+OAuth account|OAuth 账号
+Upstream account|上游账号 ID
+Credit ID|重置券 ID
+Requested by|发起人
+Confirm before|确认截止时间
+Cancel request|取消申请
+Confirm · consume 1 credit|确认 · 消耗一张重置券
+Retry this exact request|重试原申请
+Submitting…|正在提交…
+Awaiting your confirmation|等待您确认
+Outcome unknown — review the original request|结果未知，请审核原申请
+Submission in progress|正在提交申请
+Usage reset completed|用量重置完成
+Credit already redeemed|此重置券已兑换
+No eligible window to reset|没有符合条件的用量窗口
+Selected credit unavailable|所选重置券不可用
+Request canceled|申请已取消
+Confirmation expired|确认已过期
+Invalid expiration|到期时间无效
+Expiration not reported|未提供到期时间
+Codex usage reset|Codex 用量重置
+Full reset|完整重置
+Full reset (Weekly + 5 hr)|完整重置（每周 + 5 小时）
+Ready to redeem|可兑换
+available|可用
+pending|待确认
+uncertain|结果未知
+redeemed|已兑换
+Expired|已过期
+Outcome unknown. Review and retry this same request only; no other credit can be selected.|结果未知。请审核并仅重试此原申请，期间无法选择其他重置券。
+Outcome could not be persisted. The original request ID remains reserved; review it before retrying.|结果未能保存。原申请 ID 已保留，请审核后重试。
+Queue|队列
+Queue & Concurrency|队列与并发
+Open Queue|打开队列
+Provider / Connection|渠道 / 连接
+Manage global defaults, Provider policies and connection limits.|管理全局默认值、渠道策略和连接限制。
+Received|已接收
+Delivering|交付中
+Runtime:|运行状态：
+Search|搜索
+Search requests|搜索请求
+Search API keys…|搜索 API 密钥…
+Request / conversation / API key|请求 / 会话 / API 密钥
+Any failure|任意失败类型
+Any status|任意状态
+Any revision|任意版本
+Time window|统计周期
+Outcome|结果
+No additional filters|无额外筛选
+Updating requests…|正在更新请求…
+Requests per page|每页请求数
+Export all JSON|导出全部 JSON
+Export all CSV|导出全部 CSV
+Exporting…|正在导出…
+Execution Trace of client requests.|客户端请求的执行轨迹。
+Exports include every matching row with exact ledger values.|导出包含全部匹配记录及精确账本数值。
+Cache|缓存
+Recorded|已记录
+No recorded cost|未记录费用
+Reference|参考
+Cached|已缓存
+Cost details|费用详情
+Waiting for price sync|等待价格同步
+Model not in catalog|目录中无此模型
+Multiple catalog providers|匹配多个目录渠道
+Usage unavailable|用量暂不可用
+Cache rate not listed|未提供缓存费率
+Price unavailable|价格暂不可用
+Cache shows read tokens and the share of eligible input, normalized to the final upstream protocol. Reference costs use the current catalog; recorded costs remain unchanged. Scroll horizontally for every measurement.|缓存展示按最终上游协议归一化后的读取 Token 数及其在可缓存输入中的占比。参考费用使用当前目录，已记录费用保持不变。可横向滚动查看所有指标。
+All models|全部模型
+Revoked|已撤销
+Reveal full API key|显示完整 API 密钥
+Legacy hash-only key; change it once to enable reveal|旧版密钥仅存哈希，轮换一次后即可查看原值
+Reveal or copy an active key at any time. Disable is reversible; Revoke is permanent.|可随时查看或复制有效密钥。停用后可重新启用，撤销则永久失效。
+Last 30 days|近 30 天
+never recorded|从未记录
+No expiry|永不过期
+Allowed|已允许
+Blocked|已阻止
+General|常规
+Security|安全
+Local runtime behavior, revisions and administrator security.|管理运行行为、配置版本及管理员安全。
+Refresh prices|刷新价格
+Scheduled updates enabled|已启用定时更新
+Schedule paused|定时更新已暂停
+Cached / awaiting update|使用缓存 / 等待更新
+Cached / awaiting refresh|使用缓存 / 等待刷新
+Current|最新
+Paused|已暂停
+No successful snapshot yet|暂无成功的快照
+The last successful cache remains available.|仍可使用最近一次成功更新的缓存。
+Debug capture is on|已开启调试记录
+Debug capture is off|已关闭调试记录
+Only new requests are captured. Review payloads in Request details.|仅记录新请求，可在请求详情中查看内容。
+Enable it temporarily when detailed payload evidence is needed.|需要详细请求与响应证据时可临时开启。
+Scheduled synchronization is on|已开启定时同步
+Scheduled synchronization is paused|已暂停定时同步
+Due providers synchronize on their configured interval; capability metadata stays current automatically.|渠道按各自配置的周期同步，自动更新能力元数据。
+Due providers wait until the schedule is re-enabled. Manual Sync now in each Provider editor keeps working.|暂停期间渠道等待重新启用定时同步，仍可在各渠道编辑器中手动立即同步。
+Client request recovery|客户端请求恢复
+Conversation behavior|会话行为
+Provider fallback|渠道回退
+Runtime source|运行配置来源
+Configured per route|按路由配置
+Configured per model|按模型配置
+SQLite revisions|SQLite 配置版本
+Token|Token
+Password hash|密码哈希
+Failed-login limit|登录失败次数上限
+Login lock|登录锁定时间
+Session maximum|会话最长时限
+Idle timeout|空闲超时
+Session cookie|会话 Cookie
+Console writes|控制台写入
+Skill authentication|Skill 认证
+5 attempts|5 次尝试
+15 minutes|15 分钟
+2 hours|2 小时
+CSRF token required|需要 CSRF Token
+Management bearer token|管理 Bearer Token
+Allow activation, credentials, API key lifecycle, OAuth writes and runtime overrides|允许激活配置、凭据操作、API 密钥生命周期、OAuth 写入及运行时覆盖
+Not listed|未列出
+No snapshot|暂无快照
+Catalog|价格目录
+Serial recovery|串行恢复
+Running / limit|运行 / 上限
+Waiting / limit|排队 / 上限
+Wait timeout|等待超时
+Policy / recovery|策略 / 恢复
+`.trim().split('\n').filter(Boolean).map(line=>{const i=line.indexOf('|');return [line.slice(0,i),line.slice(i+1)]}));
+const consoleOriginalText=new WeakMap();
+// Match complete retained messages before splitting sentences or middle dots:
+// captured identifiers, catalog versions and timestamps are opaque values.
+const consoleRetainedMessagePatterns=[
+ [/^Request (req[-_][\w-]+)$/,id=>'请求 '+id],
+ [/^Provider Attempt #(\d*)( Failed| Succeeded)?$/,(n,status)=>'渠道尝试 #'+n+(status===' Failed'?' 失败':status===' Succeeded'?' 成功':'')],
+ [/^(Conversation Route|Cache Affinity|Caller Affinity|Affinity Route) (Found|Reused|Not Reused)$/,(scope,status)=>({Found:'已找到',Reused:'已复用','Not Reused':'未复用'}[status])+({'Conversation Route':'会话路由','Cache Affinity':'缓存亲和性','Caller Affinity':'调用方亲和性','Affinity Route':'亲和路由'}[scope])],
+ [/^Runtime: (Healthy|Protected|Degraded|Unavailable|Recovering|Active|Disabled|Unknown)$/,status=>'运行状态：'+translatedConsoleText(status)],
+ [/^Automatically created for upstream model ([\s\S]+)$/,model=>'为上游模型自动创建：'+model],
+ [/^Execution Trace of client requests\. (\d+) total match\. Exports include every matching row with exact ledger values\.$/,n=>'客户端请求的执行轨迹。共 '+n+' 条匹配记录。导出包含全部匹配记录及精确账本数值。'],
+ [/^(\d+) total match\.$/,n=>'共 '+n+' 条匹配记录。'],
+ [/^Page (\d+) \/ (\d+)$/,(page,total)=>'第 '+page+' / '+total+' 页'],
+ [/^Cache ↓ (—|[\d,.]+) · (—|[\d.]+%)$/,(tokens,percent)=>'缓存 ↓ '+tokens+' · '+percent],
+ [/^(—|[\d,.]+) req\/min$/,n=>n+' 次/分钟'],
+ [/^(Scheduled updates enabled|Schedule paused) · (\d+) prices · (Cached \/ awaiting update|Current)$/,(schedule,n,status)=>translatedConsoleText(schedule)+' · '+n+' 条价格 · '+translatedConsoleText(status)],
+ [/^(\d+) prices$/,n=>n+' 条价格'],
+ [/^Last success (.+) · Next update (.+)$/,(last,next)=>'上次成功 '+last+' · 下次更新 '+(next==='Paused'?'已暂停':next)],
+ [/^Updated (—|[\d/.,:\-\sAPM年月日上下午时分秒\u200e\u200f]+)( · Cached \/ awaiting refresh)?( · Above [\d,]+ input tokens)?$/,(date,cached,tier)=>'更新于 '+date+(cached?' · 使用缓存 / 等待刷新':'')+(tier?' · 超过 '+tier.match(/[\d,]+/)[0]+' 个输入 Token':'')],
+ [/^Reference · (.+?)( · Cached)?$/,(source,cached)=>'参考 · '+source+(cached?' · 已缓存':'')],
+ [/^Above ([\d,]+) input tokens$/,n=>'超过 '+n+' 个输入 Token'],
+ [/^(.+) · (Active|Disabled|Revoked) · Last 30 days$/,(preview,status)=>preview+' · '+translatedConsoleText(status)+' · 近 30 天'],
+ [/^Created (.+) · Last activity (.+)$/,(created,activity)=>'创建于 '+created+' · 最近活动 '+(activity==='never recorded'?'从未记录':activity.replace(/ \(key-level activity\)$/, '（密钥级活动）'))],
+ [/^Models: (.*?) · Protocols: (.*?) · Expires: (.*?) · (Unlimited|[\d,.]+) RPM · Budget (Unlimited|[\d,.]+)$/,(models,protocols,expires,rpm,budget)=>'模型：'+(models==='All models'?'全部模型':models)+' · 协议：'+(protocols==='All'?'全部':protocols)+' · 到期：'+(expires==='Never'?'永不':expires)+' · '+(rpm==='Unlimited'?'不限':rpm)+' RPM · 预算 '+(budget==='Unlimited'?'不限':budget)],
+];
+// Lowercase wire enums are only translated inside status badges / policy cells.
+const consoleBadgeMessages={received:'已接收',waiting:'排队中',active:'执行中',recovering:'恢复中',streaming:'流式传输中',delivering:'交付中',ACTIVE:'有效',GRACE:'宽限期',REVOKED:'已撤销',RETIRED:'已退役',EXPIRED:'已过期'};
+// Only known product messages are translated; identifiers and server diagnostics
+// keep their source text. Composite labels are assembled from the same dictionary.
+const consoleMessagePatterns=[
+ [/^(\d+) legacy credentials$/,n=>n+' 组旧版凭据'],
+ [/^(.+) subscription usage$/,name=>name+' 订阅用量'],
+ [/^(.+) used$/,label=>translatedConsoleText(label)+' 已用'],
+ [/^(.*) Recovery time is not reported\.$/,reason=>reason+' 未提供恢复时间。'],
+ [/^(\d+) of (\d+) reset credits listed\.$/,(returned,total)=>'已显示 '+returned+' / '+total+' 张重置券。'],
+ [/^Resets (.+)$/,date=>'重置于 '+date],
+ [/^(\d+)-(day|hour|minute|second) limit$/,(n,unit)=>n+' '+({day:'天',hour:'小时',minute:'分钟',second:'秒'}[unit])+'额度'],
+ [/^(\d+)h remaining$/,n=>'剩余 '+n+' 小时'],
+ [/^(\d+)d (\d+)h remaining$/,(d,h)=>'剩余 '+d+' 天 '+h+' 小时'],
+ [/^Windows reset: (\d+)$/,n=>'已重置窗口数：'+n],
+ [/^More actions for (.+)$/,name=>name+' 的更多操作'],
+ [/^Disable logical model (.+)\?$/,name=>'停用逻辑模型 '+name+'？'],
+ [/^Disable (.+)\?$/,name=>'停用 '+name+'？'],
+ [/^Delete connection (.+)\?$/,name=>'删除连接 '+name+'？'],
+ [/^Delete logical model (.+)\?$/,name=>'删除逻辑模型 '+name+'？'],
+ [/^Delete provider (.+)\?$/,name=>'删除渠道 '+name+'？'],
+ [/^Restore revision #(\d+)\? The server will validate, review, and apply it as a new immutable revision\.$/,n=>'恢复版本 #'+n+'？服务端将校验、审核并作为新的不可变版本应用。'],
+ [/^Upstream supply: (.+)\.$/,names=>'上游模型：'+names+'。'],
+ [/^(\d+) active conversation bindings may be affected\.$/,n=>n+' 个活动会话绑定可能受影响。'],
+ [/^Ferry will automatically disable it and remove (\d+) route steps? and (\d+) conditional rules?\.$/,(routes,rules)=>'Ferry 将自动停用此模型，移除 '+routes+' 个路由步骤和 '+rules+' 条条件规则。'],
+ [/^Ferry will automatically disable it, delete its endpoint and credential configuration, and detach it from these Logical Model routes: (.+)\.$/,names=>'Ferry 将自动停用此渠道，删除端点和凭据配置，并从以下逻辑模型路由中移除：'+names+'。'],
+ [/^(\d+) configured$/,n=>n+' 个已配置'],
+ [/^(\d+) converted$/,n=>n+' 个可转换'],
+ [/^(\d+) fallback$/,n=>n+' 个回退'],
+ [/^(\d+) discovered$/,n=>'发现 '+n+' 个'],
+ [/^(\d+) added$/,n=>'新增 '+n+' 个'],
+ [/^(\d+) Logical Models created$/,n=>'创建 '+n+' 个逻辑模型'],
+ [/^Logical model routes affected: (.+)\.$/,names=>'受影响的逻辑模型路由：'+names+'。'],
+ [/^(.+) stays first; these paths are tried only when its native path is unavailable\.$/,protocol=>protocol+' 优先，仅在其原生路径不可用时尝试这些路径。'],
+ [/^Remove (.+)$/,name=>'移除 '+name],
+ [/^Retry in (\d+)s$/,seconds=>seconds+' 秒后重试'],
+ [/^Unlimited concurrency · FIFO wait up to (\d+)s$/,seconds=>'不限并发 · FIFO 最长等待 '+seconds+' 秒'],
+ [/^Client (.+) → Ferry → Native (.+)$/, (client,native)=>'客户端 '+client+' → Ferry → 原生 '+native],
+ [/^(\d+(?:\.\d+)?%) serving$/,n=>n+' 服务流量'],
+ [/^Revision #(\d+) restored$/,n=>'已恢复版本 #'+n],
+];
+function translatedConsoleText(value){
+ if(consoleLocale!=='zh-CN')return value;
+ const source=value.trim(),translated=consoleMessages[source];
+ if(translated)return value.replace(source,()=>translated);
+ for(const [pattern,format] of consoleRetainedMessagePatterns){const match=source.match(pattern);if(match)return value.replace(source,()=>format(...match.slice(1)))}
+ const sentences=value.split(/(?<=\.) (?=[A-Z0-9])/);
+ if(sentences.length>1)return sentences.map(translatedConsoleText).join(' ');
+ for(const [pattern,format] of consoleMessagePatterns){const match=source.match(pattern);if(match)return value.replace(source,()=>format(...match.slice(1)))}
+ if(value.includes(' · '))return value.split(' · ').map(translatedConsoleText).join(' · ');
+ if(source.includes('\n'))return value.split('\n').map(translatedConsoleText).join('\n');
+ // Product impact paragraphs combine sentences with resource names. Split
+ // only at sentence boundaries, preserving dots inside identifiers and URLs.
+ return value;
+}
+function confirmConsole(message){return window.confirm(translatedConsoleText(message))}
+
+// Format known timestamps from state, never parse a displayed label or touch
+// Date.prototype. The browser timezone remains unchanged when locale switches.
+function consoleDateTime(value,timeOnly=false){
+ if(!value||String(value).startsWith('0001-'))return '—';
+ const date=value instanceof Date?value:new Date(value);
+ if(!Number.isFinite(date.getTime()))return '—';
+ return timeOnly?date.toLocaleTimeString(consoleLocale):date.toLocaleString(consoleLocale);
+}
+function consoleTimestampText(source,el){
+ if(el?.closest('.filter-summary')&&/^Updated /.test(source))return nt('Updated ','更新于 ')+consoleDateTime(state.requestLastUpdated,true);
+ if(el?.closest('.pricing-sync-status')&&/^Last success .+ · Next update .+$/.test(source)){
+  const pricing=state.settings?.pricing_sync||{};
+  return nt('Last success ','上次成功 ')+consoleDateTime(pricing.last_success)+nt(' · Next update ',' · 下次更新 ')+(pricing.settings?.enabled===false?nt('Paused','已暂停'):consoleDateTime(pricing.next_update));
+ }
+ if(el?.closest('[data-queue-live]')&&/^(Refresh every 3s · Updated |每 3 秒刷新 · 更新于 )/.test(source)&&typeof queueData!=='undefined'&&queueData)return nt('Refresh every 3s · Updated ','每 3 秒刷新 · 更新于 ')+consoleDateTime(queueData.generated_at,true);
+ const key=state.modal?.key;
+ if(key&&/^Created .+ · Last activity .+$/.test(source)){
+  for(const secret of key.secrets||[]){
+   const activity=secret.last_used_at?new Date(secret.last_used_at).toLocaleString():secret.state==='ACTIVE'&&key.lastRequestAt?new Date(key.lastRequestAt).toLocaleString()+' (key-level activity)':'never recorded';
+   if(source!=='Created '+new Date(secret.created_at).toLocaleString()+' · Last activity '+activity)continue;
+   const localizedActivity=secret.last_used_at?consoleDateTime(secret.last_used_at):secret.state==='ACTIVE'&&key.lastRequestAt?consoleDateTime(key.lastRequestAt)+nt(' (key-level activity)','（密钥级活动）'):nt('never recorded','从未记录');
+   return nt('Created ','创建于 ')+consoleDateTime(secret.created_at)+nt(' · Last activity ',' · 最近活动 ')+localizedActivity;
+  }
+ }
+ return null;
+}
+
+function localizeDOM(root){
+ const skipLink=document.querySelector('.skip-link');
+ if(skipLink)skipLink.textContent=nt('Skip to content','跳转到内容');
+ const models=[...(state.models||[]),...[...(state.modelCache?.values()||[])].map(x=>x.model).filter(Boolean)];
+ const resources=[...models,...(state.providers||[]),...(state.apiKeys||[]),...(state.managementTokens||[]),state.modal?.key].filter(Boolean);
+ const names=new Set([state.auth?.username,...resources.flatMap(x=>[x.id,x.name,x.preview])].filter(Boolean));
+ const descriptions=new Set(resources.filter(x=>!(x.raw?.auto_generated||x.auto_generated)).map(x=>x.description).filter(Boolean));
+ const skip='script,style,code,pre,kbd,textarea,[data-i18n-skip]';
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ while(walker.nextNode()){
+  const node=walker.currentNode;if(node.parentElement?.closest(skip))continue;
+  const original=consoleOriginalText.get(node)||node.nodeValue;
+  if(!original.trim())continue;
+  consoleOriginalText.set(node,original);
+  const el=node.parentElement,source=original.trim();
+  const timestamp=consoleTimestampText(source,el);
+  let translated=timestamp===null?original:original.replace(source,()=>timestamp);
+  if(consoleLocale==='zh-CN'&&timestamp===null){
+   const pricing=state.settings?.pricing_sync;
+   const policy=el?.closest('.queue-capacity-table')&&/^(global|provider|connection)( · (?:Serial recovery|串行恢复))?$/.exec(source);
+   if(el?.closest('.badge')&&consoleBadgeMessages[source])translated=original.replace(source,()=>consoleBadgeMessages[source]);
+   else if(el?.closest('[role="alert"],.trace-detail')){
+    // The pricing alert appends product copy to an upstream diagnostic.
+    if(pricing?.error&&source===pricing.error+'. The last successful cache remains available.')translated=original.replace(source,()=>pricing.error+'. 仍可使用最近一次成功更新的缓存。');
+   }
+   else if(descriptions.has(source)||names.has(source)){}
+   else if(policy&&(el.getAttribute('data-i18n-original-data-label')||el.getAttribute('data-label'))?.match(/^(Policy \/ recovery|策略 \/ 恢复)$/))translated=original.replace(source,()=>({global:'全局',provider:'渠道',connection:'连接'}[policy[1]])+(policy[2]?' · 串行恢复':''));
+   else if(el?.closest('.pricing-sync-status')&&source===(pricing?.source||pricing?.settings?.source||'litellm')+' · '+(pricing?.version||'No successful snapshot yet'))translated=original.replace(source,()=>(pricing?.source||pricing?.settings?.source||'litellm')+' · '+(pricing?.version||'暂无成功的快照'));
+   else if(el?.closest('.filter-summary')&&typeof requestFilterSummary==='function'&&source===requestFilterSummary()){
+    const filters=[['requestLogicalModel','精确逻辑模型'],['requestParticipatingProvider','参与渠道'],['requestAttemptStatus','尝试状态'],['requestAttemptFailureType','尝试错误'],['requestReportError','客户端错误'],['requestConversation','会话'],['requestModel','模型'],['requestProvider','渠道'],['requestApiKey','API 密钥'],['requestFailureType','失败类型'],['requestStatus','状态'],['requestRevision','版本'],['requestFrom','开始时间'],['requestTo','结束时间']];
+    translated=original.replace(source,()=>filters.filter(([key])=>state[key]).map(([key,label])=>label+' '+state[key]).join(' · ')||'无额外筛选');
+   }
+   else translated=translatedConsoleText(original);
+  }
+  if(node.nodeValue!==translated)node.nodeValue=translated;
+ }
+ root.querySelectorAll('[placeholder],[title],[aria-label],[data-label]').forEach(el=>{
+  if(el.closest(skip))return;
+  for(const attr of ['placeholder','title','aria-label','data-label'])if(el.hasAttribute(attr)){
+   const key='data-i18n-original-'+attr,original=el.getAttribute(key)||el.getAttribute(attr);
+   el.setAttribute(key,original);el.setAttribute(attr,attr==='title'&&names.has(original)?original:translatedConsoleText(original));
+  }
+ });
+}

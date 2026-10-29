@@ -1,0 +1,35 @@
+# Focused Go checks; passing does not constitute a complete security audit.
+rules:
+  - id: go-exec-shell-literal
+    languages: [go]
+    severity: ERROR
+    message: >-
+      Shell command construction increases injection risk; invoke a fixed
+      executable with separate arguments instead.
+    pattern-either:
+      - pattern: 'exec.Command("sh", "-c", ...)'
+      - pattern: 'exec.Command("bash", "-c", ...)'
+      - pattern: 'exec.Command("/bin/sh", "-c", ...)'
+      - pattern: 'exec.Command("/bin/bash", "-c", ...)'
+      - pattern: 'exec.CommandContext($CTX, "sh", "-c", ...)'
+      - pattern: 'exec.CommandContext($CTX, "bash", "-c", ...)'
+      - pattern: 'exec.CommandContext($CTX, "/bin/sh", "-c", ...)'
+      - pattern: 'exec.CommandContext($CTX, "/bin/bash", "-c", ...)'
+
+  - id: go-tls-insecure-skip-verify
+    languages: [go]
+    severity: ERROR
+    message: >-
+      InsecureSkipVerify disables TLS certificate validation; an explicit,
+      reviewed transport exception is required for any upstream connection.
+    pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}'
+
+  - id: go-legacy-weak-cipher
+    languages: [go]
+    severity: ERROR
+    message: >-
+      DES/RC4 are legacy ciphers with no acceptable use in this gateway; use
+      crypto/aes or the TLS stack instead.
+    pattern-either:
+      - pattern: 'des.NewCipher(...)'
+      - pattern: 'rc4.NewCipher(...)'

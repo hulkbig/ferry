@@ -1,0 +1,315 @@
+
+function showToast(message,type='success',options={}){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}const title=options.title||(type==='error'?'Action failed':'Completed'),detail=options.detail||message;t.replaceChildren();const copy=document.createElement('div');copy.className='toast-copy';const heading=document.createElement('strong');heading.textContent=title;const body=document.createElement('span');body.textContent=detail;copy.append(heading,body);const actions=document.createElement('div');actions.className='toast-actions';if(type==='error'){const copyButton=document.createElement('button');copyButton.type='button';copyButton.textContent='Copy details';copyButton.addEventListener('click',()=>copyText(detail).then(()=>{copyButton.textContent=translatedConsoleText('Copied')}));actions.append(copyButton)}const close=document.createElement('button');close.type='button';close.setAttribute('aria-label','Close notification');close.textContent='×';close.addEventListener('click',()=>t.classList.remove('show'));actions.append(close);t.append(copy,actions);localizeDOM(t);t.className=`toast ${type}`;t.setAttribute('role',type==='error'?'alert':'status');requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(showToast.timer);if(type!=='error')showToast.timer=setTimeout(()=>t.classList.remove('show'),6000)}
+async function copyText(value){if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);return;}const input=document.createElement('textarea');input.value=value;input.setAttribute('readonly','');input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();const copied=document.execCommand('copy');input.remove();if(!copied)throw new Error('Copy is not available in this browser')}
+async function runConnectionTest(providerId,connectionId){
+  const key=connectionTestKey(providerId,connectionId),current=state.connectionTests.get(key);if(current?.loading)return current.promise;
+  const test={loading:true,startedAt:Date.now(),model:'Selected upstream model',result:null,error:'',promise:null};state.connectionTests.set(key,test);render();
+  test.promise=(async()=>{
+    let providerLoaded=false,result;
+    try{const data=await ensureProvider(providerId),connection=data.connections.find(item=>item.id===connectionId);providerLoaded=true;test.model=connection?.models?.[0]?.upstream_model||test.model;result=await adapter.testConnection(providerId,connectionId)}
+    catch(error){test.error=error.message;result={ok:false,failure:{message:error.message}}}
+    test.result=result;
+    if(providerLoaded){state.providerCache.delete(providerId);try{await refreshProviderResources(providerId)}catch(error){showToast(error.message,'error',{title:'Provider status refresh failed'})}}
+    const model=test.model;
+    const detail=result.ok?`Validated ${result.tested_model||model} over ${result.protocol||'its native protocol'} in ${result.latency_ms}ms.`:`${result.failure?.message||'Connection validation failed.'} Tested ${result.tested_model||model}${result.protocol?` over ${result.protocol}`:''}.`;
+    showToast(detail,result.ok?'success':'error',{title:result.ok?'Connection test passed':'Connection test failed'});return result;
+  })().finally(()=>{test.loading=false;test.promise=null;render()});
+  return test.promise;
+}
+async function refreshApiKeysInBackground(){try{state.apiKeys=await adapter.getApiKeys();render()}catch(error){showToast(`API key list refresh failed: ${error.message}`,'error')}}
+async function revealManagedApiKey(id,{copy=false}={}){try{const result=await adapter.revealApiKey(id);if(copy){await copyText(result.key);showToast('API key copied');return;}const item=state.apiKeys.find(key=>key.id===id);state.modal={type:'key-reveal',key:result.key,name:result.name||item?.name||id,existing:true};renderPortal()}catch(error){showToast(error.message,'error')}}
+let requestAutoTimer;
+function configureRequestAutoRefresh(){clearInterval(requestAutoTimer);if(state.requestAutoRefresh)requestAutoTimer=setInterval(()=>{if(state.auth?.authenticated&&currentRoute().section==='requests'&&!state.requestLoading&&!state.requestExporting&&!document.activeElement?.matches('input,select,textarea')){const id=currentRoute().id;if(id)loadAndRenderRequest(id);else reloadRequests()}},3000)}
+function csvCell(value){const text=String(value??''),safe=typeof value==='string'&&/^\s*[=+\-@]/u.test(text)?`'${text}`:text;return `"${safe.replaceAll('"','""')}"`}
+function requestExportRow(item){
+  const raw=item.raw||item,usage=raw.usage||{};
+  return {id:raw.id??item.id,timestamp:raw.timestamp??item.timestamp??item.time,logical_model_id:raw.logical_model_id??item.logicalModel??item.model,conversation_id:raw.conversation_id??item.conversation,caller:raw.caller??item.apiKey,provider_id:raw.provider_id??item.providerId,connection_id:raw.connection_id??item.connectionId,upstream_model:raw.upstream_model??item.upstreamModel,response_model:raw.response_model??item.responseModel??'',service_tier:raw.service_tier??item.serviceTier??'',response_service_tier:raw.response_service_tier??item.responseServiceTier??'',outcome:raw.outcome??(item.canceled?'CANCELED':item.failed?'FAILED':item.recovered?'RECOVERED_SUCCESS':'DIRECT_SUCCESS'),status:raw.status??(item.canceled?'canceled':item.failed?'failed':'success'),failure_type:raw.failure_type??'',failure_message:raw.failure_message??item.failureMessage??'',protocol:raw.protocol??item.protocol??'',stream:raw.stream??item.stream,ttft_ms:raw.ttft_ms??'',duration_ms:raw.duration_ms??'',attempts:raw.attempts??item.attempts,runtime_revision:raw.runtime_revision??'',input_tokens:usage.input_tokens??item.inputTokens??'',output_tokens:usage.output_tokens??item.outputTokens??'',cache_read_tokens:usage.cache_read_tokens??item.cacheReadTokens??'',cache_write_tokens:usage.cache_write_tokens??item.cacheWriteTokens??'',reasoning_tokens:usage.reasoning_tokens??item.reasoningTokens??'',connection_rebind_count:raw.connection_rebind_count??item.connectionRebinds??'',provider_fallback_count:raw.provider_fallback_count??item.providerFallbacks??'',conversation_migration_count:raw.conversation_migration_count??'',recovery_added_latency_ms:raw.recovery_added_latency_ms??''};
+}
+function exportRows(rows,format,name){const clean=JSON.parse(JSON.stringify(rows||[]));let body,type,ext;if(format==='csv'){const flat=clean.map(requestExportRow),headers=Object.keys(flat[0]||requestExportRow({}));body=`\uFEFF${[headers.map(csvCell).join(','),...flat.map(row=>headers.map(key=>csvCell(row[key])).join(','))].join('\r\n')}`;type='text/csv;charset=utf-8';ext='csv'}else{body=JSON.stringify(clean,null,2);type='application/json';ext='json'}const url=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=url;a.download=`${name}-${new Date().toISOString().slice(0,10)}.${ext}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),0)}
+async function exportRequests(format){
+  if(state.requestExporting)return;state.requestExporting=true;render();
+  try{
+    const filters=requestFilters({limit:1000,offset:0}),to=filters.to?new Date(filters.to):new Date(),windowMS={'15m':900000,'1h':3600000,'24h':86400000,'168h':604800000,'720h':2592000000}[filters.window]||900000;
+    filters.to=to.toISOString();if(!filters.from)filters.from=new Date(to.getTime()-windowMS).toISOString();
+    const rows=[],seenIDs=new Set();let offset=0,reportedTotal=null;
+    do{const page=await adapter.getRequests({...filters,limit:1000,offset}),pageTotal=Number(page.total??page.length);if(!Number.isSafeInteger(pageTotal)||pageTotal<0)throw new Error('The request ledger returned an invalid total. Retry the export.');if(reportedTotal===null)reportedTotal=pageTotal;else if(pageTotal!==reportedTotal)throw new Error('The request ledger changed during export. Retry to capture one complete result set.');for(const item of page){const id=item.raw?.id??item.id;if(!id)throw new Error('A request has no stable ID. Retry the export.');if(seenIDs.has(id))throw new Error('The request ledger changed during export and repeated a request. Retry to capture one complete result set.');seenIDs.add(id);rows.push(item)}offset+=page.length;if(!page.length)break;}while(offset<reportedTotal);
+    if(rows.length!==reportedTotal)throw new Error(`The request ledger changed during export (${rows.length} of ${reportedTotal} rows collected). Retry to capture one complete result set.`);
+    const exact=rows.map(item=>item.raw?JSON.parse(JSON.stringify(item.raw)):requestExportRow(item));
+    if(format==='csv')exportRows(rows,'csv','ferry-requests');else exportRows({schema_version:1,exported_at:new Date().toISOString(),filters:{...filters,limit:undefined,offset:undefined},reported_total:reportedTotal??0,exported_count:exact.length,requests:exact},'json','ferry-requests');
+    showToast(`Exported ${exact.length} matching request${exact.length===1?'':'s'}`);
+  }catch(error){showToast(`Request export failed: ${error.message}`,'error')}
+  finally{state.requestExporting=false;render()}
+}
+
+function swap(arr,a,b){const tmp=arr[a];arr[a]=arr[b];arr[b]=tmp;}
+function closeOverlay(){if(state.modal?.type==='codex-usage-reset-confirm'){dismissCodexUsageReset();return;}stopOAuthDeviceWatch();state.drawer=null;state.modal=null;state.routingReview=null;state.routingValidationErrors=null;renderPortal();}
+let oauthDeviceTimer=null,oauthDeviceGeneration=0;
+function stopOAuthDeviceWatch(){oauthDeviceGeneration++;if(oauthDeviceTimer){clearInterval(oauthDeviceTimer);oauthDeviceTimer=null;}}
+function startOAuthDeviceWatch(providerId,connectionId){
+  stopOAuthDeviceWatch();
+  const generation=oauthDeviceGeneration,interval=Math.max(3,Number(state.modal?.intervalSeconds)||5)*1000;
+  const tick=async()=>{
+    if(oauthDeviceGeneration!==generation||state.modal?.type!=='oauth-device')return stopOAuthDeviceWatch();
+    try{
+      const status=await adapter.getConnectionOAuthStatus(providerId,connectionId);
+      if(oauthDeviceGeneration!==generation||state.modal?.type!=='oauth-device')return;
+      if(status.login&&status.login.status==='failed'){state.modal.error=status.login.error||'Codex device authorization failed.';renderPortal();return;}
+      if(!status.login){
+        stopOAuthDeviceWatch();
+        closeOverlay();
+        showToast('Codex sign-in completed');
+        invalidateProviderCodexUsage(providerId,connectionId);
+        try{await refreshProviderResources(providerId);}catch(e){}
+        await loadSharedCodexUsage(providerId,connectionId,{refresh:true});
+        return;
+      }
+      state.modal.userCode=status.login.userCode||state.modal.userCode;
+      state.modal.verificationUrl=status.login.verificationUrl||state.modal.verificationUrl;
+    }catch(e){/* transient poll failures keep the watch; the server expires the attempt */}
+  };
+  oauthDeviceTimer=setInterval(tick,interval);
+}
+async function refreshProviderResources(providerId){
+  state.providerCache.delete(providerId);
+  state.providers=await adapter.getProviders();
+  state.models=await adapter.getModels(state.overviewWindow);
+  state.modelCache.clear();
+  const route=currentRoute();
+  if(route.section==='providers'&&route.id===providerId) state.providerCache.set(providerId,await adapter.getProvider(providerId));
+  render();
+}
+function connectionImpactText(provider,connection){
+  const models=providerModels(provider), upstream=connectionModels(connection);
+  const routeText=models.length?`Logical model routes affected: ${models.join(', ')}.`:'No logical model route currently references this provider.';
+  const supplyText=upstream.length?` Upstream supply: ${upstream.join(', ')}.`:'';
+  return `${routeText}${supplyText} ${connection.conversations||0} active conversation bindings may be affected.`;
+}
+function overrideRouteKey(route){return `${route.id||route.provider_id}\u0000${route.model||route.upstream_model}`}
+function overrideUIRoute(step,data){const id=step.id||step.provider_id,model=step.model||step.upstream_model,known=(data.routes||[]).find(route=>route.id===id&&route.model===model),provider=state.providers.find(item=>item.id===id),recovery=Object.hasOwn(step,'recover_on')?step.recover_on:Object.hasOwn(step,'recoverOn')?step.recoverOn:[];return {id,provider:known?.provider||provider?.name||id,model,status:known?.status||provider?.status||'Unknown',recoverOn:[...(recovery||[])]}}
+function newOverrideWizard(data,raw={}){
+  const defaults=normalizeRoutingRoutes(data.routes||[]),preferred=new Set((raw.prefer||[]).map(overrideRouteKey)),avoided=new Set((raw.avoid||[]).map(overrideRouteKey));
+  const adjustments=defaults.map(route=>preferred.has(overrideRouteKey(route))?'prefer':avoided.has(overrideRouteKey(route))?'avoid':'normal');
+  const customRoutes=(raw.route?.steps||[]).map(step=>overrideUIRoute(step,data)),routeChoices=[],seen=new Set(),addChoice=route=>{const key=overrideRouteKey(route);if(route.id&&route.model&&!seen.has(key)){seen.add(key);routeChoices.push(route)}};defaults.forEach(route=>addChoice(JSON.parse(JSON.stringify(route))));customRoutes.forEach(route=>addChoice(JSON.parse(JSON.stringify(route))));for(const provider of state.providers){const catalog=provider.raw?.model_catalog?.map(item=>item.upstream_model)||provider.upstreamModels||[];for(const model of catalog)addChoice({id:provider.id,provider:provider.name,model,status:provider.status,serving:0,recoverOn:[]});}
+  return {id:raw.id||'',name:raw.name||'',enabled:raw.enabled??true,callers:(raw.callers||[]).join(', '),protocols:[...(raw.protocols||[])],weekdays:[...(raw.weekdays||[])],timezone:raw.timezone||'',start:raw.time_window?.start||'',end:raw.time_window?.end||'',required:{...(raw.required_capabilities||{})},mode:raw.mode||'adjust_default',defaultRoutes:defaults,routeChoices,adjustments,customRoutes,customRouteChoice:''};
+}
+function overrideRouteStep(route,{recovery=false}={}){return {provider_id:route.id,upstream_model:route.model,...(recovery?{recover_on:[...(route.recoverOn||[])]}:{})}}
+function providerEditModelNames(w){return [...new Set(String(w?.models||'').split(/[\n,]/).map(value=>value.trim()).filter(Boolean))]}
+function setProviderEditModelNames(w,names){w.models=[...new Set((names||[]).map(value=>String(value).trim()).filter(Boolean))].join('\n')}
+function addProviderEditModelNames(w,values){setProviderEditModelNames(w,[...providerEditModelNames(w),...String(values||'').split(/[\n,]/)]);w.modelInput=''}
+function providerEditModels(w){const names=providerEditModelNames(w),existing=new Map((w.modelSpecs||[]).map(model=>[model.upstream_model,model]));return names.map(upstreamModel=>{const current=existing.get(upstreamModel);return {upstream_model:upstreamModel,protocols:[w.protocol],capabilities:providerNormalizedModelCapabilities(w.protocol,upstreamModel,current?.capabilities||{text:true,stream:true,tools:true}),...(current?.plan_id?{plan_id:current.plan_id}:{})}})}
+function providerModelDiscoveryReady(w){return w?.type==='cliproxy-codex'||(/^https?:\/\//i.test(w?.baseUrl||'')&&((w.authType==='Existing Credential'&&Boolean(w.credentialRef))||(w.authType!=='Existing Credential'&&Boolean(w.secret))))}
+async function discoverProviderModels(){const w=state.wizard.provider;if(!w||w.modelsLoading)return;if(!providerModelDiscoveryReady(w)){showToast('Complete Base URL and credential before loading models','error');return;}w.modelsLoading=true;w.modelsError='';renderPortal();try{const models=await adapter.discoverProviderModels({type:w.type,baseUrl:w.baseUrl,protocol:w.protocol,secret:w.secret,credentialRef:w.credentialRef});w.modelOptions=[...new Set(models.map(model=>String(model).trim()).filter(Boolean))];w.models=(w.models||[]).filter(model=>w.modelOptions.includes(model));w.modelsLoaded=true;if(!w.modelOptions.length)w.modelsError='The upstream returned no models.';}catch(error){w.modelOptions=[];w.models=[];w.modelsLoaded=false;w.modelsError=error.message||'Unable to load models.';}finally{w.modelsLoading=false;renderPortal()}}
+function updateProviderModelFilterUI(){const w=state.wizard.provider,q=String(w?.modelFilter||'').trim().toLowerCase();let visible=0;portal.querySelectorAll('[data-provider-model-row]').forEach(row=>{const matches=!q||String(row.dataset.search||'').includes(q);row.hidden=!matches;if(matches)visible++});const counter=portal.querySelector('[data-provider-model-visible]');if(counter)counter.textContent=`${visible} shown`}
+function providerEditModelDiscoveryReady(w){return w?.type==='cliproxy-codex'||(/^https?:\/\//i.test(w?.baseUrl||'')&&(Boolean(w.credentialRef)||demoMode))}
+async function discoverProviderEditModels(){const w=state.wizard.providerEdit;if(!w||w.modelsLoading)return;if(!providerEditModelDiscoveryReady(w)){w.modelsError='A configured credential is required to load the upstream catalog.';w.modelsLoaded=false;renderPortal();return;}w.modelsLoading=true;w.modelsError='';renderPortal();try{const models=await adapter.discoverProviderModels({type:w.type,baseUrl:w.baseUrl,protocol:w.protocol,credentialRef:w.credentialRef});if(state.wizard.providerEdit!==w)return;w.modelOptions=[...new Set(models.map(model=>String(model).trim()).filter(Boolean))];w.modelsLoaded=true;if(!w.modelOptions.length)w.modelsError='The upstream returned no models.';}catch(error){if(state.wizard.providerEdit!==w)return;w.modelOptions=[];w.modelsLoaded=false;w.modelsError=error.message||'Unable to load models.';}finally{if(state.wizard.providerEdit===w){w.modelsLoading=false;renderPortal()}}}
+function updateProviderEditModelFilterUI(){const w=state.wizard.providerEdit,q=String(w?.modelFilter||'').trim().toLowerCase();let visible=0;portal.querySelectorAll('[data-provider-edit-model-row]').forEach(row=>{const matches=!q||String(row.dataset.search||'').includes(q);row.hidden=!matches;if(matches)visible++});const counter=portal.querySelector('[data-provider-edit-model-visible]');if(counter)counter.textContent=`${visible} shown`}
+
+async function refreshManagementSecurity(){
+  const [tokens,events]=await Promise.all([adapter.getManagementTokens(),adapter.getSecurityEvents()]);
+  state.managementTokens=tokens;state.securityEvents=events;
+}
+
+app.addEventListener('click', async (event) => {
+  const el=event.target.closest('[data-action]');
+  if(!el) return;
+  const action=el.dataset.action;
+  if(action==='publish-codex-version'){
+    if(state.codexVersionPublishing)return;
+    const version=String(state.codexVersionDraft??state.settings?.codex_client_version??'').trim();
+    if(version&&!/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$/.test(version)){showToast('Enter a semantic version, or leave blank to use the automatic or bundled version.','error');return;}
+    const options={codex_auto_update:state.codexAutoUpdateDraft??state.settings?.codex_auto_update??false,codex_release_channel:state.codexReleaseChannelDraft??state.settings?.codex_release_channel??'stable'};
+    const effective=version||(options.codex_auto_update?translatedConsoleText('Automatic GitHub updates')+' / '+options.codex_release_channel:state.settings?.codex_auto_version||state.settings?.codex_default_client_version||'0.153.0');
+    if(!confirm(translatedConsoleText('Publish Codex client version')+' '+effective+'? '+translatedConsoleText('Existing models and custom routes will be retained.')))return;
+    state.codexVersionPublishing=true;render();
+    try{state.settings=await adapter.publishCodexClientVersion(version,state.settings?.revision||0,options);state.codexVersionDraft=undefined;state.codexAutoUpdateDraft=undefined;state.codexReleaseChannelDraft=undefined;showToast('Codex client version published');}
+    catch(error){if(error.status===409){try{state.settings=await adapter.getSettings()}catch{}}showToast(error.message,'error');}
+    finally{state.codexVersionPublishing=false;render();}return;
+  }
+  if(action.startsWith('codex-usage-reset-')){await handleCodexUsageResetAction(action,el);return;}
+  if(action==='backup-save'){el.disabled=true;try{await saveBackupPolicy(el.closest('[data-backup-settings]'));showToast('Backup policy saved');render()}catch(error){showToast(error.message,'error');el.disabled=false}return;}
+
+  if(action==='show-request-cost'){const request=requestDataSync(el.dataset.id);if(request){state.modal={type:'request-cost',request};renderPortal()}return;}
+  if(action==='reload'){location.reload();return;}
+  if(action==='logout'){try{await adapter.logout();clearCodexUsageResetState();state.modal=null;state.auth={initialized:true,authenticated:false,username:state.auth?.username};render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='change-password'){state.modal={type:'change-password'};renderPortal();return;}
+  if(action==='create-management-token'){state.modal={type:'create-management-token'};renderPortal();return;}
+  if(action==='management-token-edit'){const token=state.managementTokens.find(item=>item.id===el.dataset.id);if(!token){showToast('Management token not found','error');return;}state.modal={type:'edit-management-token',token};renderPortal();return;}
+  if(action==='copy-skill-install'){try{await copyText(ferrySkillInstallPrompt());showToast('Copied to clipboard')}catch(e){showToast(e.message||'Copy failed','error')}return;}
+  if(action==='copy-management-token'){try{await copyText(state.modal?.secret||'');showToast('Management token copied')}catch(e){showToast(e.message||'Copy failed','error')}return;}
+  if(action==='management-token-toggle'){try{await adapter.updateManagementToken(el.dataset.id,{enabled:el.dataset.enabled==='true'});await refreshManagementSecurity();showToast(`Management token ${el.dataset.enabled==='true'?'enabled':'disabled'}`);render();}catch(e){showToast(e.message,'error');render()}return;}
+  if(action==='management-token-rotate'){if(!confirmConsole('Rotate this management token? The current value stops working immediately.'))return;try{const current=state.managementTokens.find(token=>token.id===el.dataset.id),result=await adapter.rotateManagementToken(el.dataset.id);await refreshManagementSecurity();state.modal={type:'management-token-reveal',secret:result.secret,name:current?.name||el.dataset.id,rotated:true};renderPortal();showToast('Management token rotated')}catch(e){showToast(e.message,'error')}return;}
+  if(action==='management-token-revoke'){if(!confirmConsole('Permanently revoke this management token? Any Skill using it will immediately lose access.'))return;try{await adapter.revokeManagementToken(el.dataset.id);await refreshManagementSecurity();showToast('Management token revoked');render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='management-token-delete'){if(!confirmConsole('Delete this revoked management token metadata?'))return;try{await adapter.deleteManagementToken(el.dataset.id);await refreshManagementSecurity();showToast('Management token deleted');render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='mobile-menu'){state.mobileNav=!state.mobileNav;render();return;}
+  if(action==='refresh'){await boot();showToast('Runtime view refreshed');return;}
+  if(action==='goto-models'){location.hash='#/models';return;}
+  if(action==='open-model'){location.hash=resourceHash('models',el.dataset.id);return;}
+  if(action==='open-provider'){location.hash=`#/providers/${el.dataset.id}`;return;}
+  if(action==='open-request'){location.hash=`#/requests/${el.dataset.id}`;return;}
+  if(action==='open-conversation-trail'){const conversationId=el.dataset.conversation,currentRequestId=el.dataset.id;if(!conversationId||conversationId==='—')return;state.drawer={type:'conversation',conversationId,currentRequestId,error:''};renderPortal();try{await loadConversationRequests(conversationId,{force:true})}catch{}return;}
+  if(action==='conversation-request'){await inspectConversationRequest(el.dataset.id);return;}
+  if(action==='conversation-step'){const drawer=state.drawer;if(!drawer||drawer.type!=='conversation')return;const list=state.conversationCache.get(drawer.conversationId)||[],index=list.findIndex(item=>item.id===drawer.currentRequestId),next=list[index+Number(el.dataset.direction||0)];if(next)await inspectConversationRequest(next.id);return;}
+  if(action==='conversation-view-all'){clearReportFilters();const conversationId=el.dataset.conversation;Object.assign(state,{requestSearch:'',requestConversation:conversationId,requestFilter:'all',requestWindow:'720h',requestModel:'',requestProvider:'',requestApiKey:'',requestConnection:'',requestFailureType:'',requestStatus:'',requestRevision:'',requestFrom:'',requestTo:'',requestOffset:0});closeOverlay();location.hash='#/requests';await reloadRequests();return;}
+  if(action==='requests-page'){location.hash='#/requests';return;}
+  if(action==='request-search-submit'){forgetReportLocation();state.requestOffset=0;await reloadRequests();return;}
+  if(action==='request-page'){state.requestOffset=Number(el.dataset.offset||0);await reloadRequests();return;}
+  if(action==='request-clear'){clearReportFilters();Object.assign(state,{requestSearch:'',requestConversation:'',requestFilter:'all',requestModel:'',requestProvider:'',requestApiKey:'',requestConnection:'',requestFailureType:'',requestStatus:'',requestRevision:'',requestFrom:'',requestTo:'',requestOffset:0});await reloadRequests();return;}
+  if(action==='request-auto'){state.requestAutoRefresh=el.checked;configureRequestAutoRefresh();render();return;}
+  if(action==='request-export'){await exportRequests(el.dataset.format==='csv'?'csv':'json');return;}
+  if(action==='billing-export'){if(!state.billing.reconciliation){showToast('Reconciliation export requires recorded API usage','error');return;}exportRows(state.billing.reconciliation, 'json','ferry-usage-reconciliation');return;}
+  if(action==='billing-tab'){location.hash='#/billing';return;}
+  if(action==='insights-toggle'){state.insightsOpen=!state.insightsOpen;render();return;}
+  if(action==='insights-link'){state.insightsOpen=false;render();return;}
+  if(action==='alerts-open'){try{const envelope=await adapter.getAlerts();state.alerts=envelope.alerts||[];state.alertUnread=Number(envelope.unread||0);state.drawer={type:'alerts'};renderPortal();render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='alert-ack'){try{await adapter.acknowledgeAlert(el.dataset.id);const envelope=await adapter.getAlerts();state.alerts=envelope.alerts||[];state.alertUnread=Number(envelope.unread||0);renderPortal();render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='alert-open-resource'){const kind=el.dataset.kind,id=el.dataset.id;closeOverlay();if(kind==='model')location.hash=resourceHash('models',id);else if(kind==='provider')location.hash=resourceHash('providers',id);else if(kind==='api_key')location.hash='#/api-keys';else location.hash='#/requests';return;}
+  if(action==='settings-tab'){state.settingsTab=el.dataset.id;location.hash='#/settings/'+el.dataset.id;if(el.dataset.id==='general')await refreshPricingStatus();return;}
+  if(action==='pricing-refresh'){
+    if(state.pricingRefreshing)return;
+    state.pricingRefreshing=true;render();
+    try{const pricing=await adapter.refreshPricing();state.settings={...state.settings,pricing_sync:pricing};state.requestCache.clear();showToast('Reference prices updated')}catch(error){showToast(error.message,'error');await refreshPricingStatus()}finally{state.pricingRefreshing=false;render()}return;
+  }
+  if(action==='close-overlay'){closeOverlay();return;}
+  if(action==='edit-routing'){
+    const id=el.dataset.id; const data=await ensureModel(id); state.routingConflict=null;state.routingValidationErrors=null;state.wizard.routingProvider='';state.routingDraft={routes:normalizeRoutingRoutes(data.routes),conversationStrategy:data.model?.conversationStrategy||'keep-existing'};state.drawer={type:'routing',modelId:id};renderPortal();return;
+  }
+  if(action==='routing-up'||action==='routing-down'){
+    const i=Number(el.dataset.index), dir=action==='routing-up'?-1:1; state.routingValidationErrors=null;swap(state.routingDraft.routes,i,i+dir);renderPortal();return;
+  }
+  if(action==='routing-remove'){state.routingValidationErrors=null;state.routingDraft.routes.splice(Number(el.dataset.index),1);renderPortal();return;}
+  if(action==='routing-add-route'){
+    const p=state.providers.find(provider=>provider.id===state.wizard.routingProvider);if(!p){showToast('Select a Provider for the new route first','error');return;}const previous=state.routingDraft.routes.at(-1);state.routingValidationErrors=null;if(previous&&!(previous.recoverOn||[]).length)previous.recoverOn=defaultRoutingFailures();state.routingDraft.routes.push({id:p.id,provider:p.name,model:'',status:p.status,serving:0,recoverOn:[]});state.wizard.routingProvider='';renderPortal();return;
+  }
+  if(action==='routing-duplicate'){const i=Number(el.dataset.index),route=state.routingDraft.routes[i];if(!route)return;state.routingValidationErrors=null;state.routingDraft.routes.splice(i+1,0,JSON.parse(JSON.stringify(route)));renderPortal();return;}
+  if(action==='routing-review'){
+    try{state.routingConflict=null;state.routingValidationErrors=null;state.routingReview=await adapter.reviewRouting(el.dataset.model,state.routingDraft);state.drawer=null;state.modal={type:'routing-review'};renderPortal();}catch(e){state.routingValidationErrors=Array.isArray(e.details)&&e.details.length?e.details:[e.message||'The route is invalid.'];renderPortal();showToast(state.routingValidationErrors[0],'error')}return;
+  }
+  if(action==='back-to-routing'){state.modal=null;state.drawer={type:'routing',modelId:state.routingReview.modelId};renderPortal();return;}
+  if(action==='routing-apply'){
+    try{const review=state.routingReview;const result=await adapter.applyRouting(el.dataset.model,review);state.modelCache.delete(el.dataset.model);closeOverlay();showToast(`Revision #${result.revision} applied. New requests now use the reviewed route order.`);await Promise.allSettled([loadAndRenderModel(el.dataset.model),adapter.getRevisions().then(revisions=>{state.revisions=revisions})]);}catch(e){if(e.status===409){const modelId=el.dataset.model,attemptedRoutes=JSON.parse(JSON.stringify(state.routingDraft?.routes||[]));state.modelCache.delete(modelId);try{const latest=await ensureModel(modelId);e.attemptedRoutes=attemptedRoutes;e.latestRoutes=JSON.parse(JSON.stringify(latest.routes));state.routingDraft={routes:normalizeRoutingRoutes(latest.routes),conversationStrategy:latest.model?.conversationStrategy||'keep-existing'};}catch{}state.routingReview=null;state.routingConflict=e;state.modal=null;state.drawer={type:'routing',modelId};renderPortal();showToast('Runtime changed before apply. Review the latest revision.','error');}else showToast(e.message,'error')}return;
+  }
+  if(action==='add-provider'){state.wizard.provider={step:1,type:'custom',name:'',baseUrl:'',authType:'API Key',account:'',models:[],modelOptions:[],modelFilter:'',modelsLoading:false,modelsLoaded:false,modelsError:'',protocol:'openai-chat',secret:'',credentialRef:''};state.modal={type:'add-provider'};renderPortal();return;}
+  if(action==='toggle-provider'){
+    try{const data=await ensureProvider(el.dataset.id),p=data.provider,nextEnabled=el.dataset.enable==='true';if(!nextEnabled&&!confirmConsole(`Disable ${p.name}?\n\n${providerImpactText(p)} New requests may use fallback providers or fail when no eligible route remains. Existing conversation bindings and in-flight recovery can be affected.`))return;await adapter.updateProvider(el.dataset.id,{enabled:nextEnabled});state.drawer=null;showToast(`Provider ${nextEnabled?'enabled':'disabled'}`);await refreshProviderResources(el.dataset.id);}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='provider-type'){const w=state.wizard.provider;w.type=el.dataset.id;w.models=[];w.modelOptions=[];w.modelsLoaded=false;w.modelsError='';if(el.dataset.id==='cliproxy-codex'){if(!w.baseUrl)w.baseUrl='https://chatgpt.com/backend-api/codex';w.authType='OAuth';w.protocol='openai-responses';}else if(w.authType==='OAuth')w.authType='API Key';renderPortal();return;}
+  if(action==='provider-auth-method'){const w=state.wizard.provider;w.authMethod=el.dataset.id;w.authType=el.dataset.id==='Auth File'?'Codex auth.json':'OAuth';renderPortal();return;}
+  if(action==='provider-prev'){state.wizard.provider.step=Math.max(1,state.wizard.provider.step-1);renderPortal();return;}
+  if(action==='provider-model-discover'){await discoverProviderModels();return;}
+  if(action==='provider-model-select-filtered'){const w=state.wizard.provider,q=String(w.modelFilter||'').trim().toLowerCase(),selected=new Set(w.models||[]);for(const model of w.modelOptions||[])if(!q||model.toLowerCase().includes(q))selected.add(model);w.models=[...selected];renderPortal();return;}
+  if(action==='provider-model-clear'){state.wizard.provider.models=[];renderPortal();return;}
+  if(action==='provider-next'){
+    const w=state.wizard.provider;if(w.step===1){w.step=2;renderPortal();if(providerModelDiscoveryReady(w))await discoverProviderModels();return;}if(w.step===2){if(!w.name.trim()){showToast('Provider name is required','error');return;}if(!/^https?:\/\//i.test(w.baseUrl)){showToast('An absolute HTTP(S) Base URL is required','error');return;}if(!(w.models||[]).length){showToast('Select at least one detected upstream model','error');return;}if(!w.account.trim()){showToast('Credential name is required','error');return;}if(w.type==='cliproxy-codex'&&w.authMethod==='Auth File'&&!w.authFile){showToast('Choose a Codex auth.json file','error');return;}if(w.type!=='cliproxy-codex'&&w.authType==='API Key'&&!w.secret){showToast('API key or token is required','error');return;}if(w.authType==='Existing Credential'&&!w.credentialRef){showToast('Credential reference is required','error');return;}const concurrencyError=validateProviderConcurrency(w);if(concurrencyError){showToast(concurrencyError,'error');return;}const scheduledMessageError=validateProviderScheduledMessage(w);if(scheduledMessageError){showToast(scheduledMessageError,'error');return;}w.step=3;renderPortal();return;}try{const codexAuthType=w.authMethod==='Auth File'?'Codex auth.json':'OAuth',result=await adapter.addProvider({name:w.name,type:w.type,baseUrl:w.baseUrl,authType:w.type==='cliproxy-codex'?codexAuthType:w.authType,authFile:w.authFile,account:w.account,models:w.models,protocol:w.protocol,secret:w.secret,credentialRef:w.credentialRef,scheduledMessage:providerScheduledMessagePayload(w),concurrency:providerConcurrencyPayload(w),modelSyncInterval:providerModelSyncInterval(w.modelSyncInterval)});state.providers=await adapter.getProviders();if(result?.oauthPending){state.wizard.oauthCallback='';state.modal={type:'oauth-complete',providerId:result.id,connectionId:result.connectionId||result.id,authorizeUrl:result.authorizeUrl};renderPortal();return;}closeOverlay();showToast(w.authMethod==='Auth File'?`${w.name} provider created and auth.json imported`:`${w.name} provider created`);render();}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='reset-cooldown'){
+    el.disabled=true;
+    try{
+      const result=await adapter.resetCooldowns({provider_id:el.dataset.provider||undefined,connection_id:el.dataset.connection||undefined,upstream_model:el.dataset.upstream||undefined,model_id:el.dataset.model||undefined});
+      state.providerCache.clear();state.modelCache.clear();
+      state.providers=await adapter.getProviders();
+      showToast('Cooldown reset saved for '+result.cleared_models+' model(s). Requests can retry; upstream limits may apply again.');
+      render();
+    }catch(e){showToast(e.message,'error')}finally{el.disabled=false}return;
+  }
+  if(action==='test-provider'){try{const data=await ensureProvider(el.dataset.id),identity=data.connections?.[0];if(!identity)throw new Error('Provider credential is not configured');await runConnectionTest(el.dataset.id,identity.id)}catch(e){showToast(e.message,'error',{title:'Connection test failed'})}return;}
+  if(action==='add-connection'){const provider=providerDataSync(el.dataset.provider).provider;const oauth=provider?.raw?.type==='cliproxy-codex';state.wizard.connection={step:1,type:oauth?'OAuth':'API Key',account:'new-connection',models:provider?.servingModels?.[0]||'gpt-5.6-sol',protocol:oauth?'openai-responses':'openai-chat',secret:'',credentialRef:'',authFile:null,authFileName:''};state.modal={type:'add-connection',providerId:el.dataset.provider};renderPortal();return;}
+  if(action==='connection-type'){const w=state.wizard.connection;w.type=el.dataset.id;if(el.dataset.id==='OAuth'||el.dataset.id==='Auth File')w.protocol='openai-responses';renderPortal();return;}
+  if(action==='connection-prev'){state.wizard.connection.step=Math.max(1,state.wizard.connection.step-1);renderPortal();return;}
+  if(action==='connection-next'){
+    const w=state.wizard.connection, providerId=el.dataset.provider;if(w.step===1){w.step=2;renderPortal();return;}if(w.step===2){if(!w.account.trim()||!w.models.trim()){showToast('Identity and at least one model are required','error');return;}if(w.type==='API Key'&&!w.secret){showToast('API key or token is required','error');return;}if(w.type==='Import'&&!w.credentialRef){showToast('Credential reference is required','error');return;}if(w.type==='Auth File'&&!w.authFile){showToast('Choose a Codex auth.json file','error');return;}w.step=3;renderPortal();return;}try{const result=await adapter.addConnection(providerId,{authType:w.type,authFile:w.authFile,account:w.account,models:w.models,protocol:w.protocol,secret:w.secret,credentialRef:w.credentialRef});state.providerCache.delete(providerId);if(result?.oauthPending){state.wizard.oauthCallback='';state.modal={type:'oauth-complete',providerId,connectionId:result.id,authorizeUrl:result.authorizeUrl};renderPortal();return;}closeOverlay();showToast(w.type==='Auth File'?'auth.json imported and connection enabled':'Connection validated and added as Standby');await refreshProviderResources(providerId);}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='oauth-complete'){const callback=state.wizard.oauthCallback||'';if(!callback){showToast('Paste the callback URL first','error');return;}try{await adapter.completeConnectionOAuth(el.dataset.provider,el.dataset.id,callback,{autoEnable:state.modal?.autoEnable!==false});state.providerCache.delete(el.dataset.provider);closeOverlay();showToast('Codex sign-in completed');invalidateProviderCodexUsage(el.dataset.provider,el.dataset.id);await refreshProviderResources(el.dataset.provider);await loadSharedCodexUsage(el.dataset.provider,el.dataset.id,{refresh:true});}catch(e){showToast(e.message,'error')}return;}
+  if(action==='provider-codex-relogin'){
+    const providerId=el.dataset.provider||state.modal?.providerId,connectionId=el.dataset.connection||activeCodexProviderConnection(state.wizard.providerEdit)?.id;
+    if(!providerId||!connectionId){showToast('Open an OAuth account first','error');return;}
+    const mode=el.dataset.mode==='device'?'device':'browser';
+    try{
+      const login=await adapter.startConnectionOAuth(providerId,connectionId,{mode});
+      state.wizard.oauthCallback='';
+      if(mode==='device'){
+        state.modal={type:'oauth-device',providerId,connectionId,userCode:login.userCode||'',verificationUrl:login.verificationUrl||'https://auth.openai.com/codex/device',intervalSeconds:login.intervalSeconds||5,error:''};
+        startOAuthDeviceWatch(providerId,connectionId);
+      }else{
+        state.modal={type:'oauth-complete',providerId,connectionId,authorizeUrl:login.authorizeUrl,autoEnable:false};
+      }
+      renderPortal();
+    }catch(e){showToast(e.message,'error')}
+    return;
+  }
+  if(action==='oauth-device-cancel'){
+    const providerId=el.dataset.provider,connectionId=el.dataset.connection;
+    stopOAuthDeviceWatch();
+    try{await adapter.cancelConnectionOAuth(providerId,connectionId);}catch(e){/* server login may already be gone; superseding later is safe */}
+    closeOverlay();showToast('Codex device sign-in cancelled');
+    return;
+  }
+  if(action==='open-connection'){await ensureProvider(el.dataset.provider);state.drawer={type:'connection',providerId:el.dataset.provider,connectionId:el.dataset.id};renderPortal();return;}
+  if(action==='resume-oauth'){const data=await ensureProvider(el.dataset.provider),c=data.connections.find(x=>x.id===el.dataset.id);state.wizard.oauthCallback='';state.modal={type:'oauth-complete',providerId:el.dataset.provider,connectionId:el.dataset.id,authorizeUrl:c?.raw?.oauth_authorize_url};state.drawer=null;renderPortal();return;}
+  if(action==='test-connection'){try{await runConnectionTest(el.dataset.provider,el.dataset.id)}catch(e){showToast(e.message,'error',{title:'Connection test failed'})}return;}
+  if(action==='edit-connection'){const data=await ensureProvider(el.dataset.provider),c=data.connections.find(x=>x.id===el.dataset.id),first=c.models?.[0]||{};state.wizard.connectionEdit={identity:c.name,credentialRef:c.raw?.credential_ref||'',models:(c.models||[]).map(x=>x.upstream_model).join(', '),protocol:first.protocols?.[0]||'openai-chat',stream:Boolean(first.capabilities?.stream),tools:Boolean(first.capabilities?.tools)};state.drawer=null;state.modal={type:'connection-form',providerId:el.dataset.provider,connectionId:el.dataset.id};renderPortal();return;}
+  if(action==='connection-save'){const w=state.wizard.connectionEdit;try{await adapter.updateConnection(el.dataset.provider,el.dataset.id,{identity:w.identity,credential:{secret_ref:w.credentialRef},models:w.models.split(',').map(x=>x.trim()).filter(Boolean).map(upstream_model=>({upstream_model,protocols:[w.protocol],capabilities:{text:true,stream:w.stream,tools:w.tools}}))});state.providerCache.delete(el.dataset.provider);closeOverlay();showToast('Connection revision applied');await refreshProviderResources(el.dataset.provider)}catch(e){showToast(e.message,'error')}return;}
+  if(action==='rotate-connection'){const secret=window.prompt('Rotation immediately replaces the credential for new attempts. Enter the new API key/token:');if(!secret)return;try{await adapter.rotateConnectionSecret(el.dataset.provider,el.dataset.id,secret);showToast('Connection credential rotated and runtime refreshed')}catch(e){showToast(e.message,'error')}return;}
+  if(action==='delete-connection'){
+    try{const data=await ensureProvider(el.dataset.provider),c=data.connections.find(x=>x.id===el.dataset.id);if(!c)throw new Error('Connection not found');const impact=connectionImpactText(data.provider,c);if(!confirmConsole(`Delete connection ${c.name}?\n\nFerry will automatically disable and remove it. ${impact} Routes that lose their last upstream supply will be detached, and models left without a default route will be disabled. In-flight requests finish on their current revision.`))return;await adapter.deleteConnection(el.dataset.provider,el.dataset.id);state.drawer=null;showToast('Connection and dependent route supply removed');await refreshProviderResources(el.dataset.provider);}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='toggle-connection'){
+    try{const data=await ensureProvider(el.dataset.provider),c=data.connections.find(x=>x.id===el.dataset.id);if(!c)throw new Error('Connection not found');const nextEnabled=!connectionIsEnabled(c);if(!nextEnabled&&!confirmConsole(`Disable ${c.name}?\n\n${connectionImpactText(data.provider,c)} New requests may recover on another connection, fall back to another provider, or fail when no eligible route remains.`))return;await adapter.updateConnection(el.dataset.provider,el.dataset.id,{status:nextEnabled?'Standby':'Unavailable'});state.drawer=null;showToast(`Connection ${nextEnabled?'enabled':'disabled'}`);await refreshProviderResources(el.dataset.provider);}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='create-key'){state.wizard.key={name:'',description:'',models:'',protocols:'',expiresAt:'',rateLimitRPM:'',monthlyBudgetUSD:'',submitting:false};state.modal={type:'create-key'};renderPortal();return;}
+  if(action==='key-create-submit'){
+    const w=state.wizard.key;if(w.submitting)return;if(!w.name.trim()){showToast('Key name is required','error');return;}w.submitting=true;renderPortal();try{const result=await adapter.createApiKey({name:w.name,description:w.description,scope_models:w.models.split(',').map(x=>x.trim()).filter(Boolean),scope_protocols:w.protocols.split(',').map(x=>x.trim()).filter(Boolean),expires_at:w.expiresAt?new Date(w.expiresAt).toISOString():null,rate_limit_rpm:Number(w.rateLimitRPM||0),monthly_budget_usd:Number(w.monthlyBudgetUSD||0)});state.modal={type:'key-reveal',key:result.key,name:w.name,existing:false};renderPortal();void refreshApiKeysInBackground();}catch(e){w.submitting=false;renderPortal();showToast(e.message,'error')}return;
+  }
+  if(action==='copy-revealed-key'){try{await copyText(state.modal?.key||'');showToast('API key copied')}catch(e){showToast(e.message||'Copy failed','error')}return;}
+  if(action==='reveal-key'){await revealManagedApiKey(el.dataset.id);return;}
+  if(action==='copy-stored-key'){await revealManagedApiKey(el.dataset.id,{copy:true});return;}
+  if(action==='rotate-key'){if(!confirmConsole('Change this key? A new key value will be generated. The current value moves to Grace and remains usable until you explicitly retire it.'))return;try{const current=state.apiKeys.find(key=>key.id===el.dataset.id),result=await adapter.rotateApiKey(el.dataset.id);state.modal={type:'key-reveal',key:result.key,name:current?.name||el.dataset.id,existing:false};renderPortal();void refreshApiKeysInBackground();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='toggle-key'){try{await adapter.updateApiKey(el.dataset.id,{enabled:el.dataset.enabled==='true'});state.apiKeys=await adapter.getApiKeys();showToast(`API key ${el.dataset.enabled==='true'?'enabled':'disabled'}`);render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='delete-key'){if(!confirmConsole('Permanently delete this disabled API key and all of its secret metadata?'))return;try{await adapter.deleteApiKey(el.dataset.id);state.apiKeys=await adapter.getApiKeys();showToast('API key deleted');render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='revoke-key'){state.modal={type:'confirm-revoke',keyId:el.dataset.id};renderPortal();return;}
+  if(action==='revoke-confirm'){try{await adapter.revokeApiKey(el.dataset.id);state.apiKeys=await adapter.getApiKeys();closeOverlay();showToast('API key revoked');render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='open-key'){try{state.modal={type:'api-key-detail',key:await adapter.getApiKey(el.dataset.id)};renderPortal()}catch(e){showToast(e.message,'error')}return;}
+  if(action==='edit-key-policy'){try{const k=await adapter.getApiKey(el.dataset.id),i=k.identity;state.wizard.keyPolicy={name:k.name,description:k.description||'',models:(i.scope_models||[]).join(', '),protocols:(i.scope_protocols||[]).join(', '),expiresAt:i.expires_at?new Date(i.expires_at).toISOString().slice(0,16):'',rate:i.rate_limit_rpm||'',budget:i.monthly_budget_usd||''};state.modal={type:'key-policy',keyId:k.id};renderPortal()}catch(e){showToast(e.message,'error')}return;}
+  if(action==='key-policy-save'){const w=state.wizard.keyPolicy;try{await adapter.updateApiKey(el.dataset.id,{description:w.description,scope_models:w.models.split(',').map(x=>x.trim()).filter(Boolean),scope_protocols:w.protocols.split(',').map(x=>x.trim()).filter(Boolean),expires_at:w.expiresAt?new Date(w.expiresAt).toISOString():null,clear_expiry:!w.expiresAt,rate_limit_rpm:Number(w.rate||0),monthly_budget_usd:Number(w.budget||0)});state.apiKeys=await adapter.getApiKeys();closeOverlay();showToast('API key access and limits updated');render()}catch(e){showToast(e.message,'error')}return;}
+  if(action==='retire-key-secret'){if(!confirmConsole('Permanently retire this Grace secret? Clients still using it will immediately fail.'))return;try{await adapter.retireApiKeySecret(el.dataset.key,el.dataset.id);state.modal={type:'api-key-detail',key:await adapter.getApiKey(el.dataset.key)};state.apiKeys=await adapter.getApiKeys();renderPortal();showToast('Grace secret retired')}catch(e){showToast(e.message,'error')}return;}
+  if(action==='api-key-requests'){await openReportRequests({...nextRequestWindow('720h'),api_key:el.dataset.id});return;}
+  if(action==='model-requests'){await openReportRequests({...nextRequestWindow(),...nextScope({model:el.dataset.id})});return;}
+  if(action==='add-model'){state.wizard.model={id:'',name:'',description:'',enabled:false,firstOutputTimeoutSeconds:0};state.modal={type:'model-form',mode:'create'};renderPortal();return;}
+  if(action==='edit-model'){const data=await ensureModel(el.dataset.id),raw=data.model.raw;state.wizard.model={id:raw.id,name:raw.display_name||'',description:raw.description||'',enabled:Boolean(raw.enabled),firstOutputTimeoutSeconds:raw.first_output_timeout_seconds??0};state.modal={type:'model-form',mode:'edit'};renderPortal();return;}
+  if(action==='toggle-model'){try{const data=await ensureModel(el.dataset.id),model=data.model,nextEnabled=el.dataset.enable==='true';if(!nextEnabled&&!confirmConsole(`Disable logical model ${model.name||model.id}?\n\nNew requests for this model will stop routing. Existing conversation bindings may migrate or fail, while in-flight requests finish on their current revision.`))return;await adapter.updateModel(el.dataset.id,{enabled:nextEnabled});state.models=await adapter.getModels(state.overviewWindow);state.modelCache.delete(el.dataset.id);showToast(`Logical model ${nextEnabled?'enabled':'disabled'}`);render();}catch(e){showToast(e.message,'error')}return;}
+  if(action==='model-save'){const w=state.wizard.model;if(!w.id.trim()){showToast('Model ID is required','error');return;}const firstOutputTimeoutSeconds=Number(w.firstOutputTimeoutSeconds);if(String(w.firstOutputTimeoutSeconds??'').trim()===''||!Number.isInteger(firstOutputTimeoutSeconds)||firstOutputTimeoutSeconds<0||firstOutputTimeoutSeconds>7200){showToast(nt('First output timeout must be an integer from 0 to 7200 seconds (0 disables it).','首输出等待上限须为 0 至 7200 秒的整数（0 关闭）。'),'error');return;}try{if(el.dataset.mode==='create')await adapter.createModel({id:w.id,display_name:w.name,description:w.description,first_output_timeout_seconds:firstOutputTimeoutSeconds,enabled:false,default_route:{steps:[]}});else await adapter.updateModel(w.id,{display_name:w.name,description:w.description,enabled:w.enabled,first_output_timeout_seconds:firstOutputTimeoutSeconds});state.models=await adapter.getModels(state.overviewWindow);state.modelCache.delete(w.id);closeOverlay();showToast(el.dataset.mode==='create'?'Model created disabled — configure routing before enabling':'Model revision applied');location.hash=resourceHash('models',w.id);render()}catch(e){showToast(e.message,'error')}return;}
+  if(action==='delete-model'){try{const data=await ensureModel(el.dataset.id),m=data.model,routes=data.routes||[],overrides=data.overrides||[];if(!confirmConsole(`Delete logical model ${m.name||m.id}?\n\nFerry will automatically disable it and remove ${routes.length} route step${routes.length===1?'':'s'} and ${overrides.length} conditional rule${overrides.length===1?'':'s'}. Existing conversation bindings will be dropped; in-flight requests finish on their current revision. This cannot be undone except by restoring a previous revision.`))return;await adapter.deleteModel(el.dataset.id);state.models=await adapter.getModels(state.overviewWindow);state.modelCache.delete(el.dataset.id);closeOverlay();location.hash='#/models';render();showToast('Logical model deleted')}catch(e){showToast(e.message,'error')}return;}
+  if(action==='add-override'){const data=await ensureModel(el.dataset.model);state.wizard.override=newOverrideWizard(data);state.modal={type:'override-form',modelId:el.dataset.model};renderPortal();return;}
+  if(action==='edit-override'){const data=await ensureModel(el.dataset.model),o=data.overrides.find(x=>x.id===el.dataset.id)?.raw||data.overrides.find(x=>x.id===el.dataset.id)||{};state.wizard.override=newOverrideWizard(data,o);state.modal={type:'override-form',modelId:el.dataset.model,overrideId:el.dataset.id};renderPortal();return;}
+  if(action==='override-route-up'||action==='override-route-down'){const i=Number(el.dataset.index),dir=action==='override-route-up'?-1:1;swap(state.wizard.override.customRoutes,i,i+dir);renderPortal();return;}
+  if(action==='override-route-remove'){state.wizard.override.customRoutes.splice(Number(el.dataset.index),1);renderPortal();return;}
+  if(action==='override-route-add'){const w=state.wizard.override,index=Number(w.customRouteChoice),route=w.routeChoices[index];if(!route){showToast('Select a route step first','error');return;}if(w.customRoutes.some(item=>overrideRouteKey(item)===overrideRouteKey(route))){showToast('That route is already in the custom route','error');return;}w.customRoutes.push(JSON.parse(JSON.stringify(route)));w.customRouteChoice='';renderPortal();return;}
+  if(action==='override-up'||action==='override-down'){try{const data=await ensureModel(el.dataset.model),items=(data.overrides||[]).map(item=>JSON.parse(JSON.stringify(item.raw||item))),index=Number(el.dataset.index),next=index+(action==='override-up'?-1:1);if(index<0||next<0||next>=items.length)return;swap(items,index,next);await adapter.updateModel(el.dataset.model,{overrides:items});state.modelCache.delete(el.dataset.model);showToast('Conditional rule order applied');await loadAndRenderModel(el.dataset.model)}catch(e){showToast(e.message,'error')}return;}
+  if(action==='override-save'){
+    const w=state.wizard.override,id=w.id.trim(),name=w.name.trim();if(!id){showToast('Conditional rule ID is required','error');return;}if(!name){showToast('Conditional rule name is required','error');return;}if(Boolean(w.start)!==Boolean(w.end)){showToast('Set both the start and end time, or leave both blank','error');return;}
+    const required={...w.required,min_context:Number(w.required?.min_context||0),min_output:Number(w.required?.min_output||0)},callers=[...new Set(w.callers.split(',').map(value=>value.trim()).filter(Boolean))];
+    const input={id,name,enabled:Boolean(w.enabled),callers,protocols:[...(w.protocols||[])],weekdays:[...(w.weekdays||[])],timezone:w.timezone.trim(),...(w.start&&w.end?{time_window:{start:w.start,end:w.end}}:{}),required_capabilities:required,mode:w.mode};
+    if(w.mode==='custom_route'){if(!w.customRoutes.length){showToast('A custom route needs at least one route step','error');return;}input.route={steps:w.customRoutes.map((route,index)=>index<w.customRoutes.length-1?overrideRouteStep(route,{recovery:true}):overrideRouteStep({...route,recoverOn:[]},{recovery:true}))};}
+    else{input.prefer=w.defaultRoutes.filter((_,index)=>w.adjustments[index]==='prefer').map(route=>overrideRouteStep(route));input.avoid=w.defaultRoutes.filter((_,index)=>w.adjustments[index]==='avoid').map(route=>overrideRouteStep(route));if(!input.prefer.length&&!input.avoid.length){showToast('Choose at least one Prefer or Avoid action','error');return;}if(input.avoid.length>=w.defaultRoutes.length){showToast('Avoid cannot remove every default route step','error');return;}}
+    try{if(el.dataset.id)await adapter.updateOverride(el.dataset.model,el.dataset.id,input);else await adapter.createOverride(el.dataset.model,input);state.modelCache.delete(el.dataset.model);closeOverlay();showToast('Conditional rule applied');await loadAndRenderModel(el.dataset.model)}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='delete-override'){if(!confirmConsole('Delete this conditional rule and apply a new revision?'))return;try{await adapter.deleteOverride(el.dataset.model,el.dataset.id);state.modelCache.delete(el.dataset.model);showToast('Conditional rule deleted');await loadAndRenderModel(el.dataset.model)}catch(e){showToast(e.message,'error')}return;}
+  if(action==='simulate-model'){const now=new Date(),local=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);state.wizard.simulation={caller:'',protocol:'openai-chat',stream:false,at:local,required:{}};state.modal={type:'simulation',modelId:el.dataset.id};renderPortal();return;}
+  if(action==='simulation-run'){const w=state.wizard.simulation;try{const at=w.at?new Date(w.at):null;if(at&&Number.isNaN(at.getTime()))throw new Error('Choose a valid simulation date and time');const required={...w.required,min_context:Number(w.required?.min_context||0),min_output:Number(w.required?.min_output||0)};state.modal={type:'simulation',modelId:el.dataset.model,loading:true};renderPortal();state.modal={type:'simulation',modelId:el.dataset.model,result:await adapter.simulateModel(el.dataset.model,{caller_id:w.caller.trim(),protocol:w.protocol,stream:Boolean(w.stream),...(at?{at:at.toISOString()}:{}),required_capabilities:required})};renderPortal()}catch(e){state.modal={type:'simulation',modelId:el.dataset.model};renderPortal();showToast(e.message,'error')}return;}
+  if(action==='simulation-reset'){state.modal={type:'simulation',modelId:el.dataset.model};renderPortal();return;}
+  if(action==='edit-provider'){const data=await ensureProvider(el.dataset.id),raw=data.provider.raw,connection=data.connections?.[0],firstModel=connection?.models?.[0],connectionCatalog=connectionModels(connection),providerCatalog=data.provider.upstreamModels||[];state.wizard.providerEdit={name:raw.name||data.provider.name,type:raw.type||(data.provider.logo==='codex'?'cliproxy-codex':'custom'),typeLabel:data.provider.type||raw.type||'Custom',baseUrl:raw.base_url||'',enabled:data.provider.enabled!==false,connectionId:connection?.id||'',connectionCount:data.connections?.length||0,identity:connection?.account||'',credentialType:connection?.type||'',credentialRef:connection?.raw?.credential_ref||'',models:(connectionCatalog.length?connectionCatalog:providerCatalog).join('\n'),modelSpecs:connection?.models||[],protocol:firstModel?.protocols?.[0]||'openai-chat',modelInput:'',modelOptions:[],modelFilter:'',modelsLoading:false,modelsLoaded:false,modelsError:''};state.modal={type:'provider-form',providerId:el.dataset.id};renderPortal();if(connection&&providerEditModelDiscoveryReady(state.wizard.providerEdit))await discoverProviderEditModels();return;}
+  if(action==='provider-edit-model-discover'){await discoverProviderEditModels();return;}
+  if(action==='provider-edit-model-add'){const w=state.wizard.providerEdit;if(!String(w.modelInput||'').trim()){showToast('Enter at least one model name','error');return;}addProviderEditModelNames(w,w.modelInput);renderPortal();return;}
+  if(action==='provider-edit-model-remove'){const w=state.wizard.providerEdit;setProviderEditModelNames(w,providerEditModelNames(w).filter(model=>model!==el.dataset.model));renderPortal();return;}
+  if(action==='provider-edit-model-toggle'){const w=state.wizard.providerEdit,models=providerEditModelNames(w),selected=models.includes(el.dataset.model);setProviderEditModelNames(w,selected?models.filter(model=>model!==el.dataset.model):[...models,el.dataset.model]);renderPortal();return;}
+  if(action==='provider-edit-model-select-all'||action==='provider-edit-model-deselect-all'){const w=state.wizard.providerEdit,filter=String(w.modelFilter||'').trim().toLowerCase(),visible=(w.modelOptions||[]).filter(model=>!filter||model.toLowerCase().includes(filter));if(!visible.length)return;let configured=providerEditModelNames(w);if(action==='provider-edit-model-select-all')configured=[...new Set([...configured,...visible])];else configured=configured.filter(model=>!visible.includes(model));setProviderEditModelNames(w,configured);renderPortal();return;}
+  if(action==='provider-save'){const w=state.wizard.providerEdit;if(!w.name.trim()){showToast('Provider name is required','error');return;}if(!/^https?:\/\//i.test(w.baseUrl)){showToast('An absolute HTTP(S) Base URL is required','error');return;}const models=providerEditModels(w);if(w.connectionId&&!models.length){showToast('At least one upstream model is required','error');return;}try{await adapter.updateProvider(el.dataset.id,{name:w.name.trim(),base_url:w.baseUrl.trim(),enabled:w.enabled});if(w.connectionId)await adapter.updateConnection(el.dataset.id,w.connectionId,{identity:w.identity.trim(),models});state.providerCache.delete(el.dataset.id);closeOverlay();showToast('Provider configuration saved');await refreshProviderResources(el.dataset.id)}catch(e){showToast(e.message,'error')}return;}
+  if(action==='delete-provider'){
+    try{const data=await ensureProvider(el.dataset.id),p=data.provider,models=providerModels(p);const modelList=models.join(', ')||'none';if(!confirmConsole(`Delete provider ${p.name}?\n\nFerry will automatically disable it, delete its endpoint and credential configuration, and detach it from these Logical Model routes: ${modelList}. Models left without a default route will be disabled, and existing conversations will migrate or fail if no route remains. In-flight requests finish on their current revision.`))return;await adapter.deleteProvider(el.dataset.id);state.providerCache.delete(el.dataset.id);state.modelCache.clear();state.providers=await adapter.getProviders();state.models=await adapter.getModels(state.overviewWindow);location.hash='#/providers';showToast('Provider and dependent route references deleted');render();}catch(e){showToast(e.message,'error')}return;
+  }
+  if(action==='provider-requests'){await openReportRequests({...nextRequestWindow(),...nextScope({provider:el.dataset.id})});return;}
+  if(action==='copy-debug'){const request=state.requestCache.get(el.dataset.id),value=request?.debug?.[el.dataset.side];try{await navigator.clipboard.writeText(prettyDebug(value));showToast(`Debug ${el.dataset.side} copied`)}catch{showToast('Copy failed','error')}return;}
+  if(action==='revision-detail'){try{state.modal={type:'revision-detail',detail:await adapter.getRevision(el.dataset.id)};renderPortal()}catch(e){showToast(e.message,'error')}return;}
+  if(action==='revision-restore'){if(!confirmConsole(`Restore revision #${el.dataset.id}? The server will validate, review, and apply it as a new immutable revision.`))return;try{const result=await adapter.restoreRevision(el.dataset.id);state.revisions=await adapter.getRevisions();closeOverlay();showToast(`Revision #${result.revision} restored`);await boot()}catch(e){showToast(e.message,'error')}return;}
+});
+
+setInterval(()=>{if(currentRoute().section==='settings'&&!state.pricingRefreshing)refreshPricingStatus()},30000);

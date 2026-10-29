@@ -1,0 +1,95 @@
+name: Product checks
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: product-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  protocol-race:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Protocol and admission race checks
+        run: go test -race -count=1 ./internal/scheduler ./internal/ingress ./internal/egress ./internal/runtime
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Offline secret scans with positive controls
+        run: python3 scripts/security_scan.py
+      - name: Focused offline source checks including test files
+        run: python3 scripts/check_source.py
+  product:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: bash scripts/test.sh
+      - name: Go vulnerability checks including tests
+        run: bash scripts/check_go_vulnerabilities.sh
+      - name: Build local candidate binaries and checksums
+        run: python3 scripts/build_candidate.py "$RUNNER_TEMP/ferry-candidate"
+      - name: Build local container
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "BUILD_TIME=$build_time" >> "$GITHUB_ENV"
+          docker build --file deploy/Dockerfile --tag ferry:ci --tag "ferry:$GITHUB_SHA" \
+            --build-arg "VERSION=main-${GITHUB_SHA:0:12}" --build-arg "COMMIT=$GITHUB_SHA" \
+            --build-arg "BUILD_TIME=$build_time" --build-arg "SOURCE=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" .
+      - name: Inspect container executable
+        run: docker run --rm --network none ferry:ci -version-json
+      - name: Generate and verify container SBOM
+        run: |
+          image_id="$(docker image inspect ferry:ci --format '{{.Id}}')"
+          python3 scripts/container_sbom.py "$image_id" "$RUNNER_TEMP/ferry-sbom"
+      - name: Scan image vulnerabilities with positive control
+        run: bash scripts/release/check_container_vulnerabilities.sh ferry:ci docker
+  website:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Install and audit website dependencies
+        run: |
+          npm ci --prefix website
+          npm audit --prefix website --audit-level=high
+      - name: Build documentation and check links
+        run: python3 scripts/build_website.py "$RUNNER_TEMP/ferry-site" --base /

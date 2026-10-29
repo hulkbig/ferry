@@ -1,0 +1,47 @@
+Ferry
+Copyright 2026 hulkbig
+
+Original Ferry contributions are licensed under the Apache License, Version 2.0.
+Third-party material retains its applicable copyright and license terms.
+
+CLIProxyAPI
+https://github.com/router-for-me/CLIProxyAPI
+
+The maintainer confirms CLIProxyAPI as a source/reference for the OAuth code.
+The reviewed correspondence includes internal/oauth/device.go,
+internal/oauth/import_usage.go, and internal/oauth/oauth.go. These files adapt
+OAuth/device-login and account-import behavior to Ferry's local interfaces,
+credential handling and persistence. The exact original import revision is not
+asserted; the reviewed upstream snapshot is recorded in
+LICENSES/CLIProxyAPI/source.json.
+
+The upstream copyright and MIT license are reproduced verbatim in
+LICENSES/CLIProxyAPI/LICENSE. Their text, including the upstream year spelling,
+has not been rewritten. This attribution does not imply upstream endorsement.
+
+Additional runtime dependency and container notices are provided in LICENSES/,
+docs/third-party-notices.md and docs/container-notices.md.
+
+Feather
+https://github.com/feathericons/feather
+
+The inline console settings icon has structural correspondence with Feather's
+settings icon. The MIT notice is conservatively retained in
+LICENSES/Feather/LICENSE; the reviewed reference is recorded in source.json.
+The local path uses different coordinates and gear-outline segments. This does
+not assert an original import revision or attribute the Ferry brand to Feather.
+
+Native provider integration also references/adapts CLIProxyAPI snapshot
+d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683. File-level source comments and MIT
+notices are retained in internal/nativeauth and internal/nativewire; the reviewed
+file list is recorded in LICENSES/CLIProxyAPI/native-source.json. The upstream
+MIT license at this snapshot matches the preserved LICENSE byte for byte.
+
+Lobe Icons
+https://github.com/lobehub/lobe-icons
+
+Selected product marks from @lobehub/icons-static-svg 1.100.0 are embedded in
+the documentation ecosystem diagrams. The MIT license is retained in
+LICENSES/LobeIcons/LICENSE; package integrity, source files and hashes are
+recorded in LICENSES/LobeIcons/source.json. Product names and marks identify
+their respective products and do not imply endorsement or certification.

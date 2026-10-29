@@ -1,0 +1,6 @@
+server:
+  data_dir: /data
+  management_addr: 0.0.0.0:7900
+  proxy_addr: 0.0.0.0:7890
+  timezone: UTC
+  log_retention_days: 30

@@ -1,0 +1,16 @@
+{
+  "project": "CLIProxyAPI",
+  "reviewed_revision": "d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683",
+  "revision_role": "reference identified by the integrated native-provider implementation",
+  "license": "MIT",
+  "license_sha256": "879792e89cf1bdd6a8d446033ec87e30496f97dcafc4656dc53f641509b346a6",
+  "local_files": [
+    "internal/nativeauth/antigravity.go",
+    "internal/nativeauth/claude.go",
+    "internal/nativeauth/devin.go",
+    "internal/nativewire/devin.go",
+    "internal/nativewire/devin_proto.go",
+    "internal/nativewire/devin_request.go",
+    "internal/nativewire/devin_response.go"
+  ]
+}

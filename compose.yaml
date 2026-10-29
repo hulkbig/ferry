@@ -1,0 +1,25 @@
+# Download this file, then run: docker compose up -d
+name: ferry
+services:
+  ferry:
+    image: ${FERRY_IMAGE:-bighulk/ferry:0.1.0}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:17910:7900"
+      - "127.0.0.1:17810:7890"
+    volumes:
+      - ferry-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  ferry-data:
+    name: ${FERRY_DATA_VOLUME:-ferry-data}

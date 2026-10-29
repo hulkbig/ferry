@@ -1,0 +1,29 @@
+name: 使用求助 / Usage question
+description: 阅读 FAQ 后仍无法解决的安装或使用问题。 Installation or usage questions not resolved by the FAQ.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先阅读 [FAQ](https://github.com/hulkbig/ferry/blob/main/docs/guide/faq.md) / [English FAQ](https://github.com/hulkbig/ferry/blob/main/docs/guide/faq.en.md)。中文或英文均可 / English or Chinese is welcome.
+        不要提供令牌、数据库或真实对话。 Do not share tokens, databases or real conversations.
+  - type: textarea
+    id: goal
+    attributes:
+      label: 想完成什么 / What are you trying to do?
+      description: 简述目标、卡住的步骤及错误信息。 Describe your goal, the blocked step and any error message.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 版本与环境 / Version and environment
+      description: Ferry 版本、安装方式、架构和相关客户端。 Ferry version, installation method, architecture and relevant client.
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: 已经检查什么 / What have you checked?
+      description: 已读文档、尝试过的步骤及结果；先脱敏再粘贴。 Documentation consulted, attempted steps and results; redact before pasting.
+    validations:
+      required: true

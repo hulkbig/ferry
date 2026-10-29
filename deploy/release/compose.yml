@@ -1,0 +1,27 @@
+name: ferry
+services:
+  app:
+    image: ${SERVICE_IMAGE:?immutable image required}
+    command: ["-data-dir", "/data", "-bootstrap-dir", "/data/.startup-bootstrap"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:17810:7890"
+      - "127.0.0.1:17910:7900"
+    volumes:
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, /usr/local/bin/ferry, -healthcheck-url, "http://127.0.0.1:7890/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

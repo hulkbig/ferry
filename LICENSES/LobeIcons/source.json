@@ -1,0 +1,61 @@
+{
+  "package": "@lobehub/icons-static-svg",
+  "version": "1.100.0",
+  "tarball": "https://registry.npmjs.org/@lobehub/icons-static-svg/-/icons-static-svg-1.100.0.tgz",
+  "integrity": "sha512-Oollo+z+SeIb7oUnKATsPL+hw/KIGqENvNHvzGM1zbd8yffR7xXCMNDox5/2pd4owrXP9g9hFgLhLf+059xcow==",
+  "license_revision": "b13bd88b339ed66c014799f63aec696c5ff2607d",
+  "license_source": "https://github.com/lobehub/lobe-icons/blob/b13bd88b339ed66c014799f63aec696c5ff2607d/LICENSE",
+  "files": [
+    {
+      "upstream_path": "package/icons/claudecode-color.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/claudecode-color.svg",
+      "sha256": "670b3d8d749d0815ad8f7e62a59d51cb5e2053cb19403f3541a8aed7036a877f"
+    },
+    {
+      "upstream_path": "package/icons/codex-color.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/codex-color.svg",
+      "sha256": "4a2f43ce46b5b6e3722c95088f88d26ef91e6a8c2e598e70642a1c54367386e4"
+    },
+    {
+      "upstream_path": "package/icons/opencode.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/opencode.svg",
+      "sha256": "7cfa6e9d6726f7c9fa26c7d9aef0dfec52d20a137380454340f30f12ccbfd302"
+    },
+    {
+      "upstream_path": "package/icons/pi-text.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/pi-text.svg",
+      "sha256": "d82978781b824273c55473822c1f243a6ed34fc6e8c2dbfe1a90dfc66ae43ee8"
+    },
+    {
+      "upstream_path": "package/icons/deepseek-color.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/deepseek-color.svg",
+      "sha256": "deba5f98a5c1796e20fcac3149bcd7eb8a32f0bdd04d048819400b1f28bd1439"
+    },
+    {
+      "upstream_path": "package/icons/openai.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/openai.svg",
+      "sha256": "a595df6b423920c67a7f8f73c063e4bfb72d415948097b6cac063a2366bb5186"
+    },
+    {
+      "upstream_path": "package/icons/claude-color.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/claude-color.svg",
+      "sha256": "a3101f3047a119aa11825ad9369510f0c472428c8c52d420e31bc62db44a8364"
+    },
+    {
+      "upstream_path": "package/icons/gemini-color.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/gemini-color.svg",
+      "sha256": "8ab0a9bafec11f7e69bcb9fc4ffd8f1bc927d1ddcbbb6ff36dee5ae8b5a9d602"
+    },
+    {
+      "upstream_path": "package/icons/kimi.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/kimi.svg",
+      "sha256": "ed08131b46acf70e6e2144eceb775e74098b58ea65fa21eaee04be7b05cfe63b"
+    },
+    {
+      "upstream_path": "package/icons/zhipu-color.svg",
+      "local_path": "docs/assets/vendor/lobe-icons/zhipu-color.svg",
+      "sha256": "8174e65ff71647d5c705c920c953a82bd723d9e3e42887bdd4ffc9dfe51207a0"
+    }
+  ],
+  "use": "Documentation ecosystem diagrams only. SVG shapes embedded with local sizing and color inheritance. Brand marks identify products; no endorsement is asserted."
+}

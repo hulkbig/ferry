@@ -1,0 +1,20 @@
+/data/
+/backups/
+/restored-data/
+/bin/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.DS_Store
+
+# Documentation build dependencies and generated content
+/website/node_modules/
+/website/.vitepress/cache/
+/website/.vitepress/dist/
+/website/content/
+/website/public/

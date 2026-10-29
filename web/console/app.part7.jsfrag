@@ -1,0 +1,132 @@
+function barCost(x){return `<div class="traffic-row"><span>${esc(x.name)}</span><div class="progress"><span style="width:${Math.min(100,x.pct)}%"></span></div><span class="pct" style="width:90px">${esc(x.amount)}</span></div>`}
+function managementTokenStatus(token){if(token.revoked_at)return'Revoked';if(token.expires_at&&Date.parse(token.expires_at)<=Date.now())return'Expired';return token.enabled?'Active':'Disabled'}
+function managementTokenLocalExpiry(value){if(!value)return'';const parsed=new Date(value);if(Number.isNaN(parsed.getTime()))return'';return new Date(parsed.getTime()-parsed.getTimezoneOffset()*60000).toISOString().slice(0,16)}
+function ferrySkillInstallPrompt(){
+  const url=new URL('/skills/ferry/SKILL.md',location.href).href;
+  return `Install the Ferry Skill from ${url}. Read the adjacent INSTALL.md, download and verify ferry.zip against ferry.zip.sha256 from the same directory, inspect and install the complete ferry folder in this assistant's supported skill directory, preserving any existing local changes. Read the installed SKILL.md and configure this instance through a trusted secret injector. Never include credentials in this chat. Verify management access with GET /api/access and report the installed path, instance URL and readiness. If credentials or filesystem access are missing, report installed/read-only instructions but not ready.`;
+}
+function ferrySkillInstallCard(){
+  return `<section class="card panel"><div class="section-head"><div><h2>Install Ferry Skill</h2><p>Install directly from this instance. No marketplace required.</p></div><button class="btn primary" data-action="copy-skill-install">Copy installation prompt</button></div><div class="inline"><a href="/skills/ferry/SKILL.md" target="_blank" rel="noopener">SKILL.md</a> · <a href="/skills/ferry/INSTALL.md" target="_blank" rel="noopener">Installation guide</a> · <a href="/skills/ferry/ferry.zip" download>Download Skill</a></div><div class="field"><label>Installation prompt</label><textarea readonly rows="5" aria-label="Skill installation prompt">${esc(ferrySkillInstallPrompt())}</textarea></div><p>Credentials are configured separately. Ready means management access has been verified.</p></section>`;
+}
+function settingsSecurity(){
+  const labels={administrator_initialized:'Administrator initialized',login_succeeded:'Login succeeded',login_failed:'Login failed',logout:'Signed out',password_changed:'Password changed',password_reset_local:'Password reset locally',password_change_failed:'Password change failed',session_created:'Session created',management_token_created:'Management token created',management_token_updated:'Management token updated',management_token_rotated:'Management token rotated',management_token_revoked:'Management token revoked',management_token_deleted:'Management token deleted',management_token_used:'Management token used',management_token_rejected:'Management token rejected',management_token_scope_denied:'Management token scope denied',management_token_high_risk_denied:'Management token high-risk denied'};
+  const rows=state.managementTokens.map(token=>{const status=managementTokenStatus(token),revoked=status==='Revoked',expired=status==='Expired';const actions=revoked?`<button class="btn small danger" data-action="management-token-delete" data-id="${esc(token.id)}">Delete</button>`:expired?`<button class="btn small" data-action="management-token-edit" data-id="${esc(token.id)}">Edit</button><button class="btn small danger" data-action="management-token-revoke" data-id="${esc(token.id)}">Revoke</button>`:`<button class="btn small" data-action="management-token-toggle" data-id="${esc(token.id)}" data-enabled="${!token.enabled}">${token.enabled?'Disable':'Enable'}</button><button class="btn small" data-action="management-token-edit" data-id="${esc(token.id)}">Edit</button><button class="btn small" data-action="management-token-rotate" data-id="${esc(token.id)}">Rotate</button><button class="btn small danger" data-action="management-token-revoke" data-id="${esc(token.id)}">Revoke</button>`;return `<tr><td><div class="cell-title">${esc(token.name)}</div><div class="cell-sub">${esc(token.description||token.id)}</div></td><td><span class="mono">${esc(token.preview)}</span></td><td>${badge(status)}</td><td><div class="cell-title">${esc(token.last_used_at?new Date(token.last_used_at).toLocaleString():'Never')}</div><div class="cell-sub">${token.expires_at?`Expires ${esc(new Date(token.expires_at).toLocaleString())}`:'No expiry'}</div></td><td><label class="switch" title="Allow activation, credentials, API key lifecycle, OAuth writes and runtime overrides"><input type="checkbox" data-action="management-token-high-risk" data-id="${esc(token.id)}" ${token.allow_high_risk?'checked':''} ${revoked?'disabled':''}><span></span></label><div class="cell-sub">${token.allow_high_risk?'Allowed':'Blocked'}</div></td><td><div class="row-actions">${actions}</div></td></tr>`}).join('');
+  return `<div class="stack">${ferrySkillInstallCard()}<section class="card panel"><div class="section-head"><div><h2>Management Tokens</h2><p>Independent Skills authenticate with bearer tokens. Raw values are shown only when created or rotated.</p></div><button class="btn primary" data-action="create-management-token">${icon('plus')} Create token</button></div><div class="notice orange"><strong>High-risk is controlled per token</strong><span>Ordinary tokens can inspect, draft, validate and simulate. The switch additionally permits activation, secrets, credentials, API key lifecycle, OAuth writes, and runtime overrides.</span></div><div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Name</th><th>Token</th><th>Status</th><th>Last used</th><th>High-risk</th><th>Actions</th></tr></thead><tbody>${rows||'<tr><td colspan="6"><div class="empty"><strong>No management tokens</strong>Create one for the independent Ferry Skill.</div></td></tr>'}</tbody></table></div></section><div class="grid-2"><section class="card panel"><div class="section-head"><div><h2>Management Authentication</h2><p>Application-owned protection for the single administrator.</p></div><button class="btn" data-action="change-password">Change password</button></div>${[['Password hash','Argon2id'],['Failed-login limit','5 attempts'],['Login lock','15 minutes'],['Session maximum','24 hours'],['Idle timeout','2 hours'],['Session cookie','Secure · HttpOnly · SameSite=Strict'],['Console writes','CSRF token required'],['Skill authentication','Management bearer token']].map(x=>`<div class="inline" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span>${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</section><section class="card panel"><div class="section-head"><div><h2>Recent Security Events</h2><p>Login, token, and credential lifecycle events.</p></div></div><div class="stack">${state.securityEvents.slice(0,12).map(event=>`<div class="split-event"><div><strong>${esc(labels[event.event_type]||event.event_type)}</strong><div class="cell-sub">${esc(new Date(event.created_at).toLocaleString())} · ${esc(event.actor||'anonymous')}</div></div>${badge(/failed/.test(event.event_type)?'Failed':'Recorded')}</div>`).join('')||'<div class="empty"><strong>No security events</strong></div>'}</div></section></div></div>`
+}
+
+function renderLiveCopilot(route){
+  let title='System Insight',text='',items=[];
+  if(route.section==='models'&&route.id){const data=modelDataSync(route.id),model=data.model||state.models.find(item=>item.id===route.id);title='Model Insight';text=model?`${model.name} is ${model.status}. ${data.routes?.length||model.routes?.length||0} provider routes are configured.`:'Model data is loading.';items=(data.routes||model?.routes||[]).map(item=>`${item.provider}: ${routeAvailabilityLabel(item.status)}, ${fmtPct(item.serving)} serving`).slice(0,3);}
+  else if(route.section==='providers'&&route.id){const data=providerDataSync(route.id),provider=data.provider;title='Provider Insight';text=provider?`${provider.name} is ${provider.status}; ${provider.available} of ${provider.connections} connections are available.`:'Provider data is loading.';items=(data.connections||[]).map(item=>`${item.name}: ${item.status}${item.capacity==null?'':`, ${fmtCapacity(item.capacity)} capacity`}`).slice(0,3);}
+  else if(route.section==='requests'&&route.id){const request=requestDataSync(route.id);title='Trace Summary';text=request?`${request.result} after ${request.attempts} internal attempt${request.attempts===1?'':'s'}.`:'Request trace is loading.';items=request?[`${request.connectionRebinds??'—'} connection rebinds`,`${request.providerFallbacks??'—'} provider fallbacks`,`Recovery overhead ${request.recoveryOverhead??'—'}`]:[];}
+  else if(route.section==='requests'){title='Request Insights';text=`${fmtPct(state.overview?.recoveredPct)} of recorded requests were recovered in the selected window.`;items=[`${state.requests.length} requests loaded`,'Open a request to inspect its Execution Trace'];}
+  else if(route.section==='api-keys'){title='API Key Guidance';text=`${state.apiKeys.length} managed API key identities are visible; list values remain masked.`;items=['Reveal and Copy require an explicit administrator action','Revocation disables access immediately','Usage is sourced from the request ledger'];}
+  else if(route.section==='settings'){title='Runtime Scope';text='This console currently manages one local Ferry runtime without tenant isolation.';items=[`${state.revisions.length} revisions loaded`,'Runtime-changing applies use optimistic concurrency','Usage and cost come from the local ledger'];}
+  else{const managed=state.overview?.managedEvents?.length||0,needs=state.overview?.needsAttention||0;title='System Insight';text=needs?`${needs} item${needs===1?'':'s'} need attention; client traffic, runtime availability and configuration health remain separate.`:`Client traffic is ${state.overview?.clientStatus||'unknown'}; runtime API is ${state.overview?.runtimeStatus||'unknown'}.`;items=[`${managed} protected or recovered item${managed===1?'':'s'} managed automatically`,`${fmtPct(state.overview?.directSuccessPct)} direct success`,`${fmtPct(state.overview?.recoveredPct)} recovered success`];}
+  const target=route.section==='models'&&route.id?'#/requests':route.section==='providers'&&route.id?`#/providers/${encodeURIComponent(route.id)}`:route.section==='api-keys'?'#/api-keys':'#/requests';
+  return `<button class="insights-scrim" data-action="insights-toggle" aria-label="Close Runtime Insights"></button><aside class="copilot insights-panel"><div class="copilot-head"><div class="copilot-title"><span class="sparkle">✦</span> Runtime Insights</div><button class="btn icon ghost" data-action="insights-toggle" aria-label="Close Runtime Insights">×</button></div><div class="copilot-card"><h3>${esc(title)}</h3><p>${esc(text)}</p><div class="copilot-list">${items.map(item=>`<a class="copilot-item" data-action="insights-link" href="${target}"><span class="copilot-dot">→</span><span>${esc(item)}</span></a>`).join('')}</div></div></aside>`;
+}
+
+function renderCopilot(route){
+  if(!state.insightsOpen)return `<button class="insights-toggle" data-action="insights-toggle"><span class="sparkle">✦</span> Runtime Insights</button>`;
+  return renderLiveCopilot(route);
+}
+
+let portalDialogKey='',portalReturnFocus=null;
+const portalFocusableSelector='a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[contenteditable="true"],[tabindex]:not([tabindex="-1"])';
+function portalStateKey(){
+  const kind=state.drawer?'drawer':state.modal?'modal':'',value=state.drawer||state.modal;
+  if(!value)return'';
+  return [kind,value.type,value.modelId,value.providerId,value.connectionId,value.keyId,value.overrideId,value.conversationId].filter(item=>item!==undefined&&item!==null&&item!=='').join(':');
+}
+function portalCanFocus(node){
+  if(!(node instanceof HTMLElement)||!node.isConnected||node.matches(':disabled')||node.closest('[hidden],[aria-hidden="true"]'))return false;
+  const style=window.getComputedStyle(node);
+  return style.display!=='none'&&style.visibility!=='hidden'&&node.getClientRects().length>0;
+}
+function portalFocusable(surface){return [...surface.querySelectorAll(portalFocusableSelector)].filter(portalCanFocus)}
+function portalFocusToken(node){
+  if(!(node instanceof HTMLElement))return null;
+  return {node,id:node.id||'',tag:node.tagName,data:{...node.dataset},name:node.getAttribute('name')||''};
+}
+function portalResolveFocus(root,token){
+  if(!token)return null;
+  if(root.contains(token.node)&&portalCanFocus(token.node))return token.node;
+  const data=Object.entries(token.data),candidates=[...root.querySelectorAll(portalFocusableSelector)].filter(portalCanFocus);
+  if(token.id){const match=candidates.find(node=>node.id===token.id);if(match)return match}
+  if(!data.length&&!token.name)return null;
+  return candidates.find(node=>node.tagName===token.tag&&(!token.name||node.getAttribute('name')===token.name)&&data.every(([key,value])=>node.dataset[key]===value))||null;
+}
+function portalViewSnapshot(includeScroll){
+  const active=portal.contains(document.activeElement)?document.activeElement:null;
+  return {focus:portalFocusToken(active),selection:active&&typeof active.selectionStart==='number'?{start:active.selectionStart,end:active.selectionEnd}:null,scroll:includeScroll?[...portal.querySelectorAll('.modal-body,.drawer-body')].map(node=>({top:node.scrollTop,left:node.scrollLeft})):null};
+}
+function restorePortalView(snapshot){
+  if(!snapshot)return;
+  if(snapshot.scroll)[...portal.querySelectorAll('.modal-body,.drawer-body')].forEach((node,index)=>{const position=snapshot.scroll[index];if(position){node.scrollTop=position.top;node.scrollLeft=position.left}});
+  const next=portalResolveFocus(portal,snapshot.focus);if(!next)return;
+  next.focus({preventScroll:true});
+  if(snapshot.selection&&typeof next.setSelectionRange==='function')next.setSelectionRange(snapshot.selection.start,snapshot.selection.end);
+}
+function focusPortalStart(surface){
+  const focusable=portalFocusable(surface),next=focusable.find(node=>node.hasAttribute('autofocus'))||focusable.find(node=>node.matches('input,select,textarea,[contenteditable="true"]'))||focusable[0]||surface;
+  next.focus({preventScroll:true});
+}
+function portalTabTarget(focusable,active,backward){
+  const index=focusable.indexOf(active);if(!focusable.length)return null;
+  if(backward&&index<=0)return focusable.at(-1);
+  if(!backward&&(index<0||index===focusable.length-1))return focusable[0];
+  return null;
+}
+function renderPortal({preserveScroll=false}={}){
+  const nextKey=portalStateKey(),sameDialog=Boolean(nextKey&&nextKey===portalDialogKey),snapshot=sameDialog?portalViewSnapshot(preserveScroll):null,opening=Boolean(nextKey&&!portalDialogKey),changing=Boolean(nextKey&&portalDialogKey&&nextKey!==portalDialogKey),closing=Boolean(!nextKey&&portalDialogKey);
+  if(opening&&!portal.contains(document.activeElement))portalReturnFocus=portalFocusToken(document.activeElement);
+  if(state.drawer) portal.innerHTML=renderDrawer(state.drawer);
+  else if(state.modal) portal.innerHTML=renderModal(state.modal);
+  else portal.innerHTML='';
+  if(typeof localizeDOM==='function')localizeDOM(portal);
+  portalDialogKey=nextKey;
+  const surface=portal.querySelector('.modal,.drawer');
+  if(!surface){
+    if(closing){const returnFocus=portalReturnFocus;portalReturnFocus=null;requestAnimationFrame(()=>{if(portalDialogKey)return;const target=portalResolveFocus(app,returnFocus);if(target)target.focus({preventScroll:true})})}
+    return;
+  }
+  surface.setAttribute('role','dialog');surface.setAttribute('aria-modal','true');surface.tabIndex=-1;
+  const heading=surface.querySelector('h2');if(heading){heading.id='portal-dialog-title';surface.setAttribute('aria-labelledby',heading.id)}
+  surface.querySelectorAll('.field').forEach((field,index)=>{const label=field.querySelector(':scope > label'),control=field.querySelector(':scope > input,:scope > select,:scope > textarea');if(!label||!control||label.contains(control))return;if(!control.id)control.id=`portal-field-${index}`;if(!label.htmlFor)label.htmlFor=control.id});
+  surface.querySelectorAll('[data-action="close-overlay"]').forEach(button=>{if(button.textContent.trim()==='×'&&!button.getAttribute('aria-label'))button.setAttribute('aria-label','Close dialog')});
+  if(state.drawer?.type==='connection'){
+    const test=connectionTestState(state.drawer.providerId,state.drawer.connectionId),button=surface.querySelector('[data-action="test-connection"]');
+    if(test?.loading&&button){button.disabled=true;button.innerHTML='<span class="spinner"></span> Testing…';button.setAttribute('aria-busy','true')}
+  }
+  if(snapshot)restorePortalView(snapshot);else if(opening||changing)focusPortalStart(surface);
+}
+
+document.addEventListener('keydown',(event)=>{
+  const surface=portal.querySelector('.modal,.drawer');
+  if(event.key==='Tab'&&surface&&!event.defaultPrevented){const focusable=portalFocusable(surface),next=portalTabTarget(focusable,document.activeElement,event.shiftKey);if(!focusable.length){event.preventDefault();surface.focus({preventScroll:true});return}if(next){event.preventDefault();next.focus({preventScroll:true})}return}
+  if(event.key!=='Escape'||event.defaultPrevented)return;
+  if(state.drawer||state.modal){event.preventDefault();closeOverlay();return}
+  if(state.mobileNav){event.preventDefault();state.mobileNav=false;render()}
+});
+
+function renderPortalPreservingView(){renderPortal({preserveScroll:true})}
+
+function renderDrawer(drawer){
+  if(drawer.type==='routing') return routingDrawer(drawer.modelId);
+  if(drawer.type==='connection') return connectionDrawer(drawer.providerId,drawer.connectionId);
+  if(drawer.type==='alerts') return alertsDrawer();
+  if(drawer.type==='conversation') return conversationDrawer(drawer);
+  return '';
+}
+
+function conversationProtocolLabel(protocol){return {'openai-chat':'OpenAI Chat','openai-responses':'OpenAI Responses','anthropic':'Anthropic','openai-images':'OpenAI Images'}[protocol]||protocol||'Unknown protocol'}
+function conversationDrawer(drawer){
+  const id=drawer.conversationId,list=state.conversationCache.get(id)||[],loading=state.conversationLoading.has(id),found=list.findIndex(item=>item.id===drawer.currentRequestId),currentIndex=found>=0?found:0,current=list[currentIndex];
+  let previousGroup='';
+  const timeline=list.map((item,index)=>{const group=index<currentIndex?'Earlier':index===currentIndex?'Current':'Later',groupLabel=group!==previousGroup?`<div class="conversation-group-label">${group}</div>`:'';previousGroup=group;const status=item.canceled?'Canceled':item.failed?'Failed':item.recovered?'Recovered':'Direct',route=[item.provider||item.providerId||item.route||'—',item.upstreamModel||'—'].join(' / ');return `${groupLabel}<button class="conversation-event ${index===currentIndex?'current':''} ${item.canceled?'canceled':item.failed?'failed':item.recovered?'recovered':''}" data-action="conversation-request" data-id="${esc(item.id)}" ${index===currentIndex?'aria-current="true"':''}><span class="conversation-event-dot"></span><span class="conversation-event-main"><span class="conversation-event-top"><strong class="mono">${esc(item.id)}</strong>${badge(status)}</span><span class="conversation-event-route"><strong>${esc(item.logicalModel||item.model||'—')}</strong><span>→</span><span>${esc(route)}</span></span><span class="conversation-event-meta">${esc(conversationProtocolLabel(item.raw?.protocol||item.protocol))} · ${esc(item.timestamp?new Date(item.timestamp).toLocaleString():item.time||'—')} · ${esc(item.totalDuration||item.latency||'—')}</span></span></button>`}).join('');
+  const body=drawer.error?`<div class="empty conversation-empty"><strong>Conversation trail unavailable</strong>${esc(drawer.error)}<button class="btn small" data-action="open-conversation-trail" data-conversation="${esc(id)}" data-id="${esc(drawer.currentRequestId)}">Retry</button></div>`:loading&&!list.length?'<div class="conversation-loading"><span></span><strong>Loading conversation trail…</strong></div>':timeline||'<div class="empty conversation-empty"><strong>No linked requests found</strong>This request may be outside the retained ledger window.</div>';
+  return `<div class="drawer-backdrop" data-action="close-overlay"></div><aside class="drawer conversation-drawer"><div class="drawer-head conversation-drawer-head"><div><div class="conversation-drawer-kicker">Conversation Trail · ${esc(list.length)} request${list.length===1?'':'s'}</div><h2 class="mono" title="${esc(id)}">${esc(id)}</h2></div><button class="btn icon ghost" data-action="close-overlay">×</button></div><div class="conversation-nav"><div><strong>${list.length?currentIndex+1:0}</strong><span> of ${list.length}</span></div><div><button class="btn small" data-action="conversation-step" data-direction="-1" ${!current||currentIndex===0?'disabled':''}>${icon('back')} Previous</button><button class="btn small" data-action="conversation-step" data-direction="1" ${!current||currentIndex>=list.length-1?'disabled':''}>Next ${icon('arrow')}</button></div></div><div class="drawer-body conversation-timeline">${body}</div><div class="drawer-foot"><button class="btn primary conversation-view-all" data-action="conversation-view-all" data-conversation="${esc(id)}">${icon('search')} View all ${esc(list.length)} requests</button></div></aside>`;
+}
+
+function alertsDrawer(){return `<div class="drawer-backdrop" data-action="close-overlay"></div><aside class="drawer"><div class="drawer-head"><div><h2>Alerts</h2><div class="cell-sub">Persistent Local Ferry runtime notifications</div></div><button class="btn icon ghost" data-action="close-overlay">×</button></div><div class="drawer-body stack">${state.alerts.map(alert=>`<div class="card panel alert-item"><div class="section-head"><div>${badge(alert.state)}<h3>${esc(alert.title)}</h3></div>${alert.unread?'<span class="badge red">Unread</span>':''}</div><p>${esc(alert.detail||'No additional details.')}</p><div class="cell-sub">${esc(new Date(alert.updated_at).toLocaleString())} · ${esc(alert.resource_kind||'runtime')} ${esc(alert.resource_id||'')}</div><div class="inline" style="margin-top:10px"><button class="btn small" data-action="alert-open-resource" data-kind="${esc(alert.resource_kind)}" data-id="${esc(alert.resource_id)}">Open resource</button>${alert.state!=='RECOVERED'?`<button class="btn small primary" data-action="alert-ack" data-id="${esc(alert.id)}">Acknowledge</button>`:''}</div></div>`).join('')||'<div class="empty"><strong>No alerts</strong>Runtime signals are healthy.</div>'}</div></aside>`}

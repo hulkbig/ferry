@@ -1,0 +1,75 @@
+# Console asset review
+
+The shipped console includes `web/console/brand.svg`, its reverse variant and
+`favicon.svg`, alongside inline SVG interface icons and data charts. It has no bundled font, raster
+image, external icon package or asset CDN. CSS font names use fonts installed on
+the client; they do not redistribute those fonts.
+
+The Ferry mark uses the maintainer-selected interlocking geometric shape, with
+negative space suggesting a lowercase f. The solid charcoal (#242424) and white
+variants share the same outline, used by the sidebar, login and favicon.
+This records its implementation history, not trademark clearance.
+
+The settings icon in `app.part1.jsfrag` has structural correspondence with the
+Feather settings icon, with local coordinate and outline changes. Its MIT notice
+is conservatively retained in `LICENSES/Feather`, with the exact reviewed revision
+and file hashes. No claim is made about the original import revision. Other inline
+icons use geometric primitives; visual simplicity alone is not proof of authorship.
+Charts are generated from application data by the console code.
+
+Old prototype screenshots, image archives and design handoff binaries are excluded.
+The maintainer has confirmed hulkbig as public author and CLIProxyAPI as the OAuth
+source/reference; the latter is documented separately in NOTICE. Final distribution
+review still needs to resolve any additional code or asset sources identified by
+the maintainer. Local tests and similarity searches cannot establish that negative.
+
+## Documentation artwork (2026-10-24)
+
+The README now references assets under `docs/assets/`, separately from the shipped
+console. `request-flow.png` is conceptual artwork generated with the built-in
+imagegen tool, without external reference images. Its final prompt is retained
+as `request-flow.prompt.txt`. It is not a product screenshot or performance result.
+
+`continuity-zh.svg`, `continuity-en.svg`, `agent-native-zh.svg`, and
+`agent-native-en.svg` are project-authored diagrams. They contain geometric shapes
+and system-font text, with no scripts, external fonts or remote assets. They
+illustrate documented behavior rather than measured request outcomes.
+
+See [the illustration inventory](assets/README.md) for placement, language variants
+and interpretation boundaries. These assets do not replace the existing logo.
+
+## Connection diagrams (2026-10-26)
+
+`gateway-overview-zh.svg` and `gateway-overview-en.svg` use an original Ferry
+layout with concrete client and upstream names. The dark node-and-trace visual
+references the information density of [Magpie's architecture diagram](https://github.com/yetone/magpie/blob/main/site/public/img/architecture.svg);
+no Magpie artwork or SVG source is redistributed.
+
+Selected product marks are from `@lobehub/icons-static-svg@1.100.0` (MIT).
+Unmodified source SVGs are preserved in `docs/assets/vendor/lobe-icons/`;
+package integrity, file hashes and the pinned license revision are recorded in
+`LICENSES/LobeIcons/source.json`, with the license in `LICENSES/LobeIcons/LICENSE`.
+The diagrams embed those shapes, with local sizing, inherited colors and unique
+gradient identifiers. The Ferry mark remains project-owned.
+
+Client names are illustrative configurations for compatible protocols, not a
+certification list. DeepSeek Harness custom model providers are described in
+[its provider guide](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/guide/providers.md);
+Pi supports custom providers in [its repository](https://github.com/earendil-works/pi).
+Upstream scope and remaining real-account verification are documented in
+[provider coverage](provider-channel-coverage.md). Product marks do not imply
+endorsement. No third-party scripts, fonts or remote assets are loaded by the SVG.
+
+## Animated flow diagrams (2026-10-26)
+
+The twelve `flow-{request,response,fallback,queue,logical,autoreset}-{zh,en}.svg` files are generated
+by `scripts/build_gateway_diagrams.py`. Each uses a distinct project-authored
+layout and browser-native SVG animation, with no scripts or external resources.
+The website inlines these same assets and adds pause/replay and reduced-motion
+handling. README files reference them as SVG images; animation support depends
+on the reader. No GIF files are distributed.
+
+The Lobe Icons license above covers the embedded product marks. Hermes is shown
+with a generic H monogram, not an official logo. Diagrams illustrate configured
+routing, streaming, compatible fallback and queueing, not live account tests or
+production traffic. The Ferry mark remains project-owned.

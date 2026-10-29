@@ -1,0 +1,17 @@
+{
+ "sample-model": {
+  "litellm_provider":"openai", "mode":"chat",
+  "input_cost_per_token":0.00001,"output_cost_per_token":0.00005,
+  "cache_read_input_token_cost":0.000001,"cache_creation_input_token_cost":0.0000125,
+  "input_cost_per_token_above_272k_tokens":0.00002,
+  "output_cost_per_token_above_272k_tokens":0.000075,
+  "cache_read_input_token_cost_above_272k_tokens":0.000002,
+  "cache_creation_input_token_cost_above_272k_tokens":0.000025,
+  "input_cost_per_token_priority":0.00003
+ },
+ "no-cache-price":{"litellm_provider":"x","mode":"chat","input_cost_per_token":0.000001,"output_cost_per_token":0.000002},
+ "free":{"litellm_provider":"x","mode":"chat","input_cost_per_token":0,"output_cost_per_token":0},
+ "invalid":{"litellm_provider":"x","mode":"chat","input_cost_per_token":-1,"output_cost_per_token":1},
+ "overflow":{"litellm_provider":"x","mode":"chat","input_cost_per_token":1e308,"output_cost_per_token":1},
+ "image":{"litellm_provider":"x","mode":"image_generation","input_cost_per_token":1,"output_cost_per_token":1}
+}

@@ -1,0 +1,58 @@
+name: Website
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ferry-website
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.repository == 'hulkbig/ferry' && !github.event.repository.private && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check public delivery window
+        run: python3 scripts/release/public_window.py --minimum-remaining-minutes 15
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Install and audit website dependencies
+        run: |
+          npm ci --prefix website
+          npm audit --prefix website --audit-level=high
+      - name: Build static website
+        run: python3 scripts/build_website.py "$RUNNER_TEMP/ferry-site" --base /
+      - name: Require an available installation release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v0.1.0 --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '(.isDraft == false) and (.isPrerelease == false)' | grep -qx true
+          curl --fail --location --silent --show-error --max-time 30 \
+            https://github.com/hulkbig/ferry/releases/download/v0.1.0/compose.yaml -o "$RUNNER_TEMP/public-compose.yaml"
+          cmp compose.yaml "$RUNNER_TEMP/public-compose.yaml"
+      - name: Require the product custom domain
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.cname' | grep -qx 'ferry.bighulk.dev'
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: ${{ runner.temp }}/ferry-site
+      - name: Recheck window before public deployment
+        run: python3 scripts/release/public_window.py --minimum-remaining-minutes 15
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        id: deployment

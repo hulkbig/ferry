@@ -1,0 +1,10 @@
+{
+  "package": "ca-certificates-bundle",
+  "version": "20261020-r0",
+  "aports_commit": "e78f5987166c6ffbe23f6472e2e8f040298fe2da",
+  "source_url": "https://gitlab.alpinelinux.org/alpine/ca-certificates/-/archive/20261020/ca-certificates-20261020.tar.bz2",
+  "source_sha512": "d28eb01751b1a914ffb5d8cb99e662f0a35a95148c21dcf98de1ab3108b54db9714a99472d07715023867f4f76a21f2a79a2bc1c7e9876ce5167fdd865ad2dd7",
+  "certdata_sha256": "3ec2b4d240dc12c747eaf450061db84af757c483bbda302f9e29ceb5d70be510",
+  "license_url": "https://www.mozilla.org/media/MPL/2.0/index.txt",
+  "license_sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+}

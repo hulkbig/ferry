@@ -1,0 +1,13 @@
+{
+  "project": "Feather",
+  "reviewed_revision": "1b002399e8758fb2bccea4d07312dc9e0f43dcb8",
+  "reviewed_tag": "v4.29.2",
+  "license_url": "https://raw.githubusercontent.com/feathericons/feather/1b002399e8758fb2bccea4d07312dc9e0f43dcb8/LICENSE",
+  "license_sha256": "308028e93fcf84972523cdf6e616f73168546b4953895f516d01287f16fe7bee",
+  "reference_url": "https://raw.githubusercontent.com/feathericons/feather/1b002399e8758fb2bccea4d07312dc9e0f43dcb8/icons/settings.svg",
+  "reference_sha256": "8fe83a7900335105bedd742225ac0d96454a96670a186774532df41414c9cfbb",
+  "candidate_paths": [
+    "web/console/app.part1.jsfrag"
+  ],
+  "basis": "Conservative attribution for the settings icon structural correspondence; original import revision and complete icon-set derivation are not asserted."
+}

@@ -1,0 +1,220 @@
+// Import drafts contain uploaded credentials. Keep them in memory only and
+// discard them when leaving this Settings tab, signing out or hiding the page.
+function newImportState(source='sub2api',namespace='migration'){
+ return {source,namespace,files:{document:[],auth:[],keys:[]},request:null,result:null,selected:new Set(),busy:false,completed:false,error:''};
+}
+let importState=newImportState();
+function importRouteActive(){const route=currentRoute();return Boolean(state.auth?.authenticated&&route.section==='settings'&&route.id==='import');}
+function syncImportRoute(){if(!importRouteActive())importState=newImportState();}
+function currentImport(session){return importState===session&&importRouteActive();}
+function invalidateImport(){Object.assign(importState,{request:null,result:null,selected:new Set(),completed:false,error:''});}
+function importFileSummary(files,empty){
+ if(!files.length)return empty;
+ const bytes=files.reduce((sum,file)=>sum+file.size,0),size=bytes<1024?bytes+' B':bytes<1024*1024?(bytes/1024).toFixed(1)+' KiB':(bytes/1024/1024).toFixed(1)+' MiB';
+ return files.slice(0,2).map(file=>file.name).join('、')+(files.length>2?nt(` and ${files.length} files total`,` 等 ${files.length} 个文件`):files.length>1?nt(` · ${files.length} files`,` · ${files.length} 个文件`):'')+' · '+size;
+}
+function importFileField(key,title,hint,multiple=false){
+ const files=importState.files[key],id='settings-import-'+key;
+ return `<div class="import-upload"><span class="import-field-title" id="${id}-label">${title}</span><label class="import-file-picker"><input id="${id}" type="file" data-import-file="${key}" accept="${key==='document'?'.json,.yaml,.yml':'.json'}" ${multiple?'multiple':''} aria-labelledby="${id}-label" aria-describedby="${id}-summary ${id}-hint" ${importState.busy?'disabled':''}>${icon('requests')}<span class="import-file-summary ${files.length?'has-files':''}" id="${id}-summary" aria-live="polite">${esc(importFileSummary(files,nt('No file selected','尚未选择文件')))}</span><span class="btn small" aria-hidden="true">${nt('Choose files','选择文件')}</span></label><small class="cell-sub" id="${id}-hint">${hint}</small>${files.length?`<button class="btn small ghost" type="button" data-import-action="remove" data-file="${key}" ${importState.busy?'disabled':''}>${nt('Remove selection','清除此项')}</button>`:''}</div>`;
+}
+function importStatus(status){return ({ready:nt('Ready','可导入'),unsupported:nt('Unsupported / incomplete','不支持或格式不完整'),exists:nt('Already exists · unchanged','已存在 · 保留不变'),imported:nt('Imported · disabled','已导入 · 保持禁用'),failed:nt('Failed','失败')})[status]||status;}
+function importMessage(message){
+ const translations={
+  'All imported providers and client keys are disabled. Review models, endpoint, access policy and limits before enabling. Source routing, aliases, proxies, quotas, billing and group permissions are not migrated.':'所有导入的渠道和客户端 Key 均保持禁用。请核对模型、端点、访问权限及额度后再启用；来源路由、别名、代理、额度、计费及分组权限不会迁移。',
+  'No explicit models; discover and verify models before enabling':'未指定模型；启用前请发现并验证模型。',
+  'Imported disabled; review configuration before enabling':'已保存为禁用状态；启用前请核对配置。',
+  'Existing object was not changed':'已有对象保持不变。',
+  'Client credential already belongs to an existing identity; no change':'客户端凭证已属于现有身份，保持不变。',
+  'Source key permissions, expiration and billing limits are not transferred; configure these before enabling':'来源 Key 的权限、到期时间及计费限额不会迁移，请在启用前配置。',
+  'Source proxy is not migrated; configure egress before enabling':'来源代理不会迁移，请在启用前配置出口。',
+  'Model mappings require manual review':'模型映射需要手工核对。',
+  'OAuth credentials are stored without contacting the provider; validity and entitlement require later verification':'保存 OAuth 凭证时不会连接上游，凭证有效性及账号权限需另行验证。',
+ };
+ return nt(message,translations[message]||message);
+}
+function importReview(){
+ const s=importState;if(!s.result)return '';
+ const items=s.result.items||[],ready=items.filter(item=>item.status==='ready'),count=status=>items.filter(item=>item.status===status).length;
+ const summary=s.completed?nt(`${count('imported')} imported · ${count('exists')} existing · ${count('failed')} failed`,`${count('imported')} 项已导入 · ${count('exists')} 项已存在 · ${count('failed')} 项失败`):nt(`${ready.length} ready · ${count('exists')} existing · ${count('unsupported')} unsupported`,`${ready.length} 项可导入 · ${count('exists')} 项已存在 · ${count('unsupported')} 项不支持`);
+ return `<section class="card panel import-review" data-import-review aria-busy="${s.busy}"><div class="section-head"><div><h2>${s.completed?nt('Import results','导入结果'):nt('Preview & select','预览与选择')}</h2><p role="status">${esc(summary)}</p></div>${!s.completed&&ready.length?`<button class="btn small" type="button" data-import-action="select-all" ${s.busy?'disabled':''}>${s.selected.size===ready.length?nt('Deselect all','取消全选'):nt('Select all ready items','全选可导入项')}</button>`:''}</div>${(s.result.warnings||[]).map(w=>`<p class="cell-sub import-warning">${esc(importMessage(w))}</p>`).join('')}${items.map(item=>{
+ const selectable=!s.completed&&item.status==='ready',tone=item.status==='failed'?'red':item.status==='imported'?'green':'blue';
+ const details=[item.base_url,item.protocol,item.header,item.models?.join(', '),item.error,item.message,item.credential_ref,...(item.warnings||[])].filter(Boolean);
+ return `<article class="import-item"><label class="import-item-choice"><input type="checkbox" data-import-select="${esc(item.id)}" ${s.selected.has(item.id)?'checked':''} ${!selectable||s.busy?'disabled':''}><span><strong>${esc(item.name)}</strong><small>${esc(item.kind||'—')}</small></span><span class="badge ${tone}">${esc(importStatus(item.status))}</span></label><div class="import-item-details"><code>${esc(item.id)}</code>${details.map(detail=>`<p>${esc(importMessage(detail))}</p>`).join('')}</div></article>`;
+ }).join('')||`<div class="empty">${nt('No importable entries found. Check the source and files.','未识别到导入项，请核对来源和文件。')}</div>`}${!s.completed?`<div class="import-actions"><button class="btn primary" type="button" data-import-action="apply" ${s.busy||!s.selected.size?'disabled':''}>${s.busy?nt('Importing…','正在导入…'):nt(`Import ${s.selected.size} selected · disabled`,`导入选中 ${s.selected.size} 项 · 保持禁用`)}</button><span class="cell-sub">${nt('Preview does not save credentials. Only selected items will be imported.','预览不会保存凭证，仅导入选中项。')}</span></div>`:`<div class="notice ${count('failed')?'orange':'green'}"><span>${nt('Review endpoints, models and access rules before enabling imported items.','请核对端点、模型和访问权限后，再启用已导入项目。')}</span></div><div class="import-actions"><a class="btn" href="#/providers">${nt('Review providers','查看渠道')}</a><a class="btn" href="#/api-keys">${nt('Review client keys','查看客户端 Key')}</a><button class="btn" type="button" data-import-action="clear">${nt('Start another import','开始新的导入')}</button></div>`}</section>`;
+}
+function settingsImport(){
+ const s=importState,cli=s.source==='cliproxyapi',disabled=s.busy?'disabled':'',hasFiles=Object.values(s.files).some(files=>files.length);
+ return `<div class="settings-import" data-import-panel><section class="card panel"><div class="section-head"><div><h2>${nt('Import & Migration','导入与迁移')}</h2><p>${nt('Bring accounts, upstream credentials and client keys from sub2api or CLIProxyAPI into Ferry.','将 sub2api 或 CLIProxyAPI 的账号、上游凭证和客户端 Key 导入 Ferry。')}</p></div></div><ol class="import-steps" aria-label="${nt('Import progress','导入进度')}">${[nt('Choose source & files','选择来源与文件'),nt('Preview & select','预览与选择'),nt('Import & review','导入并核对')].map((title,index)=>`<li class="${(s.completed?2:s.result?1:0)===index?'active':''}"><span>${index+1}</span>${title}</li>`).join('')}</ol>${demoMode?`<div class="notice orange"><span>${nt('Import requires a live Ferry connection. Demo mode never uploads files.','导入需要连接真实 Ferry 服务，演示模式不会上传文件。')}</span></div>`:''}<form data-import-form><div class="form-grid import-source-fields"><label class="field"><span>${nt('Source','来源')}</span><select class="select" data-import-source ${disabled}><option value="sub2api" ${cli?'':'selected'}>sub2api</option><option value="cliproxyapi" ${cli?'selected':''}>CLIProxyAPI / v8</option></select></label><label class="field"><span>${nt('Source identifier','来源标识')}</span><input class="input" data-import-namespace value="${esc(s.namespace)}" pattern="[a-z][a-z0-9-]{0,23}" maxlength="24" required ${disabled}><small class="cell-sub">${nt('Keep this identifier and file order unchanged when retrying. Existing objects are preserved.','重试时保持来源标识及文件顺序不变，已有对象会保留。')}</small></label></div><div class="import-source-help"><strong>${cli?'CLIProxyAPI':'sub2api'}</strong><p>${cli?nt('Select config.yaml and/or original JSON credentials from auth-dir. Account lists do not contain full credentials. Legacy and v8 formats are supported.','选择 config.yaml 和/或 auth-dir 中的原始 JSON 凭证。账号列表不含完整凭证；支持旧版与 v8 格式。'):nt('Export accounts as JSON from the sub2api administrator. That backup excludes client keys; add a separate client-key file below if needed.','从 sub2api 管理员导出账号 JSON。账号备份不含客户端 Key，需要时请在下方补充。')}</p></div><div class="import-upload-grid">${importFileField('document',cli?nt('Configuration or account file','配置或账号文件'):nt('Account backup','账号备份'),cli?nt('config.yaml / config.yml, or one Codex / Claude credential JSON.','config.yaml / config.yml，或单个 Codex / Claude 凭证 JSON。'):nt('sub2api account export JSON.','sub2api 账号导出 JSON。'))}${cli?importFileField('auth',nt('OAuth credential files · multiple','OAuth 凭证文件 · 可多选'),nt('Original JSON files from auth-dir, up to 500 files.','auth-dir 中的原始 JSON 文件，最多 500 个。'),true):''}${importFileField('keys',nt('Client keys · optional','客户端 Key · 可选'),nt('JSON array: [{"name":"Client","key":"original key"}].','JSON 数组：[{"name":"客户端名称","key":"原始 Key"}]。'))}</div><p class="cell-sub">${nt('Maximum total size: 4 MiB. Files go only to this Ferry instance. Preview never contacts the source service or upstream providers.','文件总大小最多 4 MiB，仅发送到当前 Ferry。预览不会连接来源服务或上游。')}</p><div class="notice orange import-safety"><span>${nt('Imported providers and client keys stay disabled. Routing, groups, proxies, quota and access policies are not migrated.','导入的渠道和客户端 Key 均保持禁用。路由、分组、代理、额度和访问权限不会迁移。')}</span></div><div class="import-actions"><button class="btn primary" type="submit" ${s.busy||!hasFiles||demoMode?'disabled':''}>${s.busy&&!s.result?nt('Parsing…','正在解析…'):nt('Parse & preview','解析并预览')}</button><button class="btn" type="button" data-import-action="clear" ${disabled}>${nt('Clear files & preview','清除文件与预览')}</button></div></form></section>${s.error?`<div class="notice red" role="alert"><span>${esc(s.error)}</span></div>`:''}${importReview()}</div>`;
+}
+function bindImportFileInputs(){
+ const session=importState;
+ for(const input of app.querySelectorAll('[data-import-file]'))input.addEventListener('change',()=>{
+  if(!currentImport(session)||session.busy)return;
+  session.files[input.dataset.importFile]=[...input.files];invalidateImport();render();
+ });
+}
+function importAuthExpired(error){
+ if(error.status!==401)return false;
+ state.auth={...state.auth,authenticated:false};importState=newImportState();render();showToast(nt('Your session expired. Sign in again to continue importing.','登录已过期，请重新登录后继续导入。'),'error');return true;
+}
+async function previewImport(){
+ const s=importState;if(s.busy||demoMode)return;
+ invalidateImport();s.busy=true;render();
+ try{
+  if(!/^[a-z][a-z0-9-]{0,23}$/.test(s.namespace))throw new Error(nt('Use 1–24 lowercase letters, digits or hyphens, starting with a letter.','来源标识须为 1–24 位小写字母、数字或连字符，并以字母开头。'));
+  const files=Object.values(s.files).flat();
+  if(!files.length)throw new Error(nt('Choose at least one file.','请至少选择一个文件。'));
+  if(s.files.auth.length>500)throw new Error(nt('Choose at most 500 credential files.','最多选择 500 个凭证文件。'));
+  if(files.reduce((sum,file)=>sum+file.size,0)>4*1024*1024)throw new Error(nt('Total file size must not exceed 4 MiB.','文件总大小不能超过 4 MiB。'));
+  const request={source:s.source,namespace:s.namespace,document:s.files.document[0]?await s.files.document[0].text():'',auth_files:[],client_keys:[]};
+  for(const file of s.files.auth){try{request.auth_files.push(JSON.parse(await file.text()));}catch{throw new Error(nt('An OAuth file is not valid JSON.','某个 OAuth 文件不是有效 JSON。'));}}
+  if(s.files.keys[0]){try{request.client_keys=JSON.parse(await s.files.keys[0].text());}catch{throw new Error(nt('Client-key file is not valid JSON.','客户端 Key 文件不是有效 JSON。'));}if(!Array.isArray(request.client_keys))throw new Error(nt('Client keys must be a JSON array.','客户端 Key 文件必须为 JSON 数组。'));}
+  if(!currentImport(s))return;
+  const result=await adapter.request('/api/imports/preview',{method:'POST',body:JSON.stringify(request)});
+  if(!currentImport(s))return;
+  s.request=request;s.result=result;s.selected=new Set((result.items||[]).filter(item=>item.status==='ready').map(item=>item.id));
+ }catch(error){if(currentImport(s)&&!importAuthExpired(error)){s.request=null;s.error=error.message||nt('Preview failed. Check the files and your sign-in.','预览失败，请检查文件与登录状态。');}}
+ finally{if(currentImport(s)){s.busy=false;render();}}
+}
+async function refreshImportedResources(){
+ state.providerCache.clear();state.modelCache.clear();
+ adapter.rawProvidersPromise=null;
+ const entries=[['providers',()=>adapter.getProviders()],['models',()=>adapter.getModels(state.overviewWindow)],['apiKeys',()=>adapter.getApiKeys()],['revisions',()=>adapter.getRevisions()],['settings',()=>adapter.getSettings()]];
+ const results=await Promise.allSettled(entries.map(([,load])=>load()));
+ if(!state.auth?.authenticated)return;
+ results.forEach((result,index)=>{if(result.status==='fulfilled')state[entries[index][0]]=result.value;});
+ if(results.some(result=>result.status==='rejected'))showToast(nt('Import finished; refresh the console to reload unavailable lists.','导入已完成，部分列表刷新失败，请刷新控制台核对。'),'error');
+}
+async function applyImport(){
+ const s=importState;if(s.busy||!s.request||!s.selected.size||demoMode)return;
+ s.busy=true;s.error='';render();
+ try{
+  const result=await adapter.request('/api/imports/apply',{method:'POST',body:JSON.stringify({...s.request,selected:[...s.selected]})});
+  s.request=null;s.files={document:[],auth:[],keys:[]};
+  if(currentImport(s)){s.result=result;s.completed=true;s.selected=new Set();}
+  if(state.auth?.authenticated)await refreshImportedResources();
+ }catch(error){if(currentImport(s)&&!importAuthExpired(error)){s.request=null;s.result=null;s.selected=new Set();s.error=(error.message||nt('Import failed','导入失败'))+nt('. Some items may have been saved. Preview again before retrying.','。可能已部分保存，请重新预览核对后再试。');}}
+ finally{if(currentImport(s)){s.busy=false;render();}}
+}
+app.addEventListener('submit',event=>{if(!event.target.matches('[data-import-form]'))return;event.preventDefault();void previewImport();});
+app.addEventListener('change',event=>{
+ const el=event.target;if(importState.busy)return;
+ if(el.matches('[data-import-source]')){importState=newImportState(el.value,importState.namespace);render();}
+ else if(el.matches('[data-import-namespace]')){importState.namespace=el.value;invalidateImport();render();}
+ else if(el.dataset.importSelect){if(el.checked)importState.selected.add(el.dataset.importSelect);else importState.selected.delete(el.dataset.importSelect);render();}
+});
+app.addEventListener('input',event=>{
+ if(!event.target.matches('[data-import-namespace]')||importState.busy)return;
+ importState.namespace=event.target.value;invalidateImport();app.querySelector('[data-import-review]')?.remove();
+});
+app.addEventListener('click',event=>{
+ const el=event.target.closest('[data-import-action]');if(!el||importState.busy)return;
+ const action=el.dataset.importAction;
+ if(action==='apply'){void applyImport();return;}
+ if(action==='clear')importState=newImportState(importState.source,importState.namespace);
+ else if(action==='remove'){importState.files[el.dataset.file]=[];invalidateImport();}
+ else if(action==='select-all'){const ready=(importState.result?.items||[]).filter(item=>item.status==='ready').map(item=>item.id);importState.selected=importState.selected.size===ready.length?new Set():new Set(ready);}
+ render();
+});
+window.addEventListener('pagehide',()=>{importState=newImportState();});
+// End of Settings import flow.
+
+function pageSettings(){
+  const tabs=[['general','General'],['concurrency',nt('Queue & Concurrency','队列与并发')],['import',nt('Import & Migration','导入与迁移')],['backup','Backups'],['revisions','Audit & Revisions'],['security','Security']];
+  const requested=currentRoute().id||'general';state.settingsTab=tabs.some(([id])=>id===requested)?requested:'general';
+  const body=state.settingsTab==='import'?settingsImport():state.settingsTab==='concurrency'?settingsConcurrency():state.settingsTab==='backup'?settingsBackup():state.settingsTab==='revisions'?settingsRevisions():state.settingsTab==='security'?settingsSecurity():settingsGeneral();
+  return `<div class="page-head"><div class="head-main"><h1>Settings</h1></div></div><div class="tabs settings-tabs">${tabs.map(([id,label])=>`<button class="tab ${state.settingsTab===id?'active':''}" data-action="settings-tab" data-id="${id}">${label}</button>`).join('')}</div>${body}`;
+}
+function settingsGeneral(){const enabled=Boolean(state.settings?.debug_request_response),syncEnabled=state.settings?.scheduled_model_sync_enabled!==false;return `${settingsPricingSync()}<div class="grid-2"><section class="card panel"><div class="section-head"><div><h2>Request Debug</h2><p>Capture detailed request and response payloads for troubleshooting.</p></div><label class="switch"><input type="checkbox" data-action="debug-capture" ${enabled?'checked':''}><span></span></label></div><div class="notice ${enabled?'orange':''}"><strong>${enabled?'Debug capture is on':'Debug capture is off'}</strong><span>${enabled?'Only new requests are captured. Review payloads in Request details.':'Enable it temporarily when detailed payload evidence is needed.'}</span></div><div class="cell-sub" style="margin-top:12px">Authorization headers, cookies, API keys, tokens, secrets, and credential fields are never recorded. Each request and response side is limited to 256 KB and follows request-history retention.</div></section><section class="card panel"><div class="section-head"><div><h2>Scheduled Model Sync</h2><p>Automatically refresh provider model catalogs and keep capability metadata current.</p></div><label class="switch"><input type="checkbox" data-action="scheduled-sync" ${syncEnabled?'checked':''}><span></span></label></div><div class="notice ${syncEnabled?'green':'orange'}"><strong>${syncEnabled?'Scheduled synchronization is on':'Scheduled synchronization is paused'}</strong><span>${syncEnabled?'Due providers synchronize on their configured interval; capability metadata stays current automatically.':'Due providers wait until the schedule is re-enabled. Manual Sync now in each Provider editor keeps working.'}</span></div><div class="cell-sub" style="margin-top:12px">This switch gates the global schedule only. Each Provider keeps its own interval (30 min / 1 hour / off), and Sync now always remains available.</div></section>${settingsCodexUsageProtection()}${settingsAutomaticUsageReset()}${settingsCodexVersion()}<section class="card panel"><div class="section-head"><div><h2>Automatic Logical Models</h2></div></div><label class="field"><span>Maximum upstream models per listed aggregator</span><input class="input" type="number" min="0" max="10000" step="1" data-action="auto-logical-limit" value="${esc(state.settings?.auto_logical_model_limit??10)}"></label><p class="cell-sub">Default 10. Applies only to aggregators listed in logical_model_policy.json (OpenRouter by default). Other providers have no automatic creation limit. Set 0 to require manual selection for listed aggregators. Existing Logical Models stay intact.</p></section></div>`}
+
+function settingsPricingSync(){
+  const status=state.settings?.pricing_sync||{},settings=status.settings||{enabled:true,source:'litellm',interval_hours:24},loading=Boolean(state.pricingRefreshing||status.loading);
+  const date=value=>value&&!value.startsWith('0001-')?new Date(value).toLocaleString():'—';
+  return `<section class="card panel section pricing-sync-card ${loading?'quota-refreshing':''}" aria-busy="${loading}"><div class="section-head"><div><h2>Reference Price Sync</h2><p>Automatically update the online reference catalog. Recorded bills and configured rate cards retain their original values.</p></div><label class="switch"><input type="checkbox" data-action="pricing-enabled" ${settings.enabled?'checked':''} ${loading?'disabled':''}><span></span></label></div><div class="pricing-sync-fields"><label class="field"><span>Price source</span><select class="select" data-action="pricing-source" ${loading?'disabled':''}><option value="litellm" ${settings.source==='litellm'?'selected':''}>GitHub · LiteLLM</option><option value="models.dev" ${settings.source==='models.dev'?'selected':''}>models.dev</option></select></label><label class="field"><span>Update every (hours)</span><input class="input" type="number" min="1" max="168" step="1" data-action="pricing-interval" value="${esc(settings.interval_hours)}" ${loading?'disabled':''}></label><button class="btn" data-action="pricing-refresh" ${loading?'disabled':''}>${loading?'Refreshing…':'Refresh prices'}</button></div><div class="pricing-sync-status cell-sub">${settings.enabled?'Scheduled updates enabled':'Schedule paused'} · ${esc(status.total||0)} prices · ${status.stale?'Cached / awaiting update':'Current'}<br>Last success ${esc(date(status.last_success))} · Next update ${settings.enabled?esc(date(status.next_update)):'Paused'}<br>${esc(status.source||settings.source)} · ${esc(status.version||'No successful snapshot yet')}${status.error?`<p class="danger" role="alert">${esc(status.error)}. The last successful cache remains available.</p>`:''}</div></section>`;
+}
+async function refreshPricingStatus(){
+  if(!state.auth?.authenticated||state.pricingStatusLoading||state.settingsTab==='backup')return;
+  state.pricingStatusLoading=true;
+  try{const pricing=await adapter.getPricingStatus();state.settings={...state.settings,pricing_sync:pricing};if(currentRoute().section==='settings'&&!document.activeElement?.closest('.pricing-sync-fields'))render()}catch(error){showToast(error.message,'error')}finally{state.pricingStatusLoading=false}
+}
+
+function settingsBackup(){
+ const p=state.settings?.backup;
+ if(!p||p.error)return `<section class="card panel"><h2>Backups</h2><p role="alert">${esc(p?.error||'Backup settings are unavailable')}</p></section>`;
+ const c=p.s3||{};
+ const input=(name,label,value,type='text',extra='')=>`<label class="field"><span>${label}</span><input class="input" type="${type}" data-backup-input="backup-${name}" value="${esc(value??'')}" ${extra}></label>`;
+ return `<section class="card panel backup-settings" data-backup-settings>
+ <div class="section-head"><div><h2>Scheduled S3 Backup</h2><p>Back up current configuration, accounts and keys. Request history, conversations, old revisions and drafts are excluded.</p></div><label class="switch"><input type="checkbox" aria-label="Enable scheduled backups" data-backup-input="backup-enabled" ${p.enabled?'checked':''}><span></span></label></div>
+ <div class="backup-group"><h3>Schedule & retention</h3><div class="form-grid backup-retention-grid">
+ ${input('days','Backup every (days)',p.interval_hours/24,'number','min="1" max="30" step="1"')}
+ ${input('copies','Local backup copies',p.local_copies,'number','min="1" max="7" step="1"')}
+ ${input('remote-copies','S3 backup copies',p.remote_copies,'number','min="1" max="90" step="1"')}
+ </div></div>
+ <div class="backup-group backup-connection"><h3>S3 connection</h3>
+ <label class="checkbox-field"><input type="checkbox" data-backup-input="backup-custom" ${c.endpoint?'checked':''}><span><strong>Configure S3 connection</strong><small>Use your own S3 or compatible storage. Leave off to use the server’s project MinIO connection.</small></span></label>
+ <div class="form-grid backup-s3-fields">
+ ${input('endpoint','Endpoint',c.endpoint,'url','placeholder="https://s3.us-east-1.amazonaws.com" autocomplete="off"')}
+ ${input('region','Region',c.region||'us-east-1','text','placeholder="us-east-1"')}
+ ${input('bucket','Bucket',c.bucket,'text','placeholder="app-backups"')}
+ <label class="field"><span>Addressing style</span><select class="input" data-backup-input="backup-path-style"><option value="path" ${c.path_style!==false?'selected':''}>Path style (MinIO / compatible)</option><option value="virtual" ${c.path_style===false?'selected':''}>Virtual hosted (Amazon S3)</option></select></label>
+ ${input('access-key','Access key ID','','password','autocomplete="new-password" placeholder="Enter to replace saved credentials"')}
+ ${input('secret-key','Secret access key','','password','autocomplete="new-password" placeholder="Enter to replace saved credentials"')}
+ <p class="cell-sub full">${c.credentials_ref?'Credentials saved. Leave both fields blank to keep them. Changing the endpoint requires new credentials.':'Enter both credentials when configuring a connection for the first time.'} Credentials are never returned to the browser.</p>
+ </div>
+ <label class="field"><span>S3 directory</span><input class="input" data-backup-input="backup-prefix" value="${esc(p.s3_prefix)}"><small>Use a subdirectory inside ferry/ (or the existing smart-api/ prefix). The bucket must already exist.</small></label>
+ </div>
+ <div class="notice"><strong>${p.enabled?'Scheduled backups enabled':'Scheduled backups paused'}</strong><span>Runs during the daily backup window when due. Each upload is downloaded and verified. Temporary verification copies are removed. Deployment rollback backups always include all databases.</span></div>
+ <div class="backup-footer"><button class="btn primary" data-action="backup-save">Save backup policy</button><p class="cell-sub">Saved destination: s3://${esc(c.bucket||'app-backups')}/${esc(p.s3_prefix)}/</p></div>
+ </section>`;
+}
+
+async function saveBackupPolicy(panel){
+ const value=name=>panel.querySelector(`[data-backup-input="backup-${name}"]`);
+ const backup={enabled:value('enabled').checked,interval_hours:Number(value('days').value)*24,include_history:false,s3_prefix:value('prefix').value.trim(),local_copies:Number(value('copies').value),remote_copies:Number(value('remote-copies').value)};
+ if(value('custom')?.checked){
+  backup.s3={endpoint:value('endpoint').value.trim().replace(/\/$/,''),region:value('region').value.trim(),bucket:value('bucket').value.trim(),path_style:value('path-style').value==='path'};
+  const access_key=value('access-key').value.trim(),secret_key=value('secret-key').value;
+  if(access_key||secret_key)backup.s3_credentials={access_key,secret_key};
+ }else{backup.s3={};}
+ const result=await adapter.updateSettings({backup});
+ state.settings=result;
+ return result;
+}
+function settingsCodexVersion(){
+  const settings=state.settings||{},enabled=state.codexAutoUpdateDraft??settings.codex_auto_update??false;
+  const channel=state.codexReleaseChannelDraft??settings.codex_release_channel??'stable';
+  const manual=state.codexVersionDraft??settings.codex_client_version??'';
+  const status=settings.codex_update_status||{};
+  const labels={manual:'Manual version takes precedence',disabled:'Automatic updates are off',pending:'Waiting for next check',succeeded:'Release check succeeded',failed:'Release check failed',unavailable:'Update state unavailable'};
+  return `<section class="card panel"><div class="section-head"><div><h2>Codex Client Version</h2><p>Publish the request version used for model discovery and Codex inference.</p></div></div>
+    <div class="section-head"><span>Automatic GitHub updates</span><label class="switch"><input type="checkbox" data-action="codex-auto-update" ${enabled?'checked':''} ${state.codexVersionPublishing?'disabled':''}><span></span></label></div>
+    <label class="field"><span>Release channel</span><select class="input" data-action="codex-release-channel" ${state.codexVersionPublishing?'disabled':''}><option value="stable" ${channel==='stable'?'selected':''}>Stable releases</option><option value="prerelease" ${channel==='prerelease'?'selected':''}>Include prereleases</option></select></label>
+    <label class="field"><span>Manual client version</span><input class="input" data-action="codex-client-version" maxlength="64" value="${esc(manual)}" placeholder="${esc(settings.codex_auto_version||settings.codex_default_client_version||'0.153.0')}" ${state.codexVersionPublishing?'disabled':''}></label>
+    <p class="cell-sub">Manual versions always win. Clear this field to follow automatic updates. Checks run hourly; pausing retains the last automatic version.</p>
+    ${manual&&enabled?'<div class="notice orange"><strong>Manual version takes precedence</strong><span>Clear the manual version and publish to start automatic updates.</span></div>':''}
+    <p class="cell-sub"><span>Effective version</span>: ${esc(settings.codex_effective_client_version||'0.153.0')}</p>
+    <p class="cell-sub"><span>Last automatic version</span>: ${esc(settings.codex_auto_version||'—')}</p>
+    <p class="cell-sub"><span>Published update status</span>: <span>${esc(labels[status.status]||'Automatic updates are off')}</span></p>
+    ${status.last_checked_at?`<p class="cell-sub"><span>Last release check</span>: ${esc(status.last_checked_at)}</p>`:''}
+    ${status.next_run_at?`<p class="cell-sub"><span>Next release check</span>: ${esc(status.next_run_at)}</p>`:''}
+    ${status.last_error?`<p class="cell-sub"><span>Last check error</span>: ${esc(status.last_error)}</p>`:''}
+    <p class="cell-sub">Updates never downgrade. Stable mode waits until a newer stable release is available.</p>
+    <p class="cell-sub">Existing models and custom routes will be retained.</p>
+    <p class="cell-sub">Catalog refresh follows the existing model sync switches and automatic model limit.</p>
+    <button class="btn primary" data-action="publish-codex-version" ${state.codexVersionPublishing?'disabled':''}>Review &amp; Publish</button></section>`;
+}
+
+function settingsAutomaticUsageReset(){const policy=state.settings?.codex_usage_reset_auto||{enabled:true,threshold_minutes:20};return `<section class="card panel"><div class="section-head"><div><h2>Automatic Codex Reset Cards</h2><p>Use available reset cards before they expire.</p></div><label class="switch"><input type="checkbox" data-action="auto-reset-enabled" ${policy.enabled?'checked':''}><span></span></label></div><label class="field"><span>Remaining validity (minutes)</span><input class="input" type="number" min="1" max="1440" step="1" data-action="auto-reset-threshold" value="${esc(policy.threshold_minutes)}"></label><p class="cell-sub">Default 20 minutes. Checks enabled Codex connections every 30 seconds. Expired cards, unknown expiry dates, and accounts awaiting reset review are skipped.</p></section>`}
+async function updateAutomaticUsageResetSetting(el){const policy={...(state.settings?.codex_usage_reset_auto||{enabled:true,threshold_minutes:20})};if(el.dataset.action==='auto-reset-enabled')policy.enabled=el.checked;else{const minutes=Number(el.value);if(!Number.isInteger(minutes)||minutes<1||minutes>1440){showToast('Enter a whole number from 1 to 1440.','error');render();return}policy.threshold_minutes=minutes}try{state.settings=await adapter.updateSettings({codex_usage_reset_auto:policy});showToast('Automatic reset settings saved.');render()}catch(error){showToast(error.message,'error');render()}}
+
+function settingsCodexUsageProtection(){const p=state.settings?.codex_usage_protection||{max_used_percent:98,allow_credits:false};return `<section class="card panel"><div class="section-head"><div><h2>Codex Usage Protection</h2></div></div><label class="field"><span>Maximum subscription usage (%)</span><input class="input" type="number" min="0.1" max="100" step="0.1" data-action="codex-usage-threshold" ${state.codexUsageProtectionSaving?'disabled':''} value="${esc(p.max_used_percent)}"></label><label class="field"><span>Allow paid Credits</span><input type="checkbox" data-action="codex-allow-credits" ${state.codexUsageProtectionSaving?'disabled':''} ${p.allow_credits?'checked':''}></label><p class="cell-sub">Enabling Credits bypasses the threshold and allows paid usage.</p></section>`}
+async function updateCodexUsageProtectionSetting(el){
+  if(state.codexUsageProtectionSaving){render();return}
+  const p={...(state.settings?.codex_usage_protection||{max_used_percent:98,allow_credits:false})};
+  if(el.dataset.action==='codex-allow-credits')p.allow_credits=el.checked;
+  else{const value=Number(el.value);if(!Number.isFinite(value)||value<=0||value>100){showToast('Enter a percentage greater than 0 and at most 100.','error');render();return}p.max_used_percent=value}
+  state.codexUsageProtectionSaving=true;render();
+  try{state.settings=await adapter.updateSettings({codex_usage_protection:p});showToast('Codex usage protection saved.')}
+  catch(error){showToast(error.message,'error')}
+  finally{state.codexUsageProtectionSaving=false;render()}
+}

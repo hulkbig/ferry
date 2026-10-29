@@ -1,0 +1,227 @@
+
+// Shared production analytics and presentation preferences. No demo ledger is
+// imported here: unavailable analytics remains unavailable.
+function readPreference(key,fallback,allowed){
+ try{
+  let value=localStorage.getItem(key);
+  if(value===null||value===undefined){
+   const legacy=localStorage.getItem(key.replace(/^ferry\./,'smartapi.'));
+   if(allowed.includes(legacy)){value=legacy;localStorage.setItem(key,value)}
+  }
+  return allowed.includes(value)?value:fallback;
+ }catch{return fallback}
+}
+let consoleLocale=readPreference('ferry.locale',navigator.language?.startsWith('zh')?'zh-CN':'en-US',['zh-CN','en-US']);
+const consoleSystemTheme=matchMedia('(prefers-color-scheme: dark)');
+let consoleTheme=readPreference('ferry.theme','system',['system','light','dark']);
+if(!['system','light','dark'].includes(consoleTheme))consoleTheme='system';
+function applyConsolePreferences(){
+ document.documentElement.lang=consoleLocale;
+ document.title=consoleLocale==='zh-CN'?'Ferry 控制台':'Ferry Console';
+ document.documentElement.dataset.theme=consoleTheme==='system'?(consoleSystemTheme.matches?'dark':'light'):consoleTheme;
+ try{localStorage.setItem('ferry.locale',consoleLocale);localStorage.setItem('ferry.theme',consoleTheme)}catch{}
+}
+function consoleThemeControl(){
+ const label=consoleLocale==='zh-CN'?{system:'跟随系统',light:'浅色',dark:'深色'}:{system:'System',light:'Light',dark:'Dark'};
+ const title=consoleLocale==='zh-CN'?'主题：'+label[consoleTheme]+'；点击切换':'Theme: '+label[consoleTheme]+'; click to change';
+ return `<button class="btn ghost next-preference" data-next="theme" aria-label="${title}" title="${title}">◐ <span>${label[consoleTheme]}</span></button>`;
+}
+function cycleConsoleTheme(){consoleTheme={system:'light',light:'dark',dark:'system'}[consoleTheme];applyConsolePreferences();render();}
+function onConsoleSystemThemeChange(){if(consoleTheme==='system')applyConsolePreferences();}
+if(consoleSystemTheme.addEventListener)consoleSystemTheme.addEventListener('change',onConsoleSystemThemeChange);
+else if(consoleSystemTheme.addListener)consoleSystemTheme.addListener(onConsoleSystemThemeChange);
+const nt=(en,zh)=>consoleLocale==='zh-CN'?zh:en;
+const nextNumber=value=>value==null?'—':new Intl.NumberFormat(consoleLocale,{maximumFractionDigits:2}).format(value);
+const nextMoney=value=>value==null?'—':new Intl.NumberFormat(consoleLocale,{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:value>0&&value<.01?6:2}).format(value);
+const nextPct=(value,total)=>total?new Intl.NumberFormat(consoleLocale,{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2}).format(value/total):'—';
+const nextDuration=value=>value==null?'—':value<1000?`${nextNumber(value)} ms`:`${nextNumber(value/1000)} s`;
+const nextCount=metric=>metric.basis==='attempts'?metric.attempts:metric.requests;
+const nextSuccess=metric=>metric.basis==='attempts'?metric.attempt_succeeded:metric.succeeded;
+const nextCost=metric=>metric.cost>0||metric.priced_attempts>0?nextMoney(metric.cost):'—';
+const nextCostPart=(metric,value)=>metric.cost>0||metric.priced_attempts>0?nextMoney(value):'—';
+const nextCoverage=metric=>nextPct(metric.priced_attempts,metric.attempts);
+const nextTheoreticalCoverage=metric=>nextPct(metric.theoretical_priced_attempts||0,metric.attempts);
+function nextTheoreticalCost(metric){return metric.theoretical_priced_attempts>0?'≈ '+nextMoney(metric.theoretical_cost)+(metric.theoretical_unpriced_attempts>0?' · '+nt('partial','已估部分'):''):'—'}
+const nextTime=value=>new Date(value).toLocaleString(consoleLocale,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+function nextScope(scope){return {...scope,...(state.analyticsIntersection?.route===currentRoute().raw?state.analyticsIntersection.filter:{})}}
+function nextAnalyticsKey(scope){return JSON.stringify([state.analyticsWindow,state.analyticsTo,scope.model||'',scope.provider||''])}
+function nextAnalyticsQuery(scope){
+ // Only server-returned or restored report timestamps are exact cohort anchors.
+ // boot() initializes analyticsTo with the browser clock, which may be ahead.
+ return {window:state.analyticsWindow,...(state.analyticsPinnedTo===state.analyticsTo&&state.analyticsTo?{to:state.analyticsTo}:{}),...scope};
+}
+async function loadNextAnalytics(scope,key,entry={loading:true,data:null,error:null},query=nextAnalyticsQuery(scope)){
+ if(entry.reserved&&state.analyticsCache.get(key)!==entry)return;
+ state.analyticsCache.set(key,entry);
+ try{
+  entry.data=await adapter.getAnalytics(query);
+  if(state.analyticsCache.get(key)===entry&&nextAnalyticsKey(scope)===key&&entry.data?.to){
+   // Pin the server's exact cohort for filters, export and report restoration.
+   state.analyticsTo=entry.data.to;state.analyticsPinnedTo=entry.data.to;
+   state.analyticsCache.delete(key);key=nextAnalyticsKey(scope);state.analyticsCache.set(key,entry);
+  }
+ }
+ catch(error){entry.error=error}
+ finally{entry.loading=false;if(state.analyticsCache.get(key)===entry)render()}
+}
+function nextToolbar(scope){return `<div class="next-toolbar"><div class="next-segment" aria-label="${nt('Time window','统计周期')}">${[['24h',nt('Last 24 hours','近 24 小时')],['168h',nt('Last 7 days','近 7 天')],['720h',nt('Last 30 days','近 30 天')]].map(([value,label])=>`<button data-next="window" data-value="${value}" aria-pressed="${state.analyticsWindow===value}" class="${state.analyticsWindow===value?'selected':''}">${label}</button>`).join('')}</div><button class="btn" data-next="export" data-scope="${esc(JSON.stringify(scope))}">↓ <span>${nt('Export data','导出数据')}</span></button><button class="btn icon" data-next="refresh" aria-label="${nt('Refresh analytics','刷新统计')}">${icon('refresh')}</button></div>`}
+function pageOverviewNext(){return `<div class="next-page"><div class="page-head next-page-head"><div><h1>${nt('Overview','运行概览')}</h1><p>${nt('Traffic, reliability and response time.','查看流量、可靠性与响应速度。')}</p></div>${nextToolbar({})}</div>${nextAnalytics({},false)}</div>`}
+
+function nextResourceLabel(dimension,id){if(id==='__unknown__')return nt('Unknown / historical','未知 / 历史资源');if(id==='__unattributed__')return nt('No recorded attempts','没有尝试记录');return state[dimension]?.find(item=>item.id===id)?.name||id}
+function nextResourceLink(dimension,id,arrow=false){const label=esc(nextResourceLabel(dimension,id));return state[dimension]?.some(item=>item.id===id)?`<a href="${resourceHash(dimension,id)}" data-i18n-skip>${label}${arrow?' ↗':''}</a>`:`<span data-i18n-skip>${label}</span>`}
+function nextOutcome(label,value,total,tone){return `<div><small><i class="${tone}"></i>${label}</small><div><strong>${nextNumber(value)}</strong><span>${nextPct(value,total)}</span></div></div>`}
+function nextQualityRow(label,value,note){return `<div><span>${label}<small>${note}</small></span><strong>${value}</strong></div>`}
+function nextDimensionToggle(){return `<div class="next-segment compact">${[['models',nt('Models','模型')],['providers',nt('Providers','渠道')]].map(([id,label])=>`<button data-next="dimension" data-value="${id}" aria-pressed="${state.analyticsDimension===id}" class="${state.analyticsDimension===id?'selected':''}">${label}</button>`).join('')}</div>`}
+
+
+function nextCoverageNotice(c){
+ if(!c)return '';
+ return `<div class="next-coverage"><strong>${nt('Queryable request details','可查询请求明细')}</strong> · ${nt('Earliest retained record','最早保留记录')}: ${c.earliest_detail?esc(nextTime(c.earliest_detail)):'—'}${c.rollup_only_requests?`<p>${nt('Global history:','全局历史：')} <b>${nextNumber(c.rollup_only_requests)}</b> ${nt('requests remain only in hourly aggregates within the compared full hours. They are excluded from the detail-backed charts and breakdowns below; their model, provider and request details cannot be recovered from these aggregates.','次请求在本周期完整小时内仅存小时汇总，不计入下方明细报表，无法据此恢复模型、渠道或逐条请求。')}</p>`:''}${c.mismatched_hours?`<p role="alert">${nextNumber(c.mismatched_hours)} ${nt('hours differ between details and aggregates. Use details for drillthrough; historical totals require reconciliation.','个小时的明细与汇总不一致。下钻以明细为准，历史总数需要对账。')}</p>`:''}<details><summary>${nt('Historical coverage','历史覆盖')}</summary><p>${nt('Global full-hour comparison','全局完整小时对比')}: ${esc(nextTime(c.compared_from))} — ${esc(nextTime(c.compared_to))} · ${nt('Details','明细')} ${nextNumber(c.detail_requests)} / ${nt('Hourly aggregates','小时汇总')} ${nextNumber(c.rollup_requests)}.</p><p>${nt('The earliest record is not a guaranteed retention boundary. Partial edge hours and absent historical dimensions cannot be reconstructed.','最早记录不代表保证完整的保留边界；首尾不完整小时及缺失的历史维度不能还原。')}</p></details></div>`;
+}
+function nextDrill(label,data,scope={},filters={}){
+ return `<button class="next-drill" data-next="requests" data-query="${esc(JSON.stringify({from:data.from,to:data.to,...scope,...filters}))}">${label}</button>`;
+}
+function nextFailures(s){return s.basis==='attempts'?(s.attempt_failed??0):s.failed}
+function nextCanceled(s){return s.basis==='attempts'?(s.attempt_canceled??0):s.canceled}
+function nextReportFilter(s,status){return s.basis==='attempts'?{attempt_status:status}:{status}}
+function nextCostLabel(s){return nextCost(s)+(s.unpriced_attempts>0&&s.priced_attempts>0?' · '+nt('partial','已计部分'):'')}
+function nextAnalytics(baseScope={},detail=true,billing=false){
+ const scope=nextScope(baseScope),key=nextAnalyticsKey(scope);let entry=state.analyticsCache.get(key);
+ if(!entry){entry={loading:true,data:null,error:null,reserved:true};state.analyticsCache.set(key,entry);const query=nextAnalyticsQuery(scope);queueMicrotask(()=>loadNextAnalytics(scope,key,entry,query))}
+ const toolbar=detail?`<div class="next-detail-head"><h2>${nt('Usage & reliability','用量与可靠性')}</h2>${nextToolbar(scope)}</div>`:'';
+ if(entry.loading)return toolbar+`<div class="next-loading" role="status"><span class="spinner"></span>${nt('Reading ledger…','正在读取账本…')}</div>`;
+ if(!entry.data){
+  const message=demoMode?nt('Demo mode has no production ledger.','演示模式没有生产账本。'):nt('The analytics API request failed. Refresh to retry.','统计 API 请求失败，请刷新重试。');
+  const error=entry.error,detail=!demoMode&&error?`<p data-i18n-skip>${esc([error.status?`HTTP ${error.status}`:'',error.message||''].filter(Boolean).join(' · '))}</p>`:'';
+  return toolbar+`<div class="next-empty" role="alert"><h2>${nt('Analytics unavailable','统计暂不可用')}</h2><p>${message}</p>${detail}</div>`;
+ }
+ const data=entry.data,s=data.summary,count=nextCount(s),success=nextSuccess(s),basis=s.basis==='attempts',dimension=scope.model?'providers':scope.provider?'models':billing?'providers':state.analyticsDimension;
+ const rows=[...(data[dimension]||[])].sort((a,b)=>nextCount(b)-nextCount(a));
+ const tokens=s.uncached_input+s.cache_read+s.cache_write+s.output;
+ const metric=(label,value,note)=>`<article><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`;
+ return `<section class="next-analytics">${toolbar}<div class="next-period"><span>◷ ${esc(nextTime(data.from))} — ${esc(nextTime(data.to))} · ${esc(Intl.DateTimeFormat().resolvedOptions().timeZone)}</span><span>${nt('Last refreshed','最后刷新')} ${esc(nextTime(data.generated_at||data.to))}</span></div>
+ ${scope.model&&scope.provider?`<div class="next-filter-chip">${esc(scope.model)} × ${esc(nextResourceLabel('providers',scope.provider))}<button data-next="clear-intersection" aria-label="${nt('Clear filter','清除筛选')}">×</button></div>`:''}
+
+ <div class="next-metrics">${metric(basis?nt('Upstream attempts','上游尝试数'):nt('Client requests','客户端请求数'),nextDrill(nextNumber(count),data,scope),basis?nt('Drillthrough shows distinct participating requests','点击查看参与请求，按请求去重'):nextNumber(s.attempts)+' '+nt('upstream attempts','次上游尝试'))}
+ ${metric(basis?nt('Upstream attempt success','上游尝试成功率'):nt('Final delivery success','最终交付成功率'),nextPct(success,count),nextDrill(nextNumber(nextFailures(s))+' '+nt('failed','失败'),data,scope,nextReportFilter(s,'failed'))+' · '+nextDrill(nextNumber(nextCanceled(s))+' '+nt('canceled','取消'),data,scope,nextReportFilter(s,'canceled')))}
+ ${metric(basis?nt('Upstream first token P95','上游首响应 P95'):nt('Client first token P95','客户端首响应 P95'),nextDuration(s.ttft_p95_ms),'P50 '+nextDuration(s.ttft_p50_ms)+' · '+nextNumber(s.ttft_samples)+' '+nt('successful samples','个成功样本'))}
+ ${metric(nt('Upstream tokens','上游 Token 总量'),nextNumber(tokens),nt('Uncached input + cache reads/writes + output','非缓存输入 + 缓存读写 + 输出'))}</div>
+ ${billing?nextBillingPanels(data,scope):`<div class="next-charts"><article class="next-panel"><div class="next-panel-head"><div><h2>${basis?nt('Attempts & results','尝试与结果'):nt('Requests & results','请求与结果')}</h2><p>${nt('Click a time bucket to inspect its requests. Intervals are aligned in UTC.','点击时间段查看请求；时间段按 UTC 自然间隔对齐。')} ${data.bucket_seconds<3600?nextNumber(data.bucket_seconds/60)+' min':nextNumber(data.bucket_seconds/3600)+' h'}</p></div></div>${nextChart(data.timeline,s.basis,scope)}${nextChartLegend(s.basis)}</article><article class="next-panel"><div class="next-panel-head"><div><h2>${nt('Latency over time','延迟趋势')}</h2><p>${basis?nt('Upstream first token P95 · successful samples','上游首响应 P95 · 成功样本'):nt('Client first token P95 · successful samples','客户端首响应 P95 · 成功样本')}</p></div></div>${nextLatencyChart(data.timeline)}</article></div>`}
+ <article class="next-panel"><div class="next-panel-head"><div><h2>${dimension==='models'?nt('Models','模型对比'):nt('Providers','渠道对比')}</h2><p>${dimension==='providers'?nt('Each upstream attempt belongs to one provider. Client requests can participate in multiple providers.','每次上游尝试归属于一个渠道，同一客户端请求可经过多个渠道。'):basis?nt('Models within this provider · upstream attempt metrics','本渠道内的模型 · 上游尝试口径'):nt('Client request outcomes by logical model','按逻辑模型统计客户端最终结果')}</p></div>${!billing&&!scope.model&&!scope.provider?nextDimensionToggle():''}</div>${nextAttribution(rows,dimension,s,scope,data)}</article>
+ <div class="next-lower"><article class="next-panel"><div class="next-panel-head"><h2>${nt('Failures & cancellations','失败与取消')}</h2></div><div class="next-errors">${s.errors.length?s.errors.map(error=>nextDrill(`<code>${esc(error.cause)}</code><b>${nextNumber(error.count)}</b>`,data,scope,basis?{attempt_failure_type:error.cause}:{report_error:error.cause})).join(''):`<p>${nt('No recorded errors in this scope.','该范围内暂无错误记录。')}</p>`}</div><div class="next-quality">${nextQualityRow(nt('Client final success','客户端最终成功率'),nextPct(s.succeeded,s.requests),nt('Includes recovery through other providers','包含其他渠道接力后的最终结果'))}${nextQualityRow(nt('Completion P50 / P95','完成耗时 P50 / P95'),nextDuration(s.duration_p50_ms)+' / '+nextDuration(s.duration_p95_ms),nextNumber(s.duration_samples)+' '+nt('successful samples; depends on output length and streaming','个成功样本；受输出长度及流式模式影响'))}</div></article><article class="next-panel"><div class="next-panel-head"><h2>${nt('Usage & pricing','用量与计价')}</h2><a href="#/billing">${nt('Usage & Billing','用量与账单')} ↗</a></div>${nextTokenParts(s)}<div class="next-cost-parts"><div><span>${nt('Theoretical API cost','理论 API 花费')}</span><strong>${nextTheoreticalCost(s)}</strong></div><div><span>${nt('Estimate coverage','估算覆盖率')}</span><strong>${nextTheoreticalCoverage(s)}</strong></div><div class="next-cost-total"><span>${nt('Recorded cost','已记录费用')}</span><strong>${nextCostLabel(s)}</strong></div></div><p class="next-method-note">${nt('Current standard API prices × recorded tokens, including subscription providers.','当前标准 API 单价 × 已记录 token 用量，包含订阅渠道。')} ${nextNumber(s.theoretical_unpriced_attempts??s.attempts)} ${nt('attempts cannot be estimated.','次尝试暂无法估算。')}</p></article></div>
+ <details class="next-method"><summary>${nt('Metric definitions','统计口径')}</summary><p>${nt('Completed request records are selected by start time. All their attempts are included, even beyond the window. Ongoing requests are excluded. Provider drillthrough lists distinct requests, not individual attempt rows.','按已结束请求的开始时间选取范围，包含其全部尝试，即使尝试跨越范围边界；不计进行中请求。渠道下钻显示去重请求，而非逐条尝试。')}</p><p>${nt('Positive timings from successful observations only; nearest-rank percentiles. No service target is assumed.','分位数仅使用成功且耗时有效的样本，按最近秩计算，不预设服务目标。')}</p>${s.missing_attempts?`<p>${nextNumber(s.missing_attempts)} ${nt('requests have no recorded attempts: these may include pre-upstream failures or unavailable history. Unclassified reference estimates are excluded from spend.','条请求没有尝试记录，可能为调用前失败或历史明细不可用；无法分类的参考估值不计入费用。')}</p>`:''}</details></section>`;
+}
+function nextTokenParts(s){return `<div class="next-tokens">${[[nt('Uncached input','非缓存输入'),s.uncached_input],[nt('Cache read','缓存读取'),s.cache_read],[nt('Cache write','缓存写入'),s.cache_write],[nt('Output','输出'),s.output]].map(([k,v])=>`<div><small>${k}</small><strong>${nextNumber(v)}</strong></div>`).join('')}</div>`}
+function nextBillingPanels(data,scope){
+ const s=data.summary,rows=[...data.providers].sort((a,b)=>(b.theoretical_cost||0)-(a.theoretical_cost||0)),top=rows.slice(0,6);
+ const other=rows.slice(6).reduce((total,row)=>({theoretical_cost:total.theoretical_cost+(row.theoretical_cost||0),theoretical_priced_attempts:total.theoretical_priced_attempts+(row.theoretical_priced_attempts||0),theoretical_unpriced_attempts:total.theoretical_unpriced_attempts+(row.theoretical_unpriced_attempts||0)}),{theoretical_cost:0,theoretical_priced_attempts:0,theoretical_unpriced_attempts:0});
+ const pricing=data.reference_pricing;
+ return `<div class="next-charts"><article class="next-panel"><div class="next-panel-head"><h2>${nt('Theoretical API cost','理论 API 花费')}</h2></div><div class="next-theoretical-total"><strong>${nextTheoreticalCost(s)}</strong><span>${nt('Current standard API prices × recorded tokens','当前标准 API 单价 × 已记录 token 用量')}</span></div><div class="next-cost-parts"><div><span>${nt('Estimate coverage','估算覆盖率')}</span><strong>${nextTheoreticalCoverage(s)}</strong></div><div><span>${nt('Attempts estimated','已估算尝试')}</span><strong>${nextNumber(s.theoretical_priced_attempts||0)} / ${nextNumber(s.attempts)}</strong></div></div><p class="next-method-note">${nt('Includes every provider and plan, including subscriptions. This estimates equivalent API usage, not the subscription invoice. Missing model, usage or cache prices remain unestimated.','所有渠道和计费方案均参与估算，包含订阅渠道。金额表示同等用量的理论 API 花费，不代表订阅账单；缺少模型、用量或缓存单价时保留未估算状态。')}</p>${pricing?.version?`<p class="next-price-source">${esc(pricing.source)} · ${nt('Prices updated','价格更新于')} ${esc(nextTime(pricing.updated_at))}${pricing.stale?' · '+nt('Cached prices','缓存价格'):''}</p>`:''}<details class="next-method"><summary>${nt('Recorded costs & diagnostics','已记录费用与诊断')}</summary><div class="next-cost-parts">${[[nt('PAYG estimate','按量费用估算'),s.cash_cost],[nt('Allocated subscription','订阅分摊'),s.subscription_cost]].map(([label,value])=>`<div><span>${label}</span><strong>${nextCostPart(s,value)}</strong></div>`).join('')}<div class="next-cost-total"><span>${nt('Total accounted','已计合计')}</span><strong>${nextCostLabel(s)}</strong></div><div><span>${nt('Recorded pricing coverage','历史计价覆盖率')}</span><strong>${nextCoverage(s)}</strong></div></div><p>${nt('Recorded costs use historical rate cards and subscription allocations. Current estimates do not change them.','已记录费用采用历史价卡与订阅分摊，当前理论估算不会改写这些金额。')}</p>${[[nt('Retry cost','重试费用'),s.retry_cost],[nt('Failed attempt cost','失败尝试费用'),s.failed_attempt_cost],[nt('Unsuccessful client cost','未交付请求费用'),s.failed_request_cost]].map(([label,value])=>`<p>${label}: ${nextCostPart(s,value)}</p>`).join('')}<p>${nt('Diagnostics overlap and must not be added.','诊断费用有交集，不能相加。')}</p></details></article><article class="next-panel"><div class="next-panel-head"><h2>${nt('Theoretical API cost by provider','各渠道理论 API 花费')}</h2></div><div class="next-cost-parts">${top.map(row=>`<div><span>${nextResourceLink('providers',row.id)}</span><strong>${nextTheoreticalCost(row)}</strong></div>`).join('')}${rows.length>6?`<div class="next-cost-total"><span>${nt('Other providers','其他渠道')}</span><strong>${nextTheoreticalCost(other)}</strong></div>`:''}</div><p class="next-method-note">${rows.length?nt('All providers are listed below. Estimates and their pricing snapshot are included in the export.','下方列出全部渠道；导出包含理论估算及其参考价格版本。'):nt('No usage in this window.','当前周期暂无用量。')}</p></article></div>`;
+}
+function pageBillingNext(){return `<div class="next-page"><div class="page-head next-page-head"><div><h1>${nt('Usage & Billing','用量与账单')}</h1><p>${nt('API-equivalent cost across every provider, alongside recorded charges.','查看所有渠道的理论 API 花费与已记录费用。')}</p></div>${nextToolbar({})}</div>${nextAnalytics({},false,true)}</div>`}
+function nextAttribution(rows,dimension,total,scope,data){
+ const upstream=dimension==='providers'||Boolean(scope.provider);
+ return `<div class="next-table-scroll"><table class="next-table"><thead><tr>${[dimension==='models'?nt('Model','模型'):nt('Provider','渠道'),upstream?nt('Upstream attempts','上游尝试'):nt('Client requests','客户端请求'),upstream?nt('Attempt success','尝试成功率'):nt('Delivery success','交付成功率'),upstream?nt('Upstream P95','上游首响应 P95'):nt('Client P95','客户端首响应 P95'),nt('Failed / canceled','失败 / 取消'),nt('Theoretical API cost','理论 API 花费'),nt('Estimate coverage','估算覆盖')].map(label=>`<th>${label}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>{const filter={...scope,[dimension==='models'?'model':'provider']:row.id};return `<tr><td>${nextResourceLink(dimension,row.id,true)}${(scope.model||scope.provider)&&row.id!=='__unattributed__'?`<small><button data-next="intersect" data-dimension="${dimension}" data-id="${esc(row.id)}">${nt('Filter','筛选')}</button></small>`:''}</td><td>${row.id==='__unattributed__'?nextNumber(nextCount(row)):nextDrill(nextNumber(nextCount(row)),data,filter)}</td><td>${nextPct(nextSuccess(row),nextCount(row))}</td><td>${nextDuration(row.ttft_p95_ms)}<small>${nextNumber(row.ttft_samples)} ${nt('samples','个样本')}</small></td><td>${nextNumber(nextFailures(row))} / ${nextNumber(nextCanceled(row))}</td><td>${nextTheoreticalCost(row)}<small>${nt('Recorded','已记录')} ${nextCostLabel(row)}</small></td><td>${nextTheoreticalCoverage(row)}<small>${nextNumber(row.theoretical_unpriced_attempts??row.attempts)} ${nt('unestimated','未估算')}</small></td></tr>`}).join(''):`<tr><td colspan="7" class="next-empty">${nt('No usage in this window.','当前周期暂无用量。')}</td></tr>`}</tbody></table></div>`;
+}
+function nextChartLegend(basis){
+ const items=[['blue',basis==='attempts'?nt('Upstream success','上游成功'):nt('Direct success','直接成功')],...(basis==='attempts'?[]:[['muted',nt('Historical success','历史成功')],['green',nt('Recovered','恢复成功')]]),['red',nt('Failed','失败')],['orange',nt('Canceled','取消')]];
+ return `<div class="next-chart-legend">${items.map(([color,label])=>`<span><i aria-hidden="true" style="background:var(--${color})"></i>${label}</span>`).join('')}</div>`;
+}
+// Both charts share geometry; timestamps preserve partial edge-bucket widths.
+function nextChartGeometry(points){
+ const width=600,height=260,left=60,right=16,top=20,bottom=40;
+ const start=Date.parse(points[0]?.from),end=Date.parse(points.at(-1)?.to),span=end-start;
+ const plot=width-left-right,step=plot/Math.max(1,points.length);
+ const edge=(p,i,finish=false)=>Number.isFinite(span)&&span>0?left+Math.max(0,Math.min(1,(Date.parse(finish?p.to:p.from)-start)/span))*plot:left+(i+(finish?1:0))*step;
+ return {width,height,left,right,top,bottom,edge};
+}
+function nextChart(points,basis='requests',scope={}){
+ const {width,height,left,right,top,bottom,edge}=nextChartGeometry(points),max=Math.max(4,Math.ceil(Math.max(0,...points.map(p=>p.requests))/4)*4),y=v=>height-bottom-v/max*(height-top-bottom);
+ return `<svg class="next-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${basis==='attempts'?nt('Recorded attempt and success counts over time','尝试和成功次数随时间变化'):nt('Recorded request and success counts over time','请求和成功次数随时间变化')}">${[0,.25,.5,.75,1].map(r=>`<line x1="${left}" x2="${width-right}" y1="${y(max*r)}" y2="${y(max*r)}"/><text x="${left-10}" y="${y(max*r)+4}" text-anchor="end">${nextNumber(max*r)}</text>`).join('')}${points.map((p,i)=>{let n=0;const x=edge(p,i),barWidth=Math.max(0,edge(p,i,true)-x),query=esc(JSON.stringify({from:p.from,to:p.to,...scope}));return `<a href="#/requests" data-next="requests" data-query="${query}"><title>${esc(nextTime(p.from))} — ${esc(nextTime(p.to))}: ${nextNumber(p.requests)} ${basis==='attempts'?nt('attempts','次尝试'):nt('requests','次请求')} / ${nextNumber(p.succeeded)} ${nt('successful','次成功')} · ${nextNumber(p.failed||0)} ${nt('failed','失败')} · ${nextNumber(p.canceled||0)} ${nt('canceled','取消')}${p.partial?' · '+nt('partial interval','不完整时间段'):''}</title><rect x="${x}" y="${top}" width="${barWidth}" height="${height-top-bottom}" fill="transparent"/>${[[basis==='attempts'?p.succeeded:(p.direct||0),'var(--blue)'],[basis==='attempts'?0:Math.max(0,p.succeeded-(p.direct||0)-(p.recovered||0)),'var(--muted)'],[basis==='attempts'?0:p.recovered||0,'var(--green)'],[p.failed||0,'var(--red)'],[p.canceled||0,'var(--orange)']].map(([v,color])=>{n+=v;return `<rect x="${x+Math.min(1,barWidth/4)}" y="${y(n)}" width="${Math.max(0,barWidth-Math.min(2,barWidth/2))}" height="${v/max*(height-top-bottom)}" fill="${color}"/>`}).join('')}</a>`}).join('')}${points.length?`<text x="${left}" y="${height-12}">${esc(nextTime(points[0].from))}</text><text x="${width-right}" y="${height-12}" text-anchor="end">${esc(nextTime(points.at(-1).to))}</text>`:''}</svg>`;
+}
+function nextLatencyChart(points){
+ const valid=p=>Number.isFinite(p.ttft_p95_ms)&&p.ttft_p95_ms>=0;
+ const values=points.filter(valid);if(!values.length)return `<div class="next-empty">${nt('No successful timing samples','暂无成功耗时样本')}</div>`;
+ const {width,height,left,right,top,bottom,edge}=nextChartGeometry(points),peak=Math.max(1,...values.map(p=>p.ttft_p95_ms));
+ const unit=10**Math.floor(Math.log10(peak)),max=Math.ceil(peak/unit)*unit;
+ const x=(p,i)=>(edge(p,i)+edge(p,i,true))/2,y=v=>height-bottom-v/max*(height-top-bottom);
+ const label=p=>`${nextTime(p.from)} — ${nextTime(p.to)}: P95 ${nextDuration(p.ttft_p95_ms)} · ${nextNumber(p.ttft_samples)} ${nt('successful samples','个成功样本')}`;
+ return `<svg class="next-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${nt('First token P95 by time bucket; gaps have no timing samples','各时间段首响应 P95；空白处没有耗时样本')}">${[0,.25,.5,.75,1].map(r=>`<line x1="${left}" x2="${width-right}" y1="${y(max*r)}" y2="${y(max*r)}"/><text x="${left-10}" y="${y(max*r)+4}" text-anchor="end">${nextDuration(max*r)}</text>`).join('')}${points.map((p,i)=>{
+  if(!valid(p))return '';
+  const previous=points[i-1],connected=previous&&valid(previous)&&previous.to===p.from;
+  return `${connected?`<path class="next-latency-line" d="M${x(previous,i-1)},${y(previous.ttft_p95_ms)} L${x(p,i)},${y(p.ttft_p95_ms)}"/>`:''}<g class="next-latency-sample" tabindex="0" role="img" aria-label="${esc(label(p))}"><title>${esc(label(p))}</title><circle cx="${x(p,i)}" cy="${y(p.ttft_p95_ms)}" r="12" fill="transparent"/><circle class="next-latency-point" cx="${x(p,i)}" cy="${y(p.ttft_p95_ms)}" r="5"/></g>`;
+ }).join('')}<text x="${left}" y="${height-12}">${esc(nextTime(points[0].from))}</text><text x="${width-right}" y="${height-12}" text-anchor="end">${esc(nextTime(points.at(-1).to))}</text></svg>`;
+}
+function nextRequestWindow(window=state.analyticsWindow){
+ const to=state.analyticsTo||new Date().toISOString();
+ return {from:new Date(Date.parse(to)-Number.parseInt(window)*3600000).toISOString(),to};
+}
+function requestLocalTime(value){
+ if(!value)return '';const date=new Date(value);if(!Number.isFinite(date.getTime()))return '';
+ return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,-1);
+}
+function forgetReportLocation(){
+ if(location.hash.startsWith('#/requests?'))history.replaceState(null,'','#/requests');
+ state.appliedReportLocation='';
+}
+function clearReportFilters(){
+ forgetReportLocation();Object.assign(state,{requestLogicalModel:'',requestParticipatingProvider:'',requestAttemptStatus:'',requestAttemptFailureType:'',requestReportError:'',reportOrigin:null});
+}
+function setReportRequests(query){
+ Object.assign(state,{requestSearch:'',requestConversation:'',requestFilter:'all',requestModel:'',requestProvider:'',requestApiKey:query.api_key||'',requestConnection:'',requestRevision:'',requestFrom:query.from,requestTo:query.to,requestOffset:0,requestWindow:query.origin?.window||state.analyticsWindow,requestLogicalModel:query.model||'',requestParticipatingProvider:query.provider||'',requestAttemptStatus:query.attempt_status||'',requestAttemptFailureType:query.attempt_failure_type||'',requestStatus:query.status||'',requestFailureType:'',requestReportError:query.report_error||'',requestAutoRefresh:false,requests:[],requestTotal:0,reportOrigin:query.origin||null});
+}
+function applyReportLocation(){
+ if(!location.hash.startsWith('#/requests?')||state.appliedReportLocation===location.hash)return false;
+ try{
+  const query=JSON.parse(new URLSearchParams(location.hash.split('?').slice(1).join('?')).get('report'));
+  if(!query||typeof query.from!=='string'||typeof query.to!=='string'||!Number.isFinite(Date.parse(query.from))||!Number.isFinite(Date.parse(query.to))||Date.parse(query.from)>=Date.parse(query.to))return false;
+  for(const field of ['model','provider','api_key','attempt_status','attempt_failure_type','status','report_error'])if(typeof query[field]!=='string')delete query[field];
+  if(query.origin&&(!['24h','168h','720h'].includes(query.origin.window)||!Number.isFinite(Date.parse(query.origin.to))))delete query.origin;
+  if(query.origin&&!/^#\/(overview|billing|models|providers|api-keys)(\/|$)/.test(query.origin.hash))delete query.origin;
+  if(query.origin){
+   const origin=query.origin,intersection=origin.intersection;
+   origin.intersection=intersection&&typeof intersection.route==='string'&&intersection.filter&&typeof intersection.filter==='object'?{route:intersection.route,filter:Object.fromEntries(Object.entries(intersection.filter).filter(([key,value])=>['model','provider'].includes(key)&&typeof value==='string'))}:null;
+   origin.tabs=Object.fromEntries(Object.entries(origin.tabs&&typeof origin.tabs==='object'?origin.tabs:{}).filter(([key,value])=>key.startsWith('models:')?['overview','routing'].includes(value):key.startsWith('providers:')&&['health','usage','configuration'].includes(value)));
+  }
+  setReportRequests(query);configureRequestAutoRefresh();state.appliedReportLocation=location.hash;return true;
+ }catch{return false}
+}
+async function openReportRequests(query){
+ query={...query,origin:{hash:location.hash,window:state.analyticsWindow,to:query.to,intersection:state.analyticsIntersection,tabs:state.detailTabs}};
+ setReportRequests(query);configureRequestAutoRefresh();closeOverlay();
+ const hash='#/requests?report='+encodeURIComponent(JSON.stringify(query));
+ state.appliedReportLocation=hash;location.hash=hash;await reloadRequests();
+}
+function returnToReport(){
+ const origin=state.reportOrigin;if(!origin)return;
+ state.analyticsWindow=origin.window;state.analyticsTo=origin.to;state.analyticsPinnedTo=origin.to;state.analyticsIntersection=origin.intersection;state.detailTabs=origin.tabs;
+ location.hash=origin.hash;
+}
+function nextDetailTabs(kind,id){
+ const key=kind+':'+id,selected=state.detailTabs?.[key]||(kind==='models'?'overview':'health');
+ const options=kind==='models'?[['overview',nt('Overview','概览')],['routing',nt('Routing','路由')]]:[['health',nt('Health & capacity','健康与容量')],['usage',nt('Usage & quota','用量与额度')],['configuration',nt('Configuration','配置')]];
+ return `<div class="next-toolbar next-detail-tabs"><div class="next-segment">${options.map(([value,label])=>`<button data-next="detail-tab" data-key="${esc(key)}" data-value="${value}" aria-pressed="${selected===value}" class="${selected===value?'selected':''}">${label}</button>`).join('')}</div></div>`;
+}
+function nextDetailSelected(kind,id,value){return (state.detailTabs?.[kind+':'+id]||(kind==='models'?'overview':'health'))===value}
+
+document.addEventListener('click',async event=>{
+ const el=event.target.closest('[data-next]');if(!el)return;event.preventDefault();event.stopImmediatePropagation();
+ const action=el.dataset.next;
+ if(action==='report-return'){returnToReport();return}
+ if(action==='requests'){await openReportRequests(JSON.parse(el.dataset.query));return}
+ if(action==='detail-tab'){state.detailTabs||={};state.detailTabs[el.dataset.key]=el.dataset.value}
+ if(action==='locale'){consoleLocale=consoleLocale==='zh-CN'?'en-US':'zh-CN';applyConsolePreferences();render();return}
+ if(action==='theme'){cycleConsoleTheme();return}
+ if(action==='window'){state.analyticsWindow=el.dataset.value;state.analyticsTo='';state.analyticsPinnedTo='';state.analyticsCache.clear()}
+ if(action==='refresh'){state.analyticsTo='';state.analyticsPinnedTo='';state.analyticsCache.clear()}
+ if(action==='dimension')state.analyticsDimension=el.dataset.value;
+ if(action==='intersect')state.analyticsIntersection={route:currentRoute().raw,filter:{[el.dataset.dimension==='models'?'model':'provider']:el.dataset.id}};
+ if(action==='clear-intersection')state.analyticsIntersection=null;
+ if(action==='export'){
+  const scope=nextScope(JSON.parse(el.dataset.scope||'{}')),data=state.analyticsCache.get(nextAnalyticsKey(scope))?.data;if(!data)return;
+  const url=URL.createObjectURL(new Blob([JSON.stringify({schema:'smartapi.analytics/v1',...data},null,2)],{type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download='ferry-analytics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return;
+ }
+ render();
+},true);
+applyConsolePreferences();

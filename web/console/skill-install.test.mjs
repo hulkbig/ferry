@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync(new URL('./app.part7.jsfrag',import.meta.url),'utf8');
+const start=source.indexOf('function ferrySkillInstallPrompt');
+const end=source.indexOf('function settingsSecurity',start);
+const ctx=vm.createContext({URL,location:{href:'https://gateway.example/#/settings/security'},esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;')});
+vm.runInContext(source.slice(start,end),ctx);
+const prompt=vm.runInContext('ferrySkillInstallPrompt()',ctx);
+assert.ok(prompt.includes('https://gateway.example/skills/ferry/SKILL.md'));
+assert.ok(!prompt.includes('#/settings'));
+assert.ok(prompt.includes('GET /api/access'));
+assert.ok(prompt.includes('not ready'));
+const card=vm.runInContext('ferrySkillInstallCard()',ctx);
+assert.ok(card.includes('data-action="copy-skill-install"'));
+assert.ok(card.includes('ferry.zip'));
+assert.ok(card.includes('readonly'));
+console.log('PASS self-hosted Skill URLs, installation prompt and readiness boundary');

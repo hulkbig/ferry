@@ -1,0 +1,101 @@
+  if (route.section === 'requests' && route.id) return pageRequestDetail(route.id);
+  if (route.section === 'requests') return pageRequests();
+  if (route.section === 'api-keys') return pageApiKeys();
+  if (route.section === 'settings') return pageSettings();
+  return pageOverviewNext();
+}
+
+function scenarioBanner() {
+  if (!demoMode) return '';
+  const sv = scenarioView('15m');
+  return `<div class="scenario-banner"><span><strong>Demo:</strong> ${esc(sv.description)}</span><span>${badge(sv.model)}</span></div>`;
+}
+
+function sparkline(points) {
+  if (!Array.isArray(points) || points.length < 2) return '<span class="cell-sub">—</span>';
+  const max = Math.max(...points), min = Math.min(...points), w=80,h=24;
+  const pts = points.map((v,i)=>`${(i/(points.length-1)*w).toFixed(1)},${(h-(v-min)/(max-min||1)*h).toFixed(1)}`).join(' ');
+  return `<svg width="82" height="26" viewBox="0 0 82 26" aria-hidden="true"><polyline fill="none" stroke="#1267e8" stroke-width="1.6" points="${pts}" transform="translate(1 1)"/></svg>`;
+}
+
+const trafficChartColors=['#1267e8','#16a36a','#7c3aed','#e07a16','#d33b45','#0891b2','#64748b','#c026d3','#65a30d','#0f766e'];
+function trafficTrendChart(title,description,series){
+  const active=(series||[]).filter(item=>Array.isArray(item.points)&&item.points.length);
+  if(!active.length)return `<article class="traffic-chart-card"><div class="traffic-chart-head"><div><h3>${esc(title)}</h3><p>${esc(description)}</p></div></div><div class="empty compact-empty">No traffic recorded for this dimension.</div></article>`;
+  const width=720,height=210,left=42,right=14,top=16,bottom=30,plotWidth=width-left-right,plotHeight=height-top-bottom;
+  const maxPoints=Math.max(...active.map(item=>item.points.length),2),maxValue=Math.max(1,...active.flatMap(item=>item.points.map(point=>Number(point.requests||0))));
+  const x=index=>left+(index/Math.max(1,maxPoints-1))*plotWidth,y=value=>top+plotHeight-(Number(value||0)/maxValue)*plotHeight;
+  const grid=[0,.5,1].map(ratio=>{const py=y(maxValue*ratio);return `<g><line class="traffic-grid-line" x1="${left}" x2="${width-right}" y1="${py}" y2="${py}"/><text class="traffic-axis-label" x="${left-7}" y="${py+4}" text-anchor="end">${esc(fmtCompact(maxValue*ratio))}</text></g>`}).join('');
+  const lines=active.map((item,index)=>{
+    const color=trafficChartColors[index%trafficChartColors.length],points=item.points.map((point,pointIndex)=>`${x(pointIndex).toFixed(1)},${y(point.requests).toFixed(1)}`).join(' ');
+    const markers=item.points.map((point,pointIndex)=>`<circle cx="${x(pointIndex).toFixed(1)}" cy="${y(point.requests).toFixed(1)}" r="3" fill="${color}"><title>${esc(item.label||item.id)} · ${esc(fmtCompact(point.requests))} calls · ${esc(fmtPct(Number(point.requests)>0?Number(point.succeeded||0)/Number(point.requests)*100:null))} success</title></circle>`).join('');
+    return `<g><polyline class="traffic-series-line" style="stroke:${color}" points="${points}"/>${markers}</g>`;
+  }).join('');
+  const sample=active[0].points,start=sample[0]?.from,end=sample.at(-1)?.to;
+  const timeLabel=value=>{const date=new Date(value);if(!value||Number.isNaN(date.getTime()))return '—';return date.toLocaleString('en-US',state.overviewWindow==='168h'?{month:'short',day:'numeric'}:{hour:'2-digit',minute:'2-digit',hour12:false})};
+  const legend=active.map((item,index)=>{const requests=Number(item.requests??item.points.reduce((sum,point)=>sum+Number(point.requests||0),0));const succeeded=Number(item.succeeded??item.points.reduce((sum,point)=>sum+Number(point.succeeded||0),0));const success=item.successRate??(requests?succeeded/requests*100:null);return `<div class="traffic-legend-item" title="${esc(item.label||item.id)}"><i style="background:${trafficChartColors[index%trafficChartColors.length]}"></i><span>${esc(item.label||item.id)}</span><strong>${esc(fmtCompact(requests))}</strong><small>${esc(fmtPct(success))} success</small></div>`}).join('');
+  return `<article class="traffic-chart-card"><div class="traffic-chart-head"><div><h3>${esc(title)}</h3><p>${esc(description)}</p></div><span>${active.length} series</span></div><svg class="traffic-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(title)} request volume over time">${grid}${lines}<text class="traffic-axis-label" x="${left}" y="${height-5}">${esc(timeLabel(start))}</text><text class="traffic-axis-label" x="${width-right}" y="${height-5}" text-anchor="end">${esc(timeLabel(end))}</text></svg><div class="traffic-chart-legend">${legend}</div></article>`;
+}
+
+const emptyCacheHitMetric=id=>({id,label:id,requests:0,observedRequests:0,eligibleInputTokens:0,cacheReadTokens:0,cacheWriteTokens:0,hitRate:null});
+function completeCacheHitDimensions(metrics,resources,idOf,labelOf){
+  const byID=new Map((metrics||[]).map(item=>[item.id,{...emptyCacheHitMetric(item.id),...item,label:item.id}]));
+  for(const resource of resources||[]){const id=idOf(resource);if(!id)continue;const item=byID.get(id)||emptyCacheHitMetric(id);item.label=labelOf(resource)||id;byID.set(id,item)}
+  return [...byID.values()].sort((left,right)=>Number(right.eligibleInputTokens||0)-Number(left.eligibleInputTokens||0)||String(left.label).localeCompare(String(right.label)));
+}
+function cacheHitBreakdown(title,description,items){
+  const rows=(items||[]).map(item=>{const observed=item.hitRate!==null&&item.hitRate!==undefined,rate=observed?Math.max(0,Math.min(100,Number(item.hitRate))):0;return `<div class="cache-hit-row"><div class="cache-hit-row-head"><strong title="${esc(item.id)}">${esc(item.label||item.id)}</strong><span>${esc(fmtPct(item.hitRate))}</span></div><div class="cache-hit-meter" role="meter" aria-label="${esc(item.label||item.id)} cache hit rate" aria-valuemin="0" aria-valuemax="100" ${observed?`aria-valuenow="${rate.toFixed(2)}"`:'aria-valuetext="No input-token usage observed"'}><i style="width:${rate.toFixed(2)}%"></i></div><small>${observed?`${esc(fmtCompact(item.cacheReadTokens))} cached / ${esc(fmtCompact(item.eligibleInputTokens))} eligible · ${esc(fmtCompact(item.cacheWriteTokens))} written`:'No input-token usage observed'}</small></div>`}).join('');
+  return `<article class="cache-hit-breakdown"><div class="cache-hit-breakdown-head"><div><h3>${esc(title)}</h3><p>${esc(description)}</p></div><span>${items?.length||0}</span></div><div class="cache-hit-list">${rows||'<div class="empty compact-empty">No resources configured.</div>'}</div></article>`;
+}
+
+function modelIsEnabled(model){return model?.raw?.enabled ?? model?.enabled ?? true}
+function modelLifecycle(model){return modelIsEnabled(model)?'Active':'Disabled'}
+function pageModels() {
+  const sv = scenarioView('15m');
+  const q = state.modelsSearch.toLowerCase();
+  const models = state.models.filter(m => (!q || m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q)) && (!state.modelStatus || m.status===state.modelStatus || modelLifecycle(m)===state.modelStatus) && (!state.modelType || (state.modelType==='multi'?m.routes.length>1:m.routes.length<=1)));
+  return `${scenarioBanner()}<div class="v3-page"><div class="page-head v3-page-head"><div class="head-main"><h1>Models & Routing</h1><p>Manage logical client-facing models and their protected upstream routes.</p></div><div class="head-actions"><button class="btn" data-action="refresh">${icon('refresh')} Refresh</button><button class="btn primary" data-action="add-model">${icon('plus')} Add Model</button></div></div>
+    <div class="toolbar v3-list-toolbar"><div class="search-box"><span class="search-icon">${icon('search')}</span><input class="input" data-input="models-search" value="${esc(state.modelsSearch)}" placeholder="Search models…"></div><select class="select" data-action="model-status"><option value="">All Status</option>${['Active','Disabled','Healthy','Protected','Degraded','Unavailable'].map(x=>`<option ${state.modelStatus===x?'selected':''}>${x}</option>`).join('')}</select><select class="select" data-action="model-type"><option value="">All Types</option><option value="single" ${state.modelType==='single'?'selected':''}>Single provider</option><option value="multi" ${state.modelType==='multi'?'selected':''}>Multi-provider</option></select></div>
+    <div class="table-scroll-hint">Scroll horizontally to inspect response timing and actions.</div><section class="card table-wrap v3-table-card"><table class="table models-table v3-data-table"><thead><tr><th>Logical Model</th><th>Status</th><th>Traffic (req/min)</th><th>First Token (avg)</th><th>Complete (avg)</th><th>Actions</th></tr></thead><tbody>${models.map(m=>{
+      const scenarioModel=demoMode&&m.id==='gpt-5.6-sol',st=scenarioModel?sv.model:m.status,enabled=modelIsEnabled(m),demoSeries=demoMode?sv.trafficTrends.logicalModels.find(series=>series.id===m.id):null,requestRate=demoMode?Math.round(Number(demoSeries?.requests||0)/sv.windowMinutes*100)/100:m.requestRate; return `<tr class="clickable" tabindex="0" role="link" data-action="open-model" data-id="${esc(m.id)}"><td><div class="cell-title">${esc(m.name)}</div><div class="cell-sub">${esc(m.description)}</div></td><td>${badge(enabled?'Active':'Disabled')}<div class="cell-sub">Runtime: ${esc(st)}</div></td><td>${requestRate}</td><td>${esc(m.firstToken||'—')}</td><td>${esc(m.completion||'—')}</td><td><div class="row-actions model-row-actions"><button class="btn small ${enabled?'toggle-disable':'toggle-enable'}" data-action="toggle-model" data-id="${esc(m.id)}" data-enable="${!enabled}">${enabled?'Disable':'Enable'}</button><button class="btn small danger" data-action="delete-model" data-id="${esc(m.id)}">Delete</button></div></td></tr>`}).join('')||'<tr><td colspan="6"><div class="empty"><strong>No models</strong>No logical models are configured.</div></td></tr>'}</tbody></table></section></div>`;
+}
+
+function modelDataSync(id) {
+  return state.modelCache.get(id) || { model: state.models.find(m=>m.id===id), routes: [], overrides: state.overrides || [] };
+}
+function overrideMatchSummary(item){
+  const o=item?.raw||item||{},parts=[];
+  if((o.callers||[]).length)parts.push(`callers: ${o.callers.join(', ')}`);
+  if((o.protocols||[]).length)parts.push(`protocols: ${o.protocols.join(', ')}`);
+  if((o.weekdays||[]).length)parts.push(`days: ${o.weekdays.join(', ')}`);
+  if(o.time_window)parts.push(`${o.time_window.start}–${o.time_window.end}${o.timezone?` (${o.timezone})`:''}`);
+  const required=o.required_capabilities||{},caps=[['text','text'],['images','images'],['stream','stream'],['tools','tools'],['parallel_tools','parallel tools'],['reasoning','reasoning'],['structured_output','structured output'],['vision','vision'],['priority','Fast (priority)']].filter(([key])=>required[key]).map(([,label])=>label);
+  if(required.min_context) caps.push(`context ≥ ${required.min_context}`);if(required.min_output)caps.push(`output ≥ ${required.min_output}`);if(caps.length)parts.push(`requires: ${caps.join(', ')}`);
+  return parts.join(' · ')||'All requests (catch-all)';
+}
+function overrideActionSummary(item){
+  const o=item?.raw||item||{};
+  if(o.mode==='custom_route')return `Custom route: ${(o.route?.steps||[]).map(step=>`${step.provider_id}/${step.upstream_model}`).join(' → ')||'empty'}`;
+  const prefer=(o.prefer||[]).map(step=>`${step.provider_id}/${step.upstream_model}`),avoid=(o.avoid||[]).map(step=>`${step.provider_id}/${step.upstream_model}`),parts=[];
+  if(prefer.length)parts.push(`prefer ${prefer.join(', ')}`);if(avoid.length)parts.push(`avoid ${avoid.join(', ')}`);return parts.join(' · ')||'No route adjustment';
+}
+function pageModel(id) {
+  const cached = modelDataSync(id); const m = cached.model;
+  if (!m) { queueMicrotask(()=>loadAndRenderModel(id)); return `<div class="empty"><strong>Loading model…</strong></div>`; }
+  if (!state.modelCache.has(id)) queueMicrotask(()=>loadAndRenderModel(id));
+  const sv = scenarioView('15m');
+  const scenarioModel=demoMode&&id==='gpt-5.6-sol';
+  const routes = (cached.routes || []).map((r,i)=>({...r, serving:scenarioModel?(sv.modelTraffic[i]??r.serving):r.serving, status:scenarioModel&&i===0?sv.provider:r.status}));
+  const modelStatus = scenarioModel?sv.model:m.status;
+  const enabled=modelIsEnabled(m);
+  const scenarioOutcomes=sv.modelOutcomes||{},direct=scenarioModel?Number(scenarioOutcomes.direct||0):m.direct,recovered=scenarioModel?Number(scenarioOutcomes.recovered||0):m.recovered,failed=scenarioModel?Number(scenarioOutcomes.failed||0):m.failed;
+  const successful=Number.isFinite(Number(direct))&&Number.isFinite(Number(recovered))?Number(direct)+Number(recovered):'—';
+  return `${scenarioBanner()}<div class="v3-page v3-workspace-page"><div class="v3-breadcrumb"><a href="#/models" data-nav>Models & Routing</a>${icon('arrow')}<span>${esc(m.name)}</span></div><div class="page-head model-page-head v3-page-head"><div class="head-main"><div class="head-line"><h1>${esc(m.name)}</h1><span class="badge blue">Logical model</span>${badge(modelLifecycle(m))}${badge(modelStatus)}</div><p>${esc(m.description)}</p></div><div class="head-actions model-action-bar"><button class="btn" data-action="model-requests" data-id="${esc(id)}">${icon('requests')} View Requests</button><button class="btn" data-action="simulate-model" data-id="${esc(id)}">${icon('play')} Simulate</button><button class="btn" data-action="edit-model" data-id="${esc(id)}">${icon('edit')} Edit Model</button><button class="btn primary" data-action="edit-routing" data-id="${esc(id)}">${icon('route')} Edit Routing</button><details class="v3-more-menu model-more-menu"><summary class="btn" aria-label="More model actions">${icon('more')} More</summary><div class="v3-more-popover"><button data-action="reset-cooldown" data-model="${esc(id)}">Reset Model Cooldowns</button><button class="${enabled?'toggle-disable':'toggle-enable'}" data-action="toggle-model" data-id="${esc(id)}" data-enable="${!enabled}">${enabled?'Disable':'Enable'}</button><button class="danger" data-action="delete-model" data-id="${esc(id)}">Delete</button></div></details></div></div>
+    ${modelStatus==='Unavailable'?`<div class="notice red section"><strong>Client impact detected.</strong><span>${esc(m.runtimeSentence||'No provider route can currently serve this model.')}</span></div>`:''}
+    ${nextDetailTabs('models',id)}
+    ${nextDetailSelected('models',id,'overview')?nextAnalytics({model:id}):`<div class="next-configuration">
+    <section class="card panel section model-routing-panel"><div class="section-head"><div><h2>Routing</h2><p>Requests start at route 1. Each non-final route controls exactly which upstream failures advance.</p></div><button class="btn small primary" data-action="edit-routing" data-id="${esc(id)}">${icon('edit')} Edit order</button></div><div class="route-rail model-route-rail">${routes.map((r,i)=>`${routeRow(r,i)}${i<routes.length-1?`<div class="route-arrow">Continue to route ${i+2} only on configured failures</div>`:''}`).join('')||'<div class="empty"><strong>No route</strong>This model has no configured route.</div>'}</div></section>
+    <section class="card panel section model-overrides-panel"><div class="section-head"><div><h2>Conditional Routing</h2><p>Rules run from top to bottom. The first enabled rule whose conditions all match adjusts the default route.</p></div><button class="btn small primary conditional-rule-add" data-action="add-override" data-model="${esc(id)}">${icon('plus')} Add Conditional Rule</button></div><div class="override-list">${(cached.overrides||[]).map((item,index)=>{const o=item.raw||item;return `<article class="override-row"><span class="route-priority">${index+1}</span><div class="override-copy"><div class="inline"><strong>${esc(o.name||o.id)}</strong>${badge(o.enabled?'Active':'Disabled')}<span class="mono cell-sub">${esc(o.id)}</span></div><p><span class="conditional-rule-label">When</span>${esc(overrideMatchSummary(item))}</p><small><span class="conditional-rule-label">Then</span>${esc(overrideActionSummary(item))}</small></div><div class="row-actions"><button class="btn icon small" aria-label="Move conditional rule ${index+1} up" data-action="override-up" data-model="${esc(id)}" data-id="${esc(o.id)}" data-index="${index}" ${index===0?'disabled':''}>${icon('up')}</button><button class="btn icon small" aria-label="Move conditional rule ${index+1} down" data-action="override-down" data-model="${esc(id)}" data-id="${esc(o.id)}" data-index="${index}" ${index===(cached.overrides||[]).length-1?'disabled':''}>${icon('down')}</button><button class="btn small" data-action="edit-override" data-model="${esc(id)}" data-id="${esc(o.id)}">Edit</button><button class="btn small danger" data-action="delete-override" data-model="${esc(id)}" data-id="${esc(o.id)}">Delete</button></div></article>`}).join('')||'<div class="empty compact-empty"><strong>No conditional rules</strong>Every request uses the default route shown above.</div>'}</div></section></div>`}</div>`;
+}
+
+function routeRow(r, i) {

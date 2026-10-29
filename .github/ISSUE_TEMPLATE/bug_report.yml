@@ -1,0 +1,43 @@
+name: 问题报告 / Bug report
+description: 报告可复现的功能问题；漏洞请私密报告。 Report a reproducible bug; report vulnerabilities privately.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        中文或英文填写即可。 English or Chinese is welcome; one language is enough.
+        先查看 [FAQ](https://github.com/hulkbig/ferry/blob/main/docs/guide/faq.md) / [English FAQ](https://github.com/hulkbig/ferry/blob/main/docs/guide/faq.en.md)。
+        不要上传凭据、数据库、备份或真实对话。 Never attach credentials, databases, backups or real conversations.
+        漏洞请按 [安全说明](https://github.com/hulkbig/ferry/blob/main/SECURITY.md) / [Security policy](https://github.com/hulkbig/ferry/blob/main/SECURITY.en.md) 私密报告 / report privately.
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / Version
+      description: 填写 /version 或 -version-json 的版本、镜像标签或源码提交。 Include the version from /version or -version-json, image tag or source commit.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境 / Environment
+      description: 系统、架构、安装方式、客户端版本及代理设置（脱敏）。 OS, architecture, installation method, client version and redacted proxy setup.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      description: 最小请求；若涉及推理，注明入口协议、上游类型、模型及是否流式。 Minimal request; for inference, include endpoint protocol, upstream type, model and streaming mode.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际结果 / Expected and actual behavior
+      description: 说明期望发生什么，以及实际发生了什么。 Explain what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏证据 / Redacted evidence
+      description: 请求 ID、时间及时区、错误信息和已尝试步骤；截图请遮去账号信息。 Request ID, time and timezone, errors and attempted fixes; redact account details in screenshots.
