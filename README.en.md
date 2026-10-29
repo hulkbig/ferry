@@ -18,7 +18,6 @@ You give work to an agent because you want to come back to progress. Ferry handl
 
 One Go process, an embedded console and local SQLite, built for individuals and small teams. No Node.js or external database is needed at runtime. You retain control of upstream credentials, configuration and request records.
 
-Release preparation: the `0.1.1` image and download URLs are not public yet. The installation below becomes available after public release verification.
 
 ### Start with Docker
 

@@ -4,9 +4,9 @@
 
 ## 报告渠道
 
-当前正在准备首次公开发行，尚未开通公开的私密漏洞报告渠道。启用并实际验证该渠道是发行前置条件；只有链接不表示入口已经可用。
+本仓库已启用 GitHub 私密漏洞报告。
 
-GitHub 私密漏洞报告启用后，请在 `hulkbig/ferry` 的 **Security → Report a vulnerability** 提交：[私密报告入口](https://github.com/hulkbig/ferry/security/advisories/new)。入口不可用时，使用已有的维护者私密联系方式，或先请求私密联系渠道，不披露漏洞细节。不要在公开 Issue 或 PR 中提交利用步骤。
+请在 `hulkbig/ferry` 的 **Security → Report a vulnerability** 提交：[私密报告入口](https://github.com/hulkbig/ferry/security/advisories/new)。入口不可用时，使用已有的维护者私密联系方式，或先请求私密联系渠道，不披露漏洞细节。不要在公开 Issue 或 PR 中提交利用步骤。
 
 不要上传数据库、备份、令牌、完整 OAuth 回调地址或用户正文。普通功能问题使用 [Issues](https://github.com/hulkbig/ferry/issues)，见[贡献说明](CONTRIBUTING.md)。
 
@@ -16,7 +16,7 @@ GitHub 私密漏洞报告启用后，请在 `hulkbig/ferry` 的 **Security → R
 
 ## 支持版本与响应
 
-目前没有已经发布的公共受支持版本。首次发行时须在本文件列明支持版本并验收私密报告入口；较早的开发快照没有独立支持承诺。
+当前支持最新的 `0.1.x` 补丁版本，现为 `0.1.1`。`0.1.0` 使用者应升级，以获得 Codex 用量刷新与额度保护修复。较早的开发快照没有独立支持承诺。
 
 项目不承诺固定的响应或修复时限。维护者先确认影响并复现，再安排修复与披露。候选构建或 CI 通过不代表已完成安全审计。
 

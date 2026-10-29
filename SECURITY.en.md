@@ -4,9 +4,9 @@
 
 ## Reporting a vulnerability
 
-The first public release is being prepared. A public private-reporting channel has not yet been enabled. Enabling and verifying that channel is a release prerequisite; a link alone does not establish that it works.
+GitHub private vulnerability reporting is enabled for this repository.
 
-After GitHub private vulnerability reporting is enabled, use **Security → Report a vulnerability** in `hulkbig/ferry`: [private report entry](https://github.com/hulkbig/ferry/security/advisories/new). If it is unavailable, use an existing private channel to the maintainer or request a private contact without disclosing vulnerability details. Do not submit exploit steps to a public issue or PR.
+Use **Security → Report a vulnerability** in `hulkbig/ferry`: [private report entry](https://github.com/hulkbig/ferry/security/advisories/new). If it is unavailable, use an existing private channel to the maintainer or request a private contact without disclosing vulnerability details. Do not submit exploit steps to a public issue or PR.
 
 Do not attach databases, backups, tokens, complete OAuth callback URLs or user conversations. Ordinary functional bugs belong in [Issues](https://github.com/hulkbig/ferry/issues); see [Contributing](CONTRIBUTING.en.md).
 
@@ -16,7 +16,7 @@ Provide the affected version, installation method, impact, a minimal reproductio
 
 ## Supported versions and response
 
-No supported public version has been released yet. With the first release, this policy must name the supported version and the reporting channel must be verified. Older development snapshots do not have a separate support commitment.
+The latest `0.1.x` patch is supported, currently `0.1.1`. Users of `0.1.0` should upgrade for the Codex usage refresh and quota protection fix. Older development snapshots do not have a separate support commitment.
 
 There is no guaranteed response or remediation deadline. Maintainers first establish impact and reproduce the issue, then coordinate remediation and disclosure. A candidate build or passing CI is not evidence of a completed security audit.
 
