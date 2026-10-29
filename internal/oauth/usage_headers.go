@@ -76,7 +76,11 @@ func (m *Manager) ObserveUsageHeaders(account, expectedID string, headers http.H
 	}
 }
 
-// Keep the stricter observation when usage and inference responses race.
+// Keep the stricter observation when usage and inference responses race. The
+// upstream reset clock can drift by a few seconds between responses, so nearby
+// deadlines belong to the same window. Keep its higher usage and later deadline;
+// otherwise a three-second correction can pin 57% even after upstream reports
+// 100%, or let a lower, slightly later reading reopen an exhausted account.
 // Explicit resets invalidate the cache; a new reset epoch starts a new window.
 func conservativeUsageWindow(previous, next *UsageWindow) *UsageWindow {
 	if next == nil {
@@ -85,9 +89,20 @@ func conservativeUsageWindow(previous, next *UsageWindow) *UsageWindow {
 	if next.missingUsedPercent {
 		return next
 	}
-	if previous != nil && previous.ResetAt > 0 && next.ResetAt > 0 &&
-		(previous.ResetAt > next.ResetAt || previous.ResetAt == next.ResetAt && previous.UsedPercent > next.UsedPercent) {
-		return previous
+	if previous != nil && previous.ResetAt > 0 && next.ResetAt > 0 {
+		const resetClockToleranceSeconds = 60
+		delta := next.ResetAt - previous.ResetAt
+		if delta < -resetClockToleranceSeconds {
+			return previous
+		}
+		if delta <= resetClockToleranceSeconds {
+			merged := *next
+			merged.UsedPercent = math.Max(previous.UsedPercent, next.UsedPercent)
+			if previous.ResetAt > merged.ResetAt {
+				merged.ResetAt = previous.ResetAt
+			}
+			return &merged
+		}
 	}
 	return next
 }

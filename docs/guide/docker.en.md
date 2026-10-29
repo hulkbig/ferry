@@ -2,7 +2,7 @@
 
 [中文](docker.md)
 
-Release preparation: these instructions target `0.1.0`. External installation becomes available after the release and images are public and anonymous pulls have passed.
+Release preparation: these instructions target `0.1.1`. External installation becomes available after the release and images are public and anonymous pulls have passed.
 
 ## Start Ferry
 
@@ -11,7 +11,7 @@ Install Docker Engine with Compose. An existing OrbStack or Docker Desktop insta
 In an empty directory:
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.0/compose.yaml
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml
 docker compose up -d
 ```
 
@@ -49,7 +49,7 @@ docker run -d --name ferry --restart unless-stopped \
   -p 127.0.0.1:17910:7900 -p 127.0.0.1:17810:7890 \
   -v ferry-data:/data --read-only --tmpfs /tmp:size=32m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  bighulk/ferry:0.1.0
+  bighulk/ferry:0.1.1
 ```
 
 Choose one installation method; never run two processes against the same data.

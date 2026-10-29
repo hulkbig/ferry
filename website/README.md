@@ -39,7 +39,7 @@ python3 scripts/build_gateway_diagrams.py
 
 ## 发布与检查
 
-公开地址为 `https://ferry.bighulk.dev/`，以 Pages 部署回执为准。首次发行后，将公开仓库 Pages 来源设为 GitHub Actions，再从准确 `main` 运行 `Website`。工作流限定公有 `hulkbig/ferry`，部署前检查公开时间窗口，并核对 `v0.1.0` 的安装附件。
+公开地址为 `https://ferry.bighulk.dev/`，以 Pages 部署回执为准。首次发行后，将公开仓库 Pages 来源设为 GitHub Actions，再从准确 `main` 运行 `Website`。工作流限定公有 `hulkbig/ferry`，部署前检查公开时间窗口，并核对 `v0.1.1` 的安装附件。
 
 修改后检查中英文、明暗主题、320px 窄屏、独立动画控制、搜索、导航与子页面直接刷新。链接验收须检查 HTTP 200 和实际内容，不能将 404 页渲染成功视为通过。复制按钮需在 HTTPS 或本机可信上下文中测试。
 
