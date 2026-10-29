@@ -6,7 +6,7 @@ const props = defineProps({ language: { type: String, default: 'zh' } })
 const en = computed(() => props.language === 'en')
 const link = path => withBase((en.value ? '/en' : '') + path + (path.endsWith('/') ? '' : '.html'))
 const copyState = ref('')
-const command = 'curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml\ndocker compose up -d'
+const command = 'curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/latest/download/compose.yaml\ndocker compose up -d'
 async function copy() { try { await navigator.clipboard.writeText(command); copyState.value = en.value ? 'Copied' : '已复制' } catch { copyState.value = en.value ? 'Select and copy the commands' : '请选中命令复制' } }
 const flows = computed(() => en.value ? [
   ['request', 'Send a request. Pick a route.', 'Different clients enter through Ferry. Each request goes to an eligible upstream.'],
