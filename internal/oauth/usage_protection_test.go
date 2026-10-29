@@ -62,6 +62,92 @@ func TestUsageProtectionWindows(t *testing.T) {
 	}
 }
 
+func TestUsageResetClockDriftKeepsStricterObservation(t *testing.T) {
+	const reset = int64(1793774130)
+	for _, tc := range []struct {
+		name           string
+		previous, next float64
+		resetDelta     int64
+		wantUsed       float64
+		wantReset      int64
+	}{
+		{"earlier reset tightens", 57, 100, -3, 100, reset},
+		{"later reset tightens", 57, 100, 3, 100, reset + 3},
+		{"earlier reset cannot lower", 100, 57, -3, 100, reset},
+		{"later reset cannot lower", 100, 57, 3, 100, reset + 3},
+		{"same reset cannot lower", 100, 57, 0, 100, reset},
+		{"previous epoch cannot replace", 57, 100, -604800, 57, reset},
+		{"new epoch permits recovery", 100, 0, 604800, 0, reset + 604800},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			previous := &UsageWindow{UsedPercent: tc.previous, ResetAt: reset, LimitWindowSeconds: 604800}
+			next := &UsageWindow{UsedPercent: tc.next, ResetAt: reset + tc.resetDelta, LimitWindowSeconds: 604800}
+			got := conservativeUsageWindow(previous, next)
+			if got.UsedPercent != tc.wantUsed || got.ResetAt != tc.wantReset {
+				t.Fatalf("merged window = %+v; want used=%g reset=%d", got, tc.wantUsed, tc.wantReset)
+			}
+			if previous.UsedPercent != tc.previous || previous.ResetAt != reset || next.UsedPercent != tc.next || next.ResetAt != reset+tc.resetDelta {
+				t.Fatal("merging mutated a published window")
+			}
+		})
+	}
+}
+
+func TestUsageResetClockDriftUpdatesCacheAndProtection(t *testing.T) {
+	for _, source := range []string{"usage", "headers"} {
+		t.Run(source, func(t *testing.T) {
+			now := time.Unix(1793293387, 0).UTC()
+			used, reset := 57, int64(1793774130)
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, `{"account_id":"acct","rate_limit":{"allowed":true,"primary_window":{"used_percent":%d,"limit_window_seconds":604800,"reset_at":%d}},"credits":{"has_credits":true}}`, used, reset)
+			}))
+			defer srv.Close()
+			old := usageURL
+			usageURL = srv.URL
+			t.Cleanup(func() { usageURL = old })
+			store, err := secretstore.OpenSQLite(t.TempDir() + "/secrets.db")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer store.Close()
+			token, _ := json.Marshal(Token{AccessToken: "fixture-access", RefreshToken: "fixture-refresh", AccountID: "acct", ExpiresAt: now.Add(time.Hour)})
+			if err := store.Set(storeKey("work"), string(token)); err != nil {
+				t.Fatal(err)
+			}
+			m := NewManager(store)
+			m.now = func() time.Time { return now }
+			if _, err := m.Usage(context.Background(), "work"); err != nil {
+				t.Fatal(err)
+			}
+			used, reset = 100, reset-3
+			if source == "usage" {
+				if _, err := m.Usage(context.Background(), "work"); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				m.ObserveUsageHeaders("work", "acct", http.Header{
+					"X-Codex-Primary-Used-Percent":   {"100"},
+					"X-Codex-Primary-Reset-At":       {strconv.FormatInt(reset, 10)},
+					"X-Codex-Primary-Window-Minutes": {"10080"},
+				})
+			}
+			cached, err := m.CachedUsage("work")
+			if err != nil || cached.RateLimit.PrimaryWindow.UsedPercent != 100 {
+				t.Fatalf("cache did not publish exhaustion: %+v, %v", cached, err)
+			}
+			if failure := m.CheckUsage(context.Background(), "work", "acct"); failure == nil {
+				t.Fatal("exhausted account permitted inference after reset clock drift")
+			}
+			if source == "usage" {
+				reloaded, err := NewManager(store).CachedUsage("work")
+				if err != nil || reloaded.RateLimit.PrimaryWindow.UsedPercent != 100 {
+					t.Fatalf("persisted cache lost exhaustion: %+v, %v", reloaded, err)
+				}
+			}
+		})
+	}
+}
+
 func TestUsageGuardResponseHeadersAndFallback(t *testing.T) {
 	now := time.Now().UTC()
 	reads := 0

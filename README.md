@@ -18,14 +18,14 @@
 
 Go 单进程、嵌入式控制台、本地 SQLite，面向个人和小团队。运行时无需 Node.js 或外部数据库，上游凭据、配置和请求记录由你保管。
 
-发布准备：`0.1.0` 镜像和下载地址尚未公开。以下是正式版的安装入口，公开验收完成后即可直接使用。
+发布准备：`0.1.1` 镜像和下载地址尚未公开。以下是正式版的安装入口，公开验收完成后即可直接使用。
 
 ### Docker 两步启动
 
 在空目录执行（需要 Docker 和 Compose）：
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.0/compose.yaml
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml
 docker compose up -d
 ```
 
