@@ -56,6 +56,6 @@
 
 ## 官网
 
-[官网源码与本地预览](../website/README.md) · [公开官网](https://ferry.bighulk.dev/)（首次发行后开放）。
+[官网源码与本地预览](../website/README.md) · [公开官网](https://ferry.bighulk.dev/)。
 
 [Codex 额度保护](guide/codex-usage-protection.md)：默认 98% 暂停，付费 Credits 默认关闭；优先复用响应中的额度信息。

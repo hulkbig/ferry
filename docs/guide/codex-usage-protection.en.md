@@ -28,3 +28,5 @@ Save through authenticated `PATCH /api/settings` and verify with `GET /api/setti
 Settings persist in the control database. Saving re-evaluates existing quota cooldowns without changing upstream balances.
 
 Codex version changes schedule catalog synchronization. Newly discovered visible models receive same-name logical models automatically; manually maintained routes are preserved. A paused schedule requires **Sync now**. Read-only catalog previews do not publish configuration. See [model synchronization](../provider-model-sync.md) (Chinese).
+
+When upstream reset deadlines differ by at most 60 seconds, Ferry treats them as the same window, keeping the higher usage and later deadline. A new usage reading cannot remain hidden behind an older percentage. A new reset epoch and explicit resets still permit recovery.

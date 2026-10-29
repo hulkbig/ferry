@@ -82,8 +82,8 @@ including a private repository identity or history.
 Production uses https://ferry.bighulk.dev/ with deployment base `/`. The generated
 CNAME is for that domain; configure Pages and DNS separately before publishing.
 
-This is a prepared source package, not a published website or release. The
-installation links become usable only after the corresponding public release.
+Building this source package does not deploy a website or create a release.
+Installation files and published images are available through Ferry releases.
 ''')
         manifest = {
             'format': 1,

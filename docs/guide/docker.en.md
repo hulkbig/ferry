@@ -2,7 +2,6 @@
 
 [中文](docker.md)
 
-Release preparation: these instructions target `0.1.1`. External installation becomes available after the release and images are public and anonymous pulls have passed.
 
 ## Start Ferry
 
