@@ -24,7 +24,7 @@ One Go process, an embedded console and local SQLite, built for individuals and 
 In an empty directory, with Docker and Compose installed:
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml
 docker compose up -d
 ```
 

@@ -24,7 +24,7 @@ Go 单进程、嵌入式控制台、本地 SQLite，面向个人和小团队。�
 在空目录执行（需要 Docker 和 Compose）：
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v0.1.1/compose.yaml
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml
 docker compose up -d
 ```
 
