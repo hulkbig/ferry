@@ -52,7 +52,7 @@ def main():
     if 'peak_cpu_percent' not in fields:
         fields.append('peak_cpu_percent')
     with measurements_path.open('w') as stream:
-        writer = csv.DictWriter(stream, fields)
+        writer = csv.DictWriter(stream, fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(measurements)
     summary_path = args.output / 'summary.json'
