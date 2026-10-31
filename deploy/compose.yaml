@@ -1,9 +1,6 @@
 services:
   ferry:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
-    image: ferry:local
+    image: ${FERRY_IMAGE:-bighulk/ferry:1.1.0}
     # Preserve the layout of existing source-built installations.
     command: ["-data-dir", "/data", "-config", "/etc/ferry/config.yaml"]
     init: true

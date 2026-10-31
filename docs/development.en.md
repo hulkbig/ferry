@@ -89,3 +89,11 @@ Build artifacts outside the source tree. See [candidate builds](local-candidate-
 - Keep paired Chinese/English documents aligned. Detailed references may remain in their original language when the index identifies it.
 
 Contribution and provenance requirements are in [Contributing](../CONTRIBUTING.en.md).
+
+## Development image
+
+Use this explicit build override only for source development. Regular installations use [published images](guide/docker.en.md).
+
+```sh
+docker compose -f deploy/compose.yaml -f deploy/compose.build.yaml up -d --build
+```

@@ -283,6 +283,7 @@ func main() {
 	versionJSON := flag.Bool("version-json", false, "print immutable build identity as JSON and exit")
 	migrateOnly := flag.Bool("migrate-only", false, "initialize/validate SQLite and exit without serving")
 	startupCheck := flag.Bool("startup-check", false, "print listener addresses without creating or migrating SQLite, then exit")
+	headless := flag.Bool("headless", headlessBuild, "serve only inference; disable management HTTP and optional background jobs, retain credential refresh")
 	standby := flag.Bool("standby", false, "serve a migration copy without renewing upstream credentials, spending reset credits, or starting upstream background jobs")
 	backupTo := flag.String("backup-to", "", "create and verify a configuration-only SQLite backup, then exit")
 	backupHistory := flag.Bool("backup-history", false, "include full history in an explicit -backup-to operation")
@@ -291,6 +292,9 @@ func main() {
 	resetAdminPassword := flag.Bool("reset-admin-password", false, "read and reset the local administrator password from stdin, then exit")
 	adminUsername := flag.String("admin-username", "", "administrator username guard for -reset-admin-password")
 	flag.Parse()
+	if headlessBuild && !*headless {
+		log.Fatal("headless build cannot enable management HTTP")
+	}
 
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	if *versionJSON {
@@ -328,7 +332,11 @@ func main() {
 		var err error
 		switch {
 		case *startupCheck:
-			result, err = readStartupConfig(*dataDir, *cfgPath)
+			startup, startupErr := readStartupConfig(*dataDir, *cfgPath)
+			if *headless {
+				startup.ManagementAddr = ""
+			}
+			result, err = startup, startupErr
 		case *migrateOnly:
 			result, err = maintenance.Migrate(*dataDir, *cfgPath)
 		case *backupTo != "":
@@ -617,21 +625,30 @@ func main() {
 	defer stop()
 	// Restore before background probes can publish fresh observations.
 	mgr.StartCooldownPersistence(ctx, f.Server.DataDir)
-	mgmt.StartAlertMonitor(ctx)
+	if !*headless {
+		mgmt.StartAlertMonitor(ctx)
+	}
 	if *standby {
 		log.Printf("standby mode: upstream account changes and background jobs disabled; inference still consumes upstream quota")
 	} else {
-		sch.StartScheduledProviderMessages(ctx)
-		mgmt.StartCodexClientUpdate(ctx)
-		mgmt.StartProviderModelSync(ctx)
-		mgmt.StartAutomaticUsageReset(ctx)
-		mgmt.StartReferencePricingSync(ctx)
+		if !*headless {
+			sch.StartScheduledProviderMessages(ctx)
+			mgmt.StartCodexClientUpdate(ctx)
+			mgmt.StartProviderModelSync(ctx)
+			mgmt.StartAutomaticUsageReset(ctx)
+			mgmt.StartReferencePricingSync(ctx)
+		}
 		oauthMgr.StartAutoRefresh(ctx)
 		nativeMgr.Start(ctx)
 	}
 
 	dataSrv := newHTTPServer(f.Server.ProxyAddr, mux)
-	mgmtSrv := newHTTPServer(f.Server.ManagementAddr, mgmt.Routes())
+	var mgmtSrv *http.Server
+	if !*headless {
+		mgmtSrv = newHTTPServer(f.Server.ManagementAddr, mgmt.Routes())
+	} else {
+		log.Printf("headless mode: management HTTP and optional background jobs disabled; credential refresh retained unless standby")
+	}
 
 	go func() {
 		log.Printf("data plane listening on %s (chat/responses/messages/images)", f.Server.ProxyAddr)
@@ -639,18 +656,22 @@ func main() {
 			log.Fatalf("data plane: %v", err)
 		}
 	}()
-	go func() {
-		log.Printf("management listening on %s", f.Server.ManagementAddr)
-		if err := mgmtSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("management: %v", err)
-		}
-	}()
+	if mgmtSrv != nil {
+		go func() {
+			log.Printf("management listening on %s", f.Server.ManagementAddr)
+			if err := mgmtSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Printf("management: %v", err)
+			}
+		}()
+	}
 
 	<-ctx.Done()
 	log.Printf("shutting down...")
 	shCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_ = mgmtSrv.Shutdown(shCtx)
+	if mgmtSrv != nil {
+		_ = mgmtSrv.Shutdown(shCtx)
+	}
 	oauthCloseCtx, oauthCloseCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	_ = oauthMgr.Close(oauthCloseCtx)
 	oauthCloseCancel()

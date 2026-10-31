@@ -32,3 +32,9 @@
 `scripts/build_gateway_diagrams.py` 生成 `flow-{request,response,fallback,queue,logical,autoreset}-{zh,en}.svg`。六张图分别绘制右侧节点，使用浏览器原生 SVG 动画，无 GIF、JavaScript、外链字体或远程资源。官网内联同一份 SVG，提供独立暂停、重播及离开视口暂停；减少动态效果模式默认静止。README 通过图片引用，实际动画表现取决于阅读器，静态节点仍可阅读。
 
 Hermes 使用通用 H 字母标记，不冒充其官方 Logo。其余品牌形状沿用上述固定版本与许可证。修改后重新运行生成脚本，并验证中英文、两种主题、窄屏和动画状态。
+
+## Performance figures (1.1.0)
+
+`perf-*-zh.svg` and `perf-*-en.svg` cover deployment, throughput, CPU/request, memory working set, ledger storage and test topology. Regenerate with `python3 scripts/build_performance_figures.py`. Numerical sources are `docs/benchmarks/2026-10-30/summary.json` and the documented fresh-volume disk test. They are static, accessible SVGs with titles/descriptions; labels state the unequal resource/features and short-run limits.
+
+The Skill and switching-policy figures use the same 960×480 frame and palette as the flow diagrams. Peak CPU figures use `peak_cpu_percent` from the published summary; interval evidence is in `cpu-intervals.json`.

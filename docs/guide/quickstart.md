@@ -1,37 +1,28 @@
 # Ferry 快速开始
 
-先让你常用的模型通过 Ferry 回答一次，再把这个入口接到日常使用的 Agent 上。本指南从源码启动本地实例，带你完成上游接入和首个请求；随后可以继续配置[长任务恢复路由](long-tasks.md)。
+使用已发布的 Docker 镜像启动 Ferry，接入自己的上游，再完成第一个请求。无需下载源码、安装 Go 或本地编译。
 
-示例默认只监听 `127.0.0.1`。容器安装见[运维指南](operations.md)。
+## 1. 拉取镜像并启动
 
-## 1. 准备环境
+需要 Docker Engine 和 Compose。Mac 上已有 OrbStack 或 Docker Desktop 即可。在空目录执行：
 
-- Go 1.26.10；下面的命令通过 `GOTOOLCHAIN` 固定该版本。
-- 一个空的 `./data` 目录。若这里已有 Ferry 数据，请保留它并改用另一个目录，不要覆盖。
-- 要验证真实推理，还需要你有权使用的上游账号或 API Key。上游可能计费。
-
-在仓库根目录启动：
-
-```bash
-GOTOOLCHAIN=go1.26.10 go run ./cmd/ferry -data-dir ./data -config ./config.example.yaml
+```sh
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/latest/download/compose.yaml
+docker compose up -d --no-build
 ```
 
-`config.example.yaml` 只在 SQLite 为空时导入一次。首次导入后，运行配置保存在 `./data/control.db`；后续启动可省略 `-config`：
+Compose 会自动拉取对应架构的 `bighulk/ferry:1.1.0` 镜像。配置和记录保存在命名卷 `ferry-data` 中。已有安装请按[升级指南](docker.md#升级)操作；不要把旧数据目录当成空目录重新初始化。
 
-```bash
-GOTOOLCHAIN=go1.26.10 go run ./cmd/ferry -data-dir ./data
+```sh
+curl -fsS http://localhost:17810/health
+curl -fsS http://localhost:17810/version
 ```
 
-服务启动后可在另一个终端核对：
-
-```bash
-curl -fsS http://127.0.0.1:7890/health
-curl -fsS http://127.0.0.1:7890/version
-```
+服务器安装、单条 `docker run` 命令和端口配置见[Docker 安装](docker.md)。源码构建仅用于[参与开发](../development.md)。
 
 ## 2. 初始化唯一管理员
 
-打开 <http://127.0.0.1:7900>，创建唯一管理员。密码至少 12 个字符。
+打开 <http://localhost:17910>，创建唯一管理员。密码至少 12 个字符。
 
 请在首次启动后立即完成这一步。未初始化的管理面允许能访问该地址的人认领管理员；示例配置只
 监听本机，若你自行改为非 loopback 地址，先在网络层限制访问。
@@ -69,14 +60,14 @@ export FERRY_KEY
 先确认 Key 能看到当前模型：
 
 ```bash
-curl -fsS http://127.0.0.1:7890/v1/models \
+curl -fsS http://localhost:17810/v1/models \
   -H "Authorization: Bearer ${FERRY_KEY}"
 ```
 
 然后将 `<logical-model>` 替换为上一步返回并已配置路由的模型：
 
 ```bash
-curl -fsS http://127.0.0.1:7890/v1/chat/completions \
+curl -fsS http://localhost:17810/v1/chat/completions \
   -H "Authorization: Bearer ${FERRY_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"model":"<logical-model>","messages":[{"role":"user","content":"Reply with: ready"}]}'
@@ -92,29 +83,13 @@ curl -fsS http://127.0.0.1:7890/v1/chat/completions \
 
 想让 Agent 帮忙检查配置或诊断请求，可以安装 [Ferry Skill](agent-skill.md)。
 
-## 6. 停止与本地数据
+## 6. 停止与持久数据
 
-前台进程使用 `Ctrl-C` 停止。运行数据位于 `./data`：
-
-- `control.db` 保存管理员、配置 revision、推理 Key 和上游凭据；
-- `conversation.db` 保存跨请求的会话绑定和续轮状态；
-- `ledger.db` 保存请求、尝试、决策、用量和成本记录。
-
-这三个数据库可能包含敏感数据。不要提交、上传、手工复制运行中的数据库，或把它们附在问题
-报告中。备份、校验和恢复使用程序提供的 `-backup-to`、`-verify-backup` 和 `-restore-from`
-入口；先用 `go run ./cmd/ferry -help` 查看参数。
-
-## 参与开发时运行检查
-
-参与开发时执行完整产品检查：
-
-```bash
-bash scripts/test.sh
+```sh
+docker compose stop
+docker compose up -d --no-build
 ```
 
-完整检查还需要 Node.js、npm 和 Python 3。只验证 Go 代码时可执行：
+停止和重建容器不会删除命名卷。数据库位于卷内 `/data/state`：`control.db` 保存配置与凭据，`conversation.db` 保存会话，`ledger.db` 保存请求与用量。
 
-```bash
-GOTOOLCHAIN=go1.26.10 go test ./...
-GOTOOLCHAIN=go1.26.10 go vet ./...
-```
+不要使用 `docker compose down --volumes` 作为日常停止命令，也不要直接复制运行中的数据库。备份、校验和恢复见[Docker 维护指南](docker.md#备份与恢复)。开发环境和测试命令见[开发指南](../development.md)。

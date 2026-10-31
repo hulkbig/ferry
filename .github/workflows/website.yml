@@ -39,9 +39,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '(.isDraft == false) and (.isPrerelease == false)' | grep -qx true
+          gh release view v1.1.0 --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '(.isDraft == false) and (.isPrerelease == false)' | grep -qx true
           curl --fail --location --silent --show-error --max-time 30 \
-            https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml -o "$RUNNER_TEMP/public-compose.yaml"
+            https://github.com/hulkbig/ferry/releases/download/v1.1.0/compose.yaml -o "$RUNNER_TEMP/public-compose.yaml"
           cmp compose.yaml "$RUNNER_TEMP/public-compose.yaml"
       - name: Require the product custom domain
         env:

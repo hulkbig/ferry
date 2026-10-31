@@ -4,6 +4,7 @@ import (
 	"context"
 	"ferry/internal/domain"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -176,5 +177,101 @@ func TestIngressFirstOutputSurvivesSchedulerCompletionInEitherOrder(t *testing.T
 				t.Fatalf("client TTFT overwritten: %+v %v", final, err)
 			}
 		})
+	}
+}
+
+func TestQueuedLiveUpdatesCoalesceWithoutLosingFinalRecord(t *testing.T) {
+	l, err := Open(t.TempDir(), 8, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	if _, err := l.db.Exec(`CREATE TABLE live_write_count(n INTEGER); INSERT INTO live_write_count VALUES(0); CREATE TRIGGER count_live_writes AFTER INSERT ON live_requests BEGIN UPDATE live_write_count SET n=n+1; END;`); err != nil {
+		t.Fatal(err)
+	}
+	blocker, err := l.db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.BeginIngressRequest(domain.RequestRecord{ID: "coalesced", Ts: time.Now(), Status: "received"})
+	for i := 0; i < 1000; i++ {
+		l.UpdateRequest("coalesced", func(r *domain.RequestRecord) { r.ProviderID = fmt.Sprint(i); r.Status = "streaming" })
+	}
+	l.mu.Lock()
+	pending := len(l.liveWrites)
+	l.mu.Unlock()
+	if pending != 1 {
+		blocker.Rollback()
+		t.Fatalf("pending snapshots=%d", pending)
+	}
+	if err := blocker.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	flushLiveTest(t, l)
+	var provider string
+	var writes int
+	if err := l.read.QueryRow("SELECT provider_id FROM live_requests WHERE id='coalesced'").Scan(&provider); err != nil || provider != "999" {
+		t.Fatalf("provider=%s error=%v", provider, err)
+	}
+	if err := l.read.QueryRow("SELECT n FROM live_write_count").Scan(&writes); err != nil || writes != 1 {
+		t.Fatalf("writes=%d err=%v", writes, err)
+	}
+	l.FinishRequest("coalesced", func(r *domain.RequestRecord) { r.Status = domain.ReqSuccess; r.Usage.OutputTokens = 42 })
+	l.EndIngressRequest("coalesced")
+	flushLiveTest(t, l)
+	var tokens, live int64
+	if err := l.read.QueryRow("SELECT output_tokens FROM logical_requests WHERE id='coalesced'").Scan(&tokens); err != nil || tokens != 42 {
+		t.Fatalf("tokens=%d err=%v", tokens, err)
+	}
+	if err := l.read.QueryRow("SELECT count(*) FROM live_requests WHERE id='coalesced'").Scan(&live); err != nil || live != 0 {
+		t.Fatalf("resurrected live rows=%d err=%v", live, err)
+	}
+}
+
+func TestCoalescedLiveSnapshotSurvivesTransactionReplay(t *testing.T) {
+	l, err := Open(t.TempDir(), 8, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	blocker, err := l.db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	waits := l.db.Stats().WaitCount
+	l.enqueue(func(execer) error { return nil })
+	deadline := time.Now().Add(3 * time.Second)
+	for l.db.Stats().WaitCount == waits {
+		if time.Now().After(deadline) {
+			blocker.Rollback()
+			t.Fatal("writer not blocked")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	l.BeginIngressRequest(domain.RequestRecord{ID: "replay", Ts: time.Now(), Status: "received"})
+	l.UpdateRequest("replay", func(r *domain.RequestRecord) { r.ProviderID = "last" })
+	var attempts atomic.Int32
+	l.enqueue(func(execer) error {
+		if attempts.Add(1) == 1 {
+			return fmt.Errorf("injected batch failure")
+		}
+		return nil
+	})
+	l.FinishRequest("replay", func(r *domain.RequestRecord) { r.Status = domain.ReqSuccess; r.Usage.OutputTokens = 17 })
+	l.EndIngressRequest("replay")
+	if err := blocker.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	flushLiveTest(t, l)
+	if attempts.Load() != 2 {
+		t.Fatalf("job attempts=%d", attempts.Load())
+	}
+	var tokens, live int64
+	var provider string
+	if err := l.read.QueryRow("SELECT provider_id,output_tokens FROM logical_requests WHERE id='replay'").Scan(&provider, &tokens); err != nil || provider != "last" || tokens != 17 {
+		t.Fatalf("final=%s/%d err=%v", provider, tokens, err)
+	}
+	if err := l.read.QueryRow("SELECT count(*) FROM live_requests WHERE id='replay'").Scan(&live); err != nil || live != 0 {
+		t.Fatalf("live=%d err=%v", live, err)
 	}
 }

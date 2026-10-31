@@ -1,0 +1,68 @@
+[
+  {
+    "product": "Ferry 1.1.0 candidate",
+    "case": "json-1k-c32",
+    "repeats": 3,
+    "seconds": 15,
+    "success_rps": 1554.665551219282,
+    "p99_ms": 48.134,
+    "cpu_ms_per_success": 0.8735013552395646,
+    "peak_working_set_mib": 30.8203125,
+    "peak_cpu_percent": 146.62176163185813
+  },
+  {
+    "product": "Ferry 1.1.0 candidate",
+    "case": "json-64k-c32",
+    "repeats": 3,
+    "seconds": 15,
+    "success_rps": 545.1976953842261,
+    "p99_ms": 126.471,
+    "cpu_ms_per_success": 2.712383339300633,
+    "peak_working_set_mib": 34.46875,
+    "peak_cpu_percent": 157.14415383460545
+  },
+  {
+    "product": "CLIProxyAPI 8.0.47",
+    "case": "json-1k-c32",
+    "repeats": 3,
+    "seconds": 12,
+    "success_rps": 6274.342540394264,
+    "p99_ms": 11.606,
+    "cpu_ms_per_success": 0.23448811374356773,
+    "peak_working_set_mib": 68.09765625,
+    "peak_cpu_percent": 150.99529545008195
+  },
+  {
+    "product": "CLIProxyAPI 8.0.47",
+    "case": "json-64k-c32",
+    "repeats": 3,
+    "seconds": 12,
+    "success_rps": 1801.9980631811338,
+    "p99_ms": 42.357,
+    "cpu_ms_per_success": 0.8167638716783698,
+    "peak_working_set_mib": 67.52734375,
+    "peak_cpu_percent": 151.20297907086317
+  },
+  {
+    "product": "sub2api 0.2.19 + PG2",
+    "case": "json-1k-c32",
+    "repeats": 1,
+    "seconds": 30,
+    "success_rps": 1424.4108105907178,
+    "p99_ms": 55.07,
+    "cpu_ms_per_success": 2.6673091840553944,
+    "peak_working_set_mib": 441.92578125,
+    "peak_cpu_percent": 390.1740542987971
+  },
+  {
+    "product": "sub2api 0.2.19 + PG2",
+    "case": "json-64k-c32",
+    "repeats": 1,
+    "seconds": 30,
+    "success_rps": 1195.2452584872367,
+    "p99_ms": 48.995,
+    "cpu_ms_per_success": 3.222799905234406,
+    "peak_working_set_mib": 432.484375,
+    "peak_cpu_percent": 406.2668268910953
+  }
+]

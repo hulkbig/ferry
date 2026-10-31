@@ -362,6 +362,11 @@ func unknownJSONFieldIssues(raw []byte, path string, known ...string) []string {
 	if json.Unmarshal(raw, &object) != nil {
 		return nil
 	}
+	return unknownObjectFieldIssues(object, path, known...)
+}
+
+// Reuse already decoded objects instead of parsing their potentially large payload again.
+func unknownObjectFieldIssues[T any](object map[string]T, path string, known ...string) []string {
 	allowed := make(map[string]bool, len(known))
 	for _, field := range known {
 		allowed[field] = true

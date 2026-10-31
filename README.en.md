@@ -2,7 +2,7 @@
 
 # Ferry
 
-**Less time retrying.<br>More time for your AI to work.**
+**Self-hosted AI gateway. Go + SQLite. Docker and headless deployment.**
 
 A self-hosted gateway for long-running AI tasks. Wait through rate limits, switch failed upstreams and queue traffic at capacity. Give clients one stable endpoint—and agents a Skill and management API they can use directly.
 
@@ -12,7 +12,6 @@ A self-hosted gateway for long-running AI tasks. Wait through rate limits, switc
 
 ![Abstract request flow: a paused branch alongside a path that keeps moving](docs/assets/request-flow.png)
 
-You give work to an agent because you want to come back to progress. Ferry handles upstream routing, waiting and recovery, so a `429`, a broken connection or a burst of traffic needs less of your attention.
 
 ## Start on your own machine
 
@@ -24,28 +23,15 @@ One Go process, an embedded console and local SQLite, built for individuals and 
 In an empty directory, with Docker and Compose installed:
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml
-docker compose up -d
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/latest/download/compose.yaml
+docker compose up -d --no-build
 ```
 
 Open **<http://localhost:17910>** and create your administrator. No source checkout, compilation, `.env` file or separate database is needed. The inference base URL is `http://localhost:17810/v1`; a named volume retains configuration and request data.
 
 **[Docker installation, remote access and upgrades →](docs/guide/docker.en.md)**
 
-<details>
-<summary>Run from source (Go)</summary>
-
-Use the Go version in `go.mod`, currently **1.26.10**:
-
-```sh
-go run ./cmd/ferry -data-dir ./data -config ./config.example.yaml
-```
-
-Open **<http://127.0.0.1:7900>** and initialize the administrator immediately. The inference base URL is `http://127.0.0.1:7890/v1`. Both example listeners bind to loopback.
-
-The YAML file initializes an empty database once. Subsequent configuration is stored in SQLite and edited through the console or management API.
-
-</details>
+[Development and source builds](docs/development.en.md)
 
 ### Connect your agent
 
@@ -55,95 +41,69 @@ The YAML file initializes an empty database once. Subsequent configuration is st
 
 Complete a [first request](docs/guide/quickstart.md), then configure [fallback routes and recovery conditions](docs/guide/long-tasks.md). Verify tools and follow-up turns with your actual client. Keys can restrict models, protocols, expiration, RPM and budgets.
 
-### Send a request. Pick a route.
+## AI First
 
-![Requests from Claude Code, Hermes and Codex take different upstream routes through Ferry](docs/assets/flow-request-en.svg)
+### Official Skill, full functionality
 
-### Return the result. Keep working.
+From models, accounts and routes to request diagnostics, quota management and daily operations, agents access Ferry's full management capabilities through the official Skill.
 
-![OpenAI streams text, tool arguments and completion events back to Hermes through Ferry](docs/assets/flow-response-en.svg)
+![Official Skill, full functionality](docs/assets/perf-skill-en.svg)
 
-### Primary fails. A fallback takes over.
+[Install the official Skill](docs/guide/agent-skill.md)
 
-![Ferry switches from a temporarily failed ChatGPT account to a compatible backup](docs/assets/flow-fallback-en.svg)
+### Logical models: built around your business
 
-### Rate limited? Wait, then continue.
+Define model endpoints for your business. Change upstream models, accounts and routes inside Ferry while keeping your application configuration unchanged.
 
-![Requests queue while ChatGPT is at capacity and resume when capacity becomes available](docs/assets/flow-queue-en.svg)
+![Logical models](docs/assets/flow-logical-en.svg)
 
-### Change models. Keep your integration.
+[Configure logical models](docs/guide/logical-models.en.md)
 
-Your app calls a logical model such as `work`, rather than a vendor-specific model ID. Change the underlying model, account or route in Ferry without changing client configuration.
+## Extreme Performance
 
-Hermes is one example: point it at `work`, connect existing subscriptions or APIs behind that name, and choose models for the task. [Configure logical models](docs/guide/logical-models.en.md) · [Hermes example](docs/guide/hermes.en.md).
+### Lower memory usage
 
-![Hermes keeps calling work while Ferry changes the actual upstream model between two requests](docs/assets/flow-logical-en.svg)
+In the OpenAI Chat Mock benchmark, Ferry's peak working set was **30.8–34.5 MiB**: about **49%–55% lower than CLIProxyAPI** and **92%–93% lower than the sub2api stack**.
 
-### Redeem credits before they expire
+![Memory usage comparison](docs/assets/perf-peak_working_set_mib-en.svg)
 
-AutoReset redeems available Codex reset credits within the expiry threshold and records the upstream outcome. Default: 20 minutes before expiry; can be disabled. Reset eligibility is decided upstream. See [AutoReset settings](docs/guide/autoreset.en.md).
+### Lower CPU usage
 
-![Ferry checks an expiring credit, submits redemption to Codex and records the result](docs/assets/flow-autoreset-en.svg)
+Ferry’s peak CPU usage is close to CLIProxyAPI and lower than the sub2api stack: **146.6%–157.1%**, **151.0%–151.2%** and **390.2%–406.3%**, respectively.
 
-These six SVG animations illustrate independent scenarios, not live traffic. Recovery depends on routing, compatibility and waiting budgets. The [website](https://ferry.bighulk.dev/) adds pause and replay controls; reduced-motion mode keeps a static diagram.
+![Peak CPU usage comparison](docs/assets/perf-peak_cpu_percent-en.svg)
 
-## Keep the work moving
+Benchmark: OpenAI Chat Mock · ARM64 · concurrency 32 · 1 KiB / 64 KiB responses · 2026-10-30. [Methods and full data](docs/guide/performance.en.md)
 
-### 01 · Wait through limits. Resume automatically.
+## Reliable Requests
 
-When an upstream such as Codex is rate-limited, Ferry can keep the request pending within its recovery window and resume when conditions allow. This reduces manual retries. The client may continue to show a processing state; whether it says “Thinking” depends on the client.
+### Automatic failover
 
-### 02 · Upstream fails. A fallback takes over.
+When the primary upstream fails, automatically try a compatible fallback.
 
-Connection failures, transient 5xx responses and enabled first-output timeouts can trigger recovery under your routing policy. When the preferred route is unavailable, an eligible fallback can take over.
+![Automatic failover](docs/assets/flow-fallback-en.svg)
 
-### 03 · Bound concurrency. Queue the peaks.
+### Configurable switching policies
 
-Set concurrency limits globally, per provider or per connection. Queue excess traffic according to policy, turning bursts into paced requests and reducing the risk of hitting upstream limits.
+Choose when to wait or switch using time windows, first-output timeouts and failure types.
 
-![Three independent scenarios: wait after a rate limit, switch after failure, and queue at capacity](docs/assets/continuity-en.svg)
+![Configurable switching policies](docs/assets/perf-strategy-en.svg)
 
-Recovery respects configuration, time and attempt budgets, and client cancellation. First-output timeouts must be enabled per model. Once visible output has been committed, Ferry does not splice in a different upstream stream. See the [long-task guide](docs/guide/long-tasks.md).
+[Configure switching policies](docs/guide/long-tasks.md)
 
-## Give your agent the tools to manage it
+### Queue requests, see fewer 429s
 
-### 04 · Agent-friendly. Built for direct operation.
+Wait within configured budgets when capacity is unavailable, then continue when it opens.
 
-Ferry ships a versioned Skill and management API. Agents can inspect configuration, diagnose requests, simulate routing, prepare drafts and apply changes within their authorization. They use a dedicated management identity without needing host root access or an administrator password.
+![Request queue](docs/assets/flow-queue-en.svg)
 
-Start with a concrete task:
+### Automatic resets and quota protection
 
-> Explain why this request did not recover. Check the fallback routes, simulate an adjustment, and show which requests it would affect.
+Automatically redeem available Codex reset credits and use quota protection to reduce requests to exhausted accounts.
 
-![An agent uses the Ferry Skill and management API to inspect evidence, simulate drafts, review and apply changes, then verify the result](docs/assets/agent-native-en.svg)
+![Automatic resets and quota protection](docs/assets/flow-autoreset-en.svg)
 
-[Install the Ferry Skill →](docs/guide/agent-skill.md)
-
-### 05 · Test capabilities. Match the request.
-
-Verify tools, reasoning, streaming and other capabilities for selected models, endpoints and protocols, then use that evidence in routing. When an exact match is unavailable, registered compatibility mappings can retain a usable path—for example, mapping parallel tools to serial tools and recording the change. Enable `exact_only` when exact compatibility is required.
-
-Probes can incur upstream charges. See [protocol behavior](docs/protocol-fidelity.md) for support and conversion rules.
-
-## Keep your client. Choose your upstreams.
-
-### 06 · Stable endpoint. Flexible models.
-
-Clients keep one logical model name. Arrange the actual models, accounts and fallback routes in Ferry, with rules by caller, protocol and time window. Change upstreams without reconfiguring each client.
-
-### 07 · Three protocols. One gateway.
-
-OpenAI Chat, Responses and Anthropic Messages are first-class endpoints, with matching native protocols preferred. Keep your familiar client and use tools, reasoning and streaming according to the actual route's capabilities. Native image generation and editing have separate endpoints.
-
-[Explore client examples →](docs/guide/api.md)
-
-## Know what happened
-
-### 08 · Every request. Evidence you can inspect.
-
-See the selected route, upstream attempts, excluded candidates, waiting and recovery decisions, usage and cost basis under one client request. An upstream attempt can fail while the client request ultimately succeeds; the records distinguish the two.
-
-[Troubleshoot a request →](docs/guide/troubleshooting.md)
+[Automatic resets](docs/guide/autoreset.en.md) · [Quota protection](docs/guide/codex-usage-protection.en.md)
 
 ## Providers and scope
 

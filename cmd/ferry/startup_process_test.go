@@ -109,6 +109,11 @@ func startupHealthy(addr string) bool {
 
 func (p *startupProcess) ready(t *testing.T, addresses ...string) {
 	t.Helper()
+	// Dedicated headless builds deliberately have only the proxy listener.
+	// Keep bootstrap/migration coverage under both build configurations.
+	if headlessBuild && len(addresses) == 2 {
+		addresses = addresses[:1]
+	}
 	deadline := time.Now().Add(15 * time.Second)
 	for time.Now().Before(deadline) {
 		select {
@@ -398,7 +403,11 @@ func TestStartupProcessCheckFlagIsReadOnlyAndExclusive(t *testing.T) {
 	if err := json.Unmarshal(p.output.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.ProxyAddr != proxy || got.ManagementAddr != management {
+	expectedManagement := management
+	if headlessBuild {
+		expectedManagement = ""
+	}
+	if got.ProxyAddr != proxy || got.ManagementAddr != expectedManagement {
 		t.Fatal("check returned incorrect listener addresses")
 	}
 	if _, err := os.Stat(data); !os.IsNotExist(err) {

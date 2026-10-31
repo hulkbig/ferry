@@ -243,17 +243,6 @@ func (s *Store) RestoreAPIKeySecretState(apiKeyID, secretID string, state domain
 	return nil
 }
 
-// RecordAPIKeySecretUse stores real authentication evidence for graceful
-// rotation decisions. Timestamps advance monotonically across concurrent use.
-func (s *Store) RecordAPIKeySecretUse(secretID string, usedAt time.Time) error {
-	if secretID == "" {
-		return nil
-	}
-	_, err := s.db.Exec(`UPDATE api_key_secrets SET last_used_at=? WHERE id=?
-		AND (last_used_at IS NULL OR last_used_at < ?)`, usedAt.UnixMilli(), secretID, usedAt.UnixMilli())
-	return err
-}
-
 func (s *Store) UpdateAPIKeyDescription(apiKeyID, description string) error {
 	res, err := s.db.Exec(`UPDATE api_keys SET description=?,updated_at=? WHERE id=?`,
 		description, time.Now().UnixMilli(), apiKeyID)

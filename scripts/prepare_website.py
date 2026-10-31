@@ -11,9 +11,10 @@ PAGES = {
     'docs/README.md':'guide/index.md', 'docs/README.en.md':'en/guide/index.md',
     'CONTRIBUTING.md':'contributing.md', 'CONTRIBUTING.en.md':'en/contributing.md',
     'SECURITY.md':'security.md', 'SECURITY.en.md':'en/security.md',
+    'docs/headless.md':'guide/headless.md', 'docs/headless.en.md':'en/guide/headless.md',
     'docs/development.md':'development.md', 'docs/development.en.md':'en/development.md',
 }
-for guide in ('docker','faq','troubleshooting','hermes','autoreset','logical-models','credential-import','codex-usage-protection'):
+for guide in ('performance','docker','faq','troubleshooting','hermes','autoreset','logical-models','credential-import','codex-usage-protection'):
     PAGES[f'docs/guide/{guide}.md']=f'guide/{guide}.md'
     PAGES[f'docs/guide/{guide}.en.md']=f'en/guide/{guide}.md'
 
@@ -22,6 +23,10 @@ def link(source, url):
     path,sep,fragment=url.partition('#')
     target=(ROOT/source).parent/path
     target=target.resolve().relative_to(ROOT).as_posix()
+    if target.startswith('docs/assets/perf-'):
+        return '/assets/'+Path(target).name+('#'+fragment if sep else '')
+    if target.startswith('docs/benchmarks/'):
+        return '/benchmarks/'+target.removeprefix('docs/benchmarks/')
     if target in PAGES:
         dest='/'+PAGES[target].removesuffix('.md')
         if dest.endswith('/index'):dest=dest.removesuffix('index')
@@ -48,6 +53,10 @@ def prepare(site=SITE):
         if not (ROOT/'docs/assets'/p.name).exists():p.unlink()
     for p in (ROOT/'docs/assets').glob('flow-*.svg'):shutil.copyfile(p,assets/p.name)
     for language in ['zh','en']:shutil.copyfile(ROOT/f'docs/assets/gateway-overview-{language}.svg',assets/f'gateway-overview-{language}.svg')
+    for p in assets.glob('perf-*.svg'):
+        if not (ROOT/'docs/assets'/p.name).exists():p.unlink()
+    for p in (ROOT/'docs/assets').glob('perf-*.svg'):shutil.copyfile(p,assets/p.name)
+    shutil.copytree(ROOT/'docs/benchmarks', public/'benchmarks', dirs_exist_ok=True)
     (public/'licenses.txt').write_text((ROOT/'LICENSE').read_text()+'\n\n'+(ROOT/'NOTICE').read_text()+'\n\nLobe Icons\n'+(ROOT/'LICENSES/LobeIcons/LICENSE').read_text()+'\n\nBundled website JavaScript dependency notices: assets/third-party-licenses.json\n')
     (public/'.nojekyll').write_text('')
     (public/'CNAME').write_text('ferry.bighulk.dev\n')

@@ -1,0 +1,7 @@
+# Developer-only override; ordinary installs use published images.
+services:
+  ferry:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: ferry:local

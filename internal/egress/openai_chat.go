@@ -301,54 +301,74 @@ func textContent(m domain.Message) json.RawMessage {
 }
 
 func chatResponseFieldIssues(body []byte) []string {
-	// service_tier and system_fingerprint are operational envelope metadata;
-	// they do not alter generated content, finish state, tools, or accounting.
-	issues := unknownJSONFieldIssues(body, "", "id", "object", "created", "model", "choices", "usage", "error",
-		"service_tier", "system_fingerprint")
-	var root map[string]json.RawMessage
-	_ = json.Unmarshal(body, &root)
-	issues = append(issues, unknownJSONFieldIssues(root["usage"], "usage",
-		"prompt_tokens", "completion_tokens", "total_tokens", "prompt_tokens_details", "completion_tokens_details")...)
-	var usage map[string]json.RawMessage
-	_ = json.Unmarshal(root["usage"], &usage)
-	issues = append(issues, unknownJSONFieldIssues(usage["prompt_tokens_details"],
-		"usage.prompt_tokens_details", "cached_tokens", "cache_write_tokens", "cache_creation_tokens", "audio_tokens",
-		"image_tokens", "text_tokens")...)
-	issues = append(issues, unknownJSONFieldIssues(usage["completion_tokens_details"],
-		"usage.completion_tokens_details", "reasoning_tokens", "accepted_prediction_tokens",
-		"rejected_prediction_tokens", "audio_tokens", "text_tokens", "compute_units")...)
-	var choices []json.RawMessage
-	_ = json.Unmarshal(root["choices"], &choices)
-	for index, rawChoice := range choices {
+	// Decode the envelope once. Field inspection does not interpret numeric values
+	// or reserialize this tree; native bytes and the typed response stay unchanged.
+	root, ok := decodeChatEnvelope(body)
+	if !ok {
+		return nil
+	}
+	return chatResponseObjectFieldIssues(root)
+}
+
+func decodeChatEnvelope(body []byte) (map[string]any, bool) {
+	var root map[string]any
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	if decoder.Decode(&root) != nil || decoder.Decode(new(any)) != io.EOF {
+		return nil, false
+	}
+	return root, true
+}
+
+func standardChatContent(root map[string]any, containerKey string) bool {
+	choices, _ := root["choices"].([]any)
+	for _, value := range choices {
+		choice, _ := value.(map[string]any)
+		container, _ := choice[containerKey].(map[string]any)
+		content := container["content"]
+		if _, isString := content.(string); content != nil && !isString {
+			return false
+		}
+	}
+	return true
+}
+
+// inspectChatResponse shares the decoded standard envelope between content
+// validation and field inspection. Nonstandard content retains the original
+// compatibility transformation and inspects the transformed bytes.
+func inspectChatResponse(body []byte) ([]byte, bool, []string) {
+	if root, ok := decodeChatEnvelope(body); ok && standardChatContent(root, "message") {
+		return body, false, chatResponseObjectFieldIssues(root)
+	}
+	normalized, changed := normalizeNonstandardChatContent(body, "message")
+	return normalized, changed, chatResponseFieldIssues(normalized)
+}
+
+func chatResponseObjectFieldIssues(root map[string]any) []string {
+	object := func(v any) map[string]any { m, _ := v.(map[string]any); return m }
+	array := func(v any) []any { a, _ := v.([]any); return a }
+	issues := unknownObjectFieldIssues(root, "", "id", "object", "created", "model", "choices", "usage", "error", "service_tier", "system_fingerprint")
+	usage := object(root["usage"])
+	issues = append(issues, unknownObjectFieldIssues(usage, "usage", "prompt_tokens", "completion_tokens", "total_tokens", "prompt_tokens_details", "completion_tokens_details")...)
+	issues = append(issues, unknownObjectFieldIssues(object(usage["prompt_tokens_details"]), "usage.prompt_tokens_details", "cached_tokens", "cache_write_tokens", "cache_creation_tokens", "audio_tokens", "image_tokens", "text_tokens")...)
+	issues = append(issues, unknownObjectFieldIssues(object(usage["completion_tokens_details"]), "usage.completion_tokens_details", "reasoning_tokens", "accepted_prediction_tokens", "rejected_prediction_tokens", "audio_tokens", "text_tokens", "compute_units")...)
+	for index, value := range array(root["choices"]) {
 		path := fmt.Sprintf("choices[%d]", index)
-		issues = append(issues, unknownJSONFieldIssues(rawChoice, path,
-			"index", "message", "finish_reason", "logprobs")...)
-		var choice map[string]json.RawMessage
-		_ = json.Unmarshal(rawChoice, &choice)
-		if rawLogprobs := choice["logprobs"]; len(rawLogprobs) > 0 && string(rawLogprobs) != "null" {
+		choice := object(value)
+		issues = append(issues, unknownObjectFieldIssues(choice, path, "index", "message", "finish_reason", "logprobs")...)
+		if choice["logprobs"] != nil {
 			issues = append(issues, "response field "+path+".logprobs is native-only")
 		}
-		rawMessage := choice["message"]
-		issues = append(issues, unknownJSONFieldIssues(rawMessage, path+".message",
-			"role", "content", "reasoning_content", "refusal", "audio", "annotations", "tool_calls")...)
-		var message map[string]json.RawMessage
-		_ = json.Unmarshal(rawMessage, &message)
-		var parts []json.RawMessage
-		if json.Unmarshal(message["content"], &parts) == nil {
-			for partIndex, rawPart := range parts {
-				issues = append(issues, unknownJSONFieldIssues(rawPart,
-					fmt.Sprintf("%s.message.content[%d]", path, partIndex), "type", "text")...)
-			}
+		message := object(choice["message"])
+		issues = append(issues, unknownObjectFieldIssues(message, path+".message", "role", "content", "reasoning_content", "refusal", "audio", "annotations", "tool_calls")...)
+		for partIndex, part := range array(message["content"]) {
+			issues = append(issues, unknownObjectFieldIssues(object(part), fmt.Sprintf("%s.message.content[%d]", path, partIndex), "type", "text")...)
 		}
-		var calls []json.RawMessage
-		_ = json.Unmarshal(message["tool_calls"], &calls)
-		for callIndex, rawCall := range calls {
+		for callIndex, rawCall := range array(message["tool_calls"]) {
 			callPath := fmt.Sprintf("%s.message.tool_calls[%d]", path, callIndex)
-			issues = append(issues, unknownJSONFieldIssues(rawCall, callPath, "id", "type", "function")...)
-			var call map[string]json.RawMessage
-			_ = json.Unmarshal(rawCall, &call)
-			issues = append(issues, unknownJSONFieldIssues(call["function"], callPath+".function",
-				"name", "arguments")...)
+			call := object(rawCall)
+			issues = append(issues, unknownObjectFieldIssues(call, callPath, "id", "type", "function")...)
+			issues = append(issues, unknownObjectFieldIssues(object(call["function"]), callPath+".function", "name", "arguments")...)
 		}
 	}
 	return issues
@@ -359,6 +379,16 @@ func chatResponseFieldIssues(body []byte) []string {
 // to their text. Any other valid JSON content value is serialized as compact
 // JSON text so a provider extension cannot make the entire response unusable.
 func normalizeChatChoiceContentShape(body []byte, containerKey string) ([]byte, bool) {
+	// The normal case needs no normalization. Inspect one decoded envelope,
+	// using exact field names and preserving large numbers. Nonstandard values
+	// still use the compatibility path below, including its original JSON text.
+	if envelope, ok := decodeChatEnvelope(body); ok && standardChatContent(envelope, containerKey) {
+		return body, false
+	}
+	return normalizeNonstandardChatContent(body, containerKey)
+}
+
+func normalizeNonstandardChatContent(body []byte, containerKey string) ([]byte, bool) {
 	var root map[string]json.RawMessage
 	if json.Unmarshal(body, &root) != nil {
 		return body, false
@@ -541,7 +571,8 @@ func (o *OpenAIChat) Invoke(ctx context.Context, rc *domain.RequestContract) (*d
 		return nil, &domain.Failure{Type: domain.FailBadResponse, Message: "read response: " + err.Error()}
 	}
 	var contentNormalized bool
-	rawBody, contentNormalized = normalizeChatResponseContentShape(rawBody)
+	var fieldIssues []string
+	rawBody, contentNormalized, fieldIssues = inspectChatResponse(rawBody)
 	if err := json.Unmarshal(rawBody, &out); err != nil {
 		return nil, &domain.Failure{Type: domain.FailBadResponse, Message: "decode response: " + err.Error()}
 	}
@@ -555,7 +586,7 @@ func (o *OpenAIChat) Invoke(ctx context.Context, rc *domain.RequestContract) (*d
 	if contentNormalized {
 		appendResponseWarning(r, "chat response content normalized from a non-standard JSON shape")
 	}
-	r.ConversionIssues = append(r.ConversionIssues, chatResponseFieldIssues(rawBody)...)
+	r.ConversionIssues = append(r.ConversionIssues, fieldIssues...)
 	if len(out.Choices) == 0 {
 		appendResponseValidationIssue(r, "chat response contains no choices")
 	} else if len(out.Choices) > 1 {

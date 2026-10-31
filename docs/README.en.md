@@ -40,3 +40,6 @@ Some detailed references are currently in Chinese. Their language is identified 
 [Website source and preview instructions](../website/README.md) are in Chinese. The product website itself supports English and Chinese. The [public website](https://ferry.bighulk.dev/) is hosted on GitHub Pages with HTTPS.
 
 [Codex usage protection](guide/codex-usage-protection.en.md): default 98% threshold, paid Credits off, response quota evidence reused before fetching usage.
+
+- [性能与资源 / Performance](guide/performance.en.md)
+- [Headless](headless.en.md)

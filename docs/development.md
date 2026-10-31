@@ -92,3 +92,11 @@ Docker 扫描工具固定 digest；默认先取得镜像再断网扫描。镜像
 - 中文主入口和英文 README 的功能与限制保持一致。详细参考可以保留原语言，索引中注明用途。
 
 改动和第三方来源要求见[贡献说明](../CONTRIBUTING.md)。
+
+## 开发镜像
+
+仅参与源码开发时使用以下显式构建入口；普通安装使用[已发布镜像](guide/docker.md)。
+
+```sh
+docker compose -f deploy/compose.yaml -f deploy/compose.build.yaml up -d --build
+```

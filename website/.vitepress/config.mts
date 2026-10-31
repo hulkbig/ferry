@@ -5,6 +5,8 @@ const entries = (en: boolean) => [
   { text: en ? 'Get started' : '开始使用', items: [
     { text: en ? 'Install with Docker' : 'Docker 安装', link: '/guide/docker' },
     { text: en ? 'Logical models' : '逻辑模型', link: '/guide/logical-models' },
+    { text: en ? 'Performance & resources' : '性能与资源', link: '/guide/performance' },
+    { text: en ? 'Headless operation' : '无界面运行', link: '/guide/headless' },
     { text: 'Hermes Agent', link: '/guide/hermes' },
     { text: en ? 'Import accounts & keys' : '导入账号与 Key', link: '/guide/credential-import' },
     { text: 'AutoReset', link: '/guide/autoreset' },
