@@ -44,8 +44,9 @@ type Ledger struct {
 	queueMu   sync.Mutex // protects the non-blocking write backlog
 	closed    bool
 
-	mu       sync.Mutex
-	requests map[string]*pendingRequest // requestID -> accumulating record
+	mu         sync.Mutex
+	requests   map[string]*pendingRequest   // requestID -> accumulating record
+	liveWrites map[string]*pendingLiveWrite // coalesced queued snapshots, protected by mu
 
 	debugCapture atomic.Bool
 }

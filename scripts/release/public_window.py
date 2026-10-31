@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed outside weekday 22:00–next-day 08:00, Asia/Shanghai."""
+"""Allow weekday nights (22:00–08:00) and all weekend, Asia/Shanghai."""
 import argparse
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -9,10 +9,16 @@ def remaining_seconds(now):
     if now.tzinfo is None:
         raise ValueError("timezone-aware time required")
     local = now.astimezone(ZoneInfo("Asia/Shanghai"))
-    start_day = local.date() if local.hour >= 22 else local.date() - timedelta(days=1)
-    if start_day.weekday() >= 5 or 8 <= local.hour < 22:
+    weekday = local.weekday()
+    if weekday < 5 and 8 <= local.hour < 22:
         return 0
-    end = datetime.combine(start_day + timedelta(days=1), datetime.min.time(), local.tzinfo) + timedelta(hours=8)
+    if weekday >= 5:
+        end_day = local.date() + timedelta(days=7 - weekday)
+    elif weekday == 4 and local.hour >= 22:
+        end_day = local.date() + timedelta(days=3)
+    else:
+        end_day = local.date() + timedelta(days=1 if local.hour >= 22 else 0)
+    end = datetime.combine(end_day, datetime.min.time(), local.tzinfo) + timedelta(hours=8)
     return max(0, (end - local).total_seconds())
 
 

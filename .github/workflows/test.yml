@@ -21,7 +21,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Protocol and admission race checks
-        run: go test -race -count=1 ./internal/scheduler ./internal/ingress ./internal/egress ./internal/runtime
+        run: go test -race -count=1 ./internal/scheduler ./internal/ingress ./internal/egress ./internal/runtime ./internal/controlstore ./internal/ledger
   secrets:
     runs-on: ubuntu-24.04
     timeout-minutes: 20

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -28,7 +29,13 @@ var (
 )
 
 type Store struct {
-	db *sql.DB
+	db           *sql.DB
+	usageMu      sync.Mutex
+	usageCond    *sync.Cond
+	usagePending []apiKeyUse
+	usageWriting bool
+	usageClosed  bool
+	usageWG      sync.WaitGroup
 }
 
 func Open(path string) (*Store, error) {
@@ -404,6 +411,13 @@ func (s *Store) Close() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
+	s.usageMu.Lock()
+	s.usageClosed = true
+	if s.usageCond != nil {
+		s.usageCond.Broadcast()
+	}
+	s.usageMu.Unlock()
+	s.usageWG.Wait()
 	return s.db.Close()
 }
 

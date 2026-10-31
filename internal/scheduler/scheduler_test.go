@@ -1714,3 +1714,53 @@ func TestAuxiliaryMappingNotesStayMappedAndReachTheTrail(t *testing.T) {
 		}
 	}
 }
+
+func TestDebugCaptureFollowsRequestStartAcrossToggle(t *testing.T) {
+	for _, initial := range []bool{false, true} {
+		t.Run(map[bool]string{false: "initially-off", true: "initially-on"}[initial], func(t *testing.T) {
+			f := newFixture(t)
+			if err := f.tl.SetDebugCapture(initial); err != nil {
+				t.Fatal(err)
+			}
+			started := make(chan struct{})
+			release := make(chan struct{})
+			f.calls["t1"].invokeStarted = started
+			f.calls["t1"].invokeBlock = release
+			done := make(chan *domain.Failure, 1)
+			go func() {
+				_, failure := f.sch.Execute(context.Background(), chatReq("main"), RequestMeta{})
+				done <- failure
+			}()
+			select {
+			case <-started:
+			case <-time.After(3 * time.Second):
+				close(release)
+				t.Fatal("request not started")
+			}
+			if err := f.tl.SetDebugCapture(!initial); err != nil {
+				close(release)
+				t.Fatal(err)
+			}
+			close(release)
+			if failure := <-done; failure != nil {
+				t.Fatal(failure)
+			}
+			rows := f.rows(t)
+			if len(rows) != 1 {
+				t.Fatalf("rows=%d", len(rows))
+			}
+			db := f.tl.reopen(t)
+			record, err := db.QueryRequestDebug(rows[0].ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if initial {
+				if record == nil || record.RequestJSON == "" || record.ResponseJSON == "" {
+					t.Fatalf("capture lost after disabling: %+v", record)
+				}
+			} else if record != nil {
+				t.Fatalf("captured request that started disabled: %+v", record)
+			}
+		})
+	}
+}

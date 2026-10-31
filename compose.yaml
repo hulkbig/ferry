@@ -1,8 +1,8 @@
-# Download this file, then run: docker compose up -d
+# Download this file, then run: docker compose up -d --no-build
 name: ferry
 services:
   ferry:
-    image: ${FERRY_IMAGE:-bighulk/ferry:1.0.0}
+    image: ${FERRY_IMAGE:-bighulk/ferry:1.1.0}
     restart: unless-stopped
     ports:
       - "127.0.0.1:17910:7900"

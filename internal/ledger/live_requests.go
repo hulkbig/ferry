@@ -115,11 +115,36 @@ func liveRequestRecord(p *pendingRequest) domain.RequestRecord {
 	return record
 }
 
-// persistLiveRequest is called under mu so live updates cannot overtake the
+type pendingLiveWrite struct{ record domain.RequestRecord }
+
+// persistLiveRequest coalesces superseded snapshots while they are queued.
+// Full final records, attempts and traces are never coalesced or dropped.
+// It is called under mu so live updates cannot overtake the
 // final write and resurrect a completed row.
 func (l *Ledger) persistLiveRequest(p *pendingRequest) {
 	record := liveRequestRecord(p)
-	l.enqueue(func(db execer) error { return insertRequestRow(db, &record, "live_requests") })
+	if l.liveWrites == nil {
+		l.liveWrites = make(map[string]*pendingLiveWrite)
+	}
+	if pending := l.liveWrites[record.ID]; pending != nil {
+		pending.record = record
+		return
+	}
+	pending := &pendingLiveWrite{record: record}
+	l.liveWrites[record.ID] = pending
+	// Freeze once when the serial writer reaches this job. Retain the frozen
+	// snapshot for transaction replay; a later update gets its own ordered job.
+	var frozen *domain.RequestRecord
+	l.enqueue(func(db execer) error {
+		if frozen == nil {
+			l.mu.Lock()
+			snapshot := pending.record
+			delete(l.liveWrites, snapshot.ID)
+			l.mu.Unlock()
+			frozen = &snapshot
+		}
+		return insertRequestRow(db, frozen, "live_requests")
+	})
 }
 
 // LiveRequests returns copies from one lock-protected snapshot, including

@@ -8,7 +8,7 @@
 
 | 你想做什么 | 从这里开始 |
 | --- | --- |
-| 在自己的机器上跑起来 | [快速开始](guide/quickstart.md)：启动、接入上游、发出第一个请求 |
+| 在自己的机器上跑起来 | [快速开始](guide/quickstart.md)：Docker 镜像安装、接入上游、发出第一个请求 |
 | 让长任务少被临时故障打断 | [长任务指南](guide/long-tasks.md)：稳定模型名、备用路由、恢复条件与实际验证 |
 | 更换模型，不改客户端配置 | [逻辑模型](guide/logical-models.md)：业务模型名与上游线路解耦 |
 | 在 Hermes 使用已有订阅 | [Hermes Agent](guide/hermes.md)：账号、线路和客户端配置 |
@@ -47,7 +47,7 @@
 - 构建与发布：[本地候选构建](local-candidate-builds.md)、[发布检查](release-readiness.md)。
 - 安全与来源：[安全报告](../SECURITY.md)、[安全模型](security-threat-model.md)、[依赖声明](third-party-notices.md)、[容器材料](container-notices.md)、[资产来源](asset-provenance.md)。
 
-当前为源码候选版。安装、FAQ、排障、贡献、开发和安全报告提供中英文版本；其余详细指南的语言见 [English 文档索引](README.en.md)。[旧控制台设计](archive/console-v1.md)保留为历史资料，当前接口以管理 API 文档和实现为准。
+安装默认使用已发布的 Docker 镜像，无需源码构建。安装、FAQ、排障、贡献、开发和安全报告提供中英文版本；其余详细指南的语言见 [English 文档索引](README.en.md)。[旧控制台设计](archive/console-v1.md)保留为历史资料，当前接口以管理 API 文档和实现为准。
 
 ## Docker 发行安装
 
@@ -59,3 +59,6 @@
 [官网源码与本地预览](../website/README.md) · [公开官网](https://ferry.bighulk.dev/)。
 
 [Codex 额度保护](guide/codex-usage-protection.md)：默认 98% 暂停，付费 Credits 默认关闭；优先复用响应中的额度信息。
+
+- [性能与资源 / Performance](guide/performance.md)
+- [Headless](headless.md)

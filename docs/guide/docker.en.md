@@ -10,8 +10,8 @@ Install Docker Engine with Compose. An existing OrbStack or Docker Desktop insta
 In an empty directory:
 
 ```sh
-curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/download/v1.0.0/compose.yaml
-docker compose up -d
+curl -fsSLo compose.yaml https://github.com/hulkbig/ferry/releases/latest/download/compose.yaml
+docker compose up -d --no-build
 ```
 
 Open **`http://localhost:17910`**, then create your administrator. No source checkout, compilation, `.env` file or separate database is needed.
@@ -48,7 +48,7 @@ docker run -d --name ferry --restart unless-stopped \
   -p 127.0.0.1:17910:7900 -p 127.0.0.1:17810:7890 \
   -v ferry-data:/data --read-only --tmpfs /tmp:size=32m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  bighulk/ferry:1.0.0
+  bighulk/ferry:1.1.0
 ```
 
 Choose one installation method; never run two processes against the same data.
@@ -61,7 +61,7 @@ The `ferry-data` volume mounts at `/data`; databases live in `/data/state`. Cred
 docker compose ps
 docker compose logs --tail=100 ferry
 docker compose stop
-docker compose up -d
+docker compose up -d --no-build
 ```
 
 Do not add `--volumes` to `docker compose down` unless you intend to delete the data. A healthy `/health` response does not verify an upstream model.
@@ -93,7 +93,7 @@ Restore the verified backup retained in the volume:
 ```sh
 docker compose stop ferry
 docker compose run --rm --no-deps ferry -data-dir /data/state -restore-from /data/backups/before-upgrade
-docker compose up -d
+docker compose up -d --no-build
 ```
 
 Restoring replaces current data with the selected backup; later writes are not merged. Restoring a configuration backup leaves history empty; only an explicit full backup restores history from the backup point. If restoration fails, investigate before restarting. Verify login, configuration and a real request afterward. Keep the restore journal and displaced data until verification is complete.
@@ -104,7 +104,7 @@ Verify a backup and rehearse its restoration; use `-backup-history` if history m
 
 ```sh
 docker compose pull
-docker compose up -d
+docker compose up -d --no-build
 ```
 
 Stable version tags are not overwritten; `latest` follows stable releases. Pin a version for predictable upgrades. Reverting an image does not reverse a database migration.

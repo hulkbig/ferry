@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-30",
+  "architecture": "linux/arm64",
+  "measured_candidate": "ferry-headless-shared-final",
+  "binary_sha256": "89430eae214c6c04805fc4561e5359fa01658c4a6a3fc74790e4656b83aa997f",
+  "candidate_is_published_release_image": false,
+  "upstream_versions": {
+    "CLIProxyAPI": "8.0.47 / 90c447d3a8727d115aa7552ec93ce023736ed492",
+    "sub2api": "0.2.19 / dece26153621959ccd7635814f4b2d08304e681a"
+  },
+  "raw_evidence": "Full original samples retained locally; this public bundle contains selected numerical summaries, not accounts, container environments, databases or private deployment records.",
+  "runtime_sources": [
+    {
+      "sha256": "3be9a6f0ee2a6fd1bbb4268bae5b2d564a48a83d0fd0b39cc00c8ee244cf011f",
+      "path": "cmd/ferry/build_full.go"
+    },
+    {
+      "sha256": "1e1f6a4be139f8b505e4391003f686ede02d97eb205ca2f55e7be48a66fd0f30",
+      "path": "cmd/ferry/build_headless.go"
+    },
+    {
+      "sha256": "7f64c840cebfc07e28ca774e7772afa96fe0ee6fb4f6535de3cb4d08cd6e1d29",
+      "path": "cmd/ferry/main.go"
+    },
+    {
+      "sha256": "067e5295b92ed270046bfdb549e647fa0e389f22a97db1327ad363aa18b67ca1",
+      "path": "internal/controlstore/api_key_usage.go"
+    },
+    {
+      "sha256": "bc864d13cef23e25b7c84a7fbbefab52b92ea27d39210ae6dbe47ea49e254ab2",
+      "path": "internal/controlstore/api_keys.go"
+    },
+    {
+      "sha256": "7fac5da43761f2cf8fa11534ac866c26e534a58396b09df606791ecb21e64b97",
+      "path": "internal/controlstore/store.go"
+    },
+    {
+      "sha256": "cfb0ab925fe12f3e6741f00e432adff37bd827ba2d5816a12b35865e4a3fdaf4",
+      "path": "internal/egress/base.go"
+    },
+    {
+      "sha256": "11bcbb24454ebd05bb11ff3973ee1a950ac668a210d1398baabf736bd3089b34",
+      "path": "internal/egress/openai_chat.go"
+    },
+    {
+      "sha256": "599542200c5fff9e42b123be52c8a6ed3b0513819f4647661b5771a269a6cb76",
+      "path": "internal/ledger/ledger.go"
+    },
+    {
+      "sha256": "7d78026c477dddefafee9719dc72f384269c5ca09fbbb9abb95293216ab8798c",
+      "path": "internal/ledger/live_requests.go"
+    },
+    {
+      "sha256": "0447d422733857207192d77d93547f21cc8b24c908f8e7af0c78aca83df4a3b6",
+      "path": "internal/scheduler/scheduler.go"
+    },
+    {
+      "sha256": "607d8efdd5add65eb8651ec585c367dc7297c6b807fff01cbfce4d65759011e0",
+      "path": "web/console/assets.go"
+    },
+    {
+      "sha256": "30632ee5acb41d66061b2ef9e9283b94799bc0411d34bbda5f0c263fb686fad1",
+      "path": "web/console/assets_headless.go"
+    }
+  ]
+}

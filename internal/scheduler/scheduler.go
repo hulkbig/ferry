@@ -333,6 +333,7 @@ func worstNoteLevel(notes []string) domain.CompatLevel {
 // resolution + planning
 
 type decision struct {
+	debugCapture          bool // captured at request start; complete existing capture even if setting changes
 	w                     *world
 	plan                  *policy.PlanResult
 	pol                   *domain.CompiledPolicy
@@ -825,6 +826,7 @@ func (s *Scheduler) decideWithWorld(ctx context.Context, w *world, rc *domain.Re
 	if !dryRun {
 		s.led.UpdateRequest(d.rec.ID, func(r *domain.RequestRecord) { *r = d.rec; r.Status = "received" })
 		if s.led.DebugCaptureEnabled() {
+			d.debugCapture = true
 			payload, truncated := requestDebugPayload(rc)
 			s.led.CaptureDebugRequest(d.rec.ID, d.rec.Ts, payload, truncated)
 		}
@@ -1042,8 +1044,10 @@ func (s *Scheduler) finish(d *decision, status domain.RequestStatus, f *domain.F
 	d.addTrace(domain.TraceOutput, "COMPLETE", nil, ex, nav{}, "")
 	trace.Events = append([]domain.ExecutionTraceEvent(nil), d.traceEvents...)
 	s.led.SetTrace(d.rec.ID, trace)
-	payload, truncated := responseDebugPayload(status, f, ex)
-	s.led.CaptureDebugResponse(d.rec.ID, payload, truncated)
+	if d.debugCapture {
+		payload, truncated := responseDebugPayload(status, f, ex)
+		s.led.CaptureDebugResponse(d.rec.ID, payload, truncated)
+	}
 	s.led.FinishRequest(d.rec.ID, func(rec *domain.RequestRecord) {
 		rec.Status = status
 		for _, event := range d.recoveryEvents {

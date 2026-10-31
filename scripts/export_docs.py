@@ -47,6 +47,8 @@ def export(output):
                             for path in (ROOT/'LICENSES').rglob('*') if path.is_file())
         source_files.update(path.relative_to(ROOT).as_posix()
                             for path in (ROOT/'docs/assets').glob('flow-*.svg'))
+        source_files.update(path.relative_to(ROOT).as_posix() for path in (ROOT/'docs/assets').glob('perf-*.svg'))
+        source_files.update(path.relative_to(ROOT).as_posix() for path in (ROOT/'docs/benchmarks').rglob('*') if path.is_file())
         source_files.update(f'docs/assets/gateway-overview-{language}.svg' for language in ('zh', 'en'))
         (staging/'.gitignore').write_text('node_modules/\n.vitepress/cache/\n.vitepress/dist/\n.DS_Store\n')
         (staging/'README.md').write_text('''# Ferry documentation source

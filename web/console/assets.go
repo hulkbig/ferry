@@ -1,3 +1,5 @@
+//go:build !headless
+
 // Package consoleassets exposes the reviewed production console assets to the embedded
 // management server. The same files remain directly runnable as the mock
 // product demo, so production and handoff cannot silently drift apart.

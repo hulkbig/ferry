@@ -1,0 +1,3311 @@
+{
+  "unit": "percent; 100% = one logical CPU core",
+  "method": "Consecutive monitor samples only; CPU delta / per-component read-time delta. Sum components in the same sample interval, take each run peak, then median of run peaks.",
+  "runs": [
+    {
+      "product": "Ferry 1.1.0 candidate",
+      "run": "round2-final-short-180307",
+      "case": "json-1k-c32",
+      "repeat": 1,
+      "source_file": "ferry-opt-json-1k-c32-r1-resources.json",
+      "source_sha256": "34c04f46d3b80fd1fc15e1b54d5715fe86109d4e7c1587c861b5239748d8bf99",
+      "peak_cpu_percent": 146.62176163185813,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0087180137634277,
+              "cpu_ns": 980075000,
+              "cpu_percent": 97.1604538262816
+            }
+          ],
+          "stack_cpu_percent": 97.1604538262816
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.012963056564331,
+              "cpu_ns": 1427405000,
+              "cpu_percent": 140.9138261015493
+            }
+          ],
+          "stack_cpu_percent": 140.9138261015493
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0160229206085205,
+              "cpu_ns": 1444219000,
+              "cpu_percent": 142.14433264310833
+            }
+          ],
+          "stack_cpu_percent": 142.14433264310833
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0132501125335693,
+              "cpu_ns": 1413813000,
+              "cpu_percent": 139.53247895180075
+            }
+          ],
+          "stack_cpu_percent": 139.53247895180075
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0175740718841553,
+              "cpu_ns": 1377085000,
+              "cpu_percent": 135.3301973830926
+            }
+          ],
+          "stack_cpu_percent": 135.3301973830926
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0163578987121582,
+              "cpu_ns": 1423736000,
+              "cpu_percent": 140.08215037282008
+            }
+          ],
+          "stack_cpu_percent": 140.08215037282008
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0159249305725098,
+              "cpu_ns": 1425149000,
+              "cpu_percent": 140.2809358361624
+            }
+          ],
+          "stack_cpu_percent": 140.2809358361624
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.008026123046875,
+              "cpu_ns": 1415798000,
+              "cpu_percent": 140.45251086555052
+            }
+          ],
+          "stack_cpu_percent": 140.45251086555052
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0145540237426758,
+              "cpu_ns": 1444536000,
+              "cpu_percent": 142.38137804344086
+            }
+          ],
+          "stack_cpu_percent": 142.38137804344086
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0160188674926758,
+              "cpu_ns": 1488014000,
+              "cpu_percent": 146.4553511365503
+            }
+          ],
+          "stack_cpu_percent": 146.4553511365503
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.5491969585418701,
+              "cpu_ns": 2075842000,
+              "cpu_percent": 133.99471181210018
+            }
+          ],
+          "stack_cpu_percent": 133.99471181210018
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.027346134185791,
+              "cpu_ns": 1506313000,
+              "cpu_percent": 146.62176163185813
+            }
+          ],
+          "stack_cpu_percent": 146.62176163185813
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0103988647460938,
+              "cpu_ns": 1415276000,
+              "cpu_percent": 140.07102040397174
+            }
+          ],
+          "stack_cpu_percent": 140.07102040397174
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0142149925231934,
+              "cpu_ns": 1425014000,
+              "cpu_percent": 140.5041347746999
+            }
+          ],
+          "stack_cpu_percent": 140.5041347746999
+        }
+      ]
+    },
+    {
+      "product": "Ferry 1.1.0 candidate",
+      "run": "round2-final-short-180307",
+      "case": "json-1k-c32",
+      "repeat": 2,
+      "source_file": "ferry-opt-json-1k-c32-r2-resources.json",
+      "source_sha256": "490becc6828a6afd03fee0bf9e0e22137756968e17046f6c92a0265048003be5",
+      "peak_cpu_percent": 147.77481789109973,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0046579837799072,
+              "cpu_ns": 906263000,
+              "cpu_percent": 90.20612134990381
+            }
+          ],
+          "stack_cpu_percent": 90.20612134990381
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.007667064666748,
+              "cpu_ns": 1349936000,
+              "cpu_percent": 133.96647040820432
+            }
+          ],
+          "stack_cpu_percent": 133.96647040820432
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0178990364074707,
+              "cpu_ns": 1444000000,
+              "cpu_percent": 141.860827877035
+            }
+          ],
+          "stack_cpu_percent": 141.860827877035
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0115959644317627,
+              "cpu_ns": 1292320000,
+              "cpu_percent": 127.75060848783897
+            }
+          ],
+          "stack_cpu_percent": 127.75060848783897
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0160300731658936,
+              "cpu_ns": 1407606000,
+              "cpu_percent": 138.53979691900037
+            }
+          ],
+          "stack_cpu_percent": 138.53979691900037
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0116639137268066,
+              "cpu_ns": 1313891000,
+              "cpu_percent": 129.8742578609765
+            }
+          ],
+          "stack_cpu_percent": 129.8742578609765
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.006911039352417,
+              "cpu_ns": 1479014000,
+              "cpu_percent": 146.8862632543199
+            }
+          ],
+          "stack_cpu_percent": 146.8862632543199
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0088050365447998,
+              "cpu_ns": 1421202000,
+              "cpu_percent": 140.87974866458612
+            }
+          ],
+          "stack_cpu_percent": 140.87974866458612
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0146939754486084,
+              "cpu_ns": 1412492000,
+              "cpu_percent": 139.2037436090542
+            }
+          ],
+          "stack_cpu_percent": 139.2037436090542
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.017906904220581,
+              "cpu_ns": 1432124000,
+              "cpu_percent": 140.69302350361676
+            }
+          ],
+          "stack_cpu_percent": 140.69302350361676
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.011686086654663,
+              "cpu_ns": 1402050000,
+              "cpu_percent": 138.58547809391658
+            }
+          ],
+          "stack_cpu_percent": 138.58547809391658
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0159828662872314,
+              "cpu_ns": 1439301000,
+              "cpu_percent": 141.66587328974612
+            }
+          ],
+          "stack_cpu_percent": 141.66587328974612
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0076310634613037,
+              "cpu_ns": 1438114000,
+              "cpu_percent": 142.7222772450016
+            }
+          ],
+          "stack_cpu_percent": 142.7222772450016
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.00832200050354,
+              "cpu_ns": 1490046000,
+              "cpu_percent": 147.77481789109973
+            }
+          ],
+          "stack_cpu_percent": 147.77481789109973
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.013489007949829,
+              "cpu_ns": 1434111000,
+              "cpu_percent": 141.50237336081625
+            }
+          ],
+          "stack_cpu_percent": 141.50237336081625
+        }
+      ]
+    },
+    {
+      "product": "Ferry 1.1.0 candidate",
+      "run": "round2-final-short-180307",
+      "case": "json-1k-c32",
+      "repeat": 3,
+      "source_file": "ferry-opt-json-1k-c32-r3-resources.json",
+      "source_sha256": "a10d709892114a70f96e5c469f9ada79eca7a85422ca8afa4415e08e1349d1c8",
+      "peak_cpu_percent": 139.4801420661784,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0120468139648438,
+              "cpu_ns": 768013000,
+              "cpu_percent": 75.88710219749568
+            }
+          ],
+          "stack_cpu_percent": 75.88710219749568
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0131821632385254,
+              "cpu_ns": 1275490000,
+              "cpu_percent": 125.8895040081476
+            }
+          ],
+          "stack_cpu_percent": 125.8895040081476
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0111758708953857,
+              "cpu_ns": 1325470000,
+              "cpu_percent": 131.08204399955767
+            }
+          ],
+          "stack_cpu_percent": 131.08204399955767
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0131151676177979,
+              "cpu_ns": 1286482000,
+              "cpu_percent": 126.98279930256962
+            }
+          ],
+          "stack_cpu_percent": 126.98279930256962
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0112860202789307,
+              "cpu_ns": 1313086000,
+              "cpu_percent": 129.84318715666885
+            }
+          ],
+          "stack_cpu_percent": 129.84318715666885
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0129058361053467,
+              "cpu_ns": 1284843000,
+              "cpu_percent": 126.84723043360673
+            }
+          ],
+          "stack_cpu_percent": 126.84723043360673
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0098540782928467,
+              "cpu_ns": 1370168000,
+              "cpu_percent": 135.67980062191384
+            }
+          ],
+          "stack_cpu_percent": 135.67980062191384
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0129618644714355,
+              "cpu_ns": 1315691000,
+              "cpu_percent": 129.88554121793408
+            }
+          ],
+          "stack_cpu_percent": 129.88554121793408
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.00624418258667,
+              "cpu_ns": 1308185000,
+              "cpu_percent": 130.00671433817936
+            }
+          ],
+          "stack_cpu_percent": 130.00671433817936
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0124399662017822,
+              "cpu_ns": 1267296000,
+              "cpu_percent": 125.17245884260402
+            }
+          ],
+          "stack_cpu_percent": 125.17245884260402
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0142910480499268,
+              "cpu_ns": 1403549000,
+              "cpu_percent": 138.37734274579861
+            }
+          ],
+          "stack_cpu_percent": 138.37734274579861
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0068449974060059,
+              "cpu_ns": 1308794000,
+              "cpu_percent": 129.98962137885405
+            }
+          ],
+          "stack_cpu_percent": 129.98962137885405
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.007948875427246,
+              "cpu_ns": 1299198000,
+              "cpu_percent": 128.89522789033325
+            }
+          ],
+          "stack_cpu_percent": 128.89522789033325
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0116429328918457,
+              "cpu_ns": 1411041000,
+              "cpu_percent": 139.4801420661784
+            }
+          ],
+          "stack_cpu_percent": 139.4801420661784
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0101830959320068,
+              "cpu_ns": 1305202000,
+              "cpu_percent": 129.20449819998277
+            }
+          ],
+          "stack_cpu_percent": 129.20449819998277
+        }
+      ]
+    },
+    {
+      "product": "Ferry 1.1.0 candidate",
+      "run": "round2-final-short-180307",
+      "case": "json-64k-c32",
+      "repeat": 1,
+      "source_file": "ferry-opt-json-64k-c32-r1-resources.json",
+      "source_sha256": "fd26d4d23117e8d995f87b7f1450ee139de65bfad7d0b48b3001871d1eea5df7",
+      "peak_cpu_percent": 157.79087468450496,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0070610046386719,
+              "cpu_ns": 1023636000,
+              "cpu_percent": 101.64587798405273
+            }
+          ],
+          "stack_cpu_percent": 101.64587798405273
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.013796091079712,
+              "cpu_ns": 1525758000,
+              "cpu_percent": 150.49949525599757
+            }
+          ],
+          "stack_cpu_percent": 150.49949525599757
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0068800449371338,
+              "cpu_ns": 1541867000,
+              "cpu_percent": 153.13313713514594
+            }
+          ],
+          "stack_cpu_percent": 153.13313713514594
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0098469257354736,
+              "cpu_ns": 1485534000,
+              "cpu_percent": 147.10486927690377
+            }
+          ],
+          "stack_cpu_percent": 147.10486927690377
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.016279935836792,
+              "cpu_ns": 1603597000,
+              "cpu_percent": 157.79087468450496
+            }
+          ],
+          "stack_cpu_percent": 157.79087468450496
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0140929222106934,
+              "cpu_ns": 1491922000,
+              "cpu_percent": 147.1188652759407
+            }
+          ],
+          "stack_cpu_percent": 147.1188652759407
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0122160911560059,
+              "cpu_ns": 1520232000,
+              "cpu_percent": 150.1884837914217
+            }
+          ],
+          "stack_cpu_percent": 150.1884837914217
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0102019309997559,
+              "cpu_ns": 1536454000,
+              "cpu_percent": 152.09375005643017
+            }
+          ],
+          "stack_cpu_percent": 152.09375005643017
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0101640224456787,
+              "cpu_ns": 1497992000,
+              "cpu_percent": 148.29195721831937
+            }
+          ],
+          "stack_cpu_percent": 148.29195721831937
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0161769390106201,
+              "cpu_ns": 1569238000,
+              "cpu_percent": 154.42566542868573
+            }
+          ],
+          "stack_cpu_percent": 154.42566542868573
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0073761940002441,
+              "cpu_ns": 1550494000,
+              "cpu_percent": 153.91409974093793
+            }
+          ],
+          "stack_cpu_percent": 153.91409974093793
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0071189403533936,
+              "cpu_ns": 1485386000,
+              "cpu_percent": 147.48863718904786
+            }
+          ],
+          "stack_cpu_percent": 147.48863718904786
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0080440044403076,
+              "cpu_ns": 1558794000,
+              "cpu_percent": 154.63551126078897
+            }
+          ],
+          "stack_cpu_percent": 154.63551126078897
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0407249927520752,
+              "cpu_ns": 1607704000,
+              "cpu_percent": 154.47923430267733
+            }
+          ],
+          "stack_cpu_percent": 154.47923430267733
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0141000747680664,
+              "cpu_ns": 1472592000,
+              "cpu_percent": 145.2117041147832
+            }
+          ],
+          "stack_cpu_percent": 145.2117041147832
+        }
+      ]
+    },
+    {
+      "product": "Ferry 1.1.0 candidate",
+      "run": "round2-final-short-180307",
+      "case": "json-64k-c32",
+      "repeat": 2,
+      "source_file": "ferry-opt-json-64k-c32-r2-resources.json",
+      "source_sha256": "c826fa6a7088876d1056c8c90d03c3656c09b92c2fd35e1140ed459753a7dfeb",
+      "peak_cpu_percent": 157.14415383460545,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0093250274658203,
+              "cpu_ns": 872226000,
+              "cpu_percent": 86.41676132711738
+            }
+          ],
+          "stack_cpu_percent": 86.41676132711738
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0175788402557373,
+              "cpu_ns": 1444813000,
+              "cpu_percent": 141.98536200270146
+            }
+          ],
+          "stack_cpu_percent": 141.98536200270146
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0173470973968506,
+              "cpu_ns": 1433017000,
+              "cpu_percent": 140.858218760023
+            }
+          ],
+          "stack_cpu_percent": 140.858218760023
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0128190517425537,
+              "cpu_ns": 1458531000,
+              "cpu_percent": 144.00706597003676
+            }
+          ],
+          "stack_cpu_percent": 144.00706597003676
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0057399272918701,
+              "cpu_ns": 1512268000,
+              "cpu_percent": 150.36372316171685
+            }
+          ],
+          "stack_cpu_percent": 150.36372316171685
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0086779594421387,
+              "cpu_ns": 1470063000,
+              "cpu_percent": 145.74156064766555
+            }
+          ],
+          "stack_cpu_percent": 145.74156064766555
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0146610736846924,
+              "cpu_ns": 1475931000,
+              "cpu_percent": 145.46049299400326
+            }
+          ],
+          "stack_cpu_percent": 145.46049299400326
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0133309364318848,
+              "cpu_ns": 1507197000,
+              "cpu_percent": 148.7368978694269
+            }
+          ],
+          "stack_cpu_percent": 148.7368978694269
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.013355016708374,
+              "cpu_ns": 1458689000,
+              "cpu_percent": 143.94649219166843
+            }
+          ],
+          "stack_cpu_percent": 143.94649219166843
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0104360580444336,
+              "cpu_ns": 1430659000,
+              "cpu_percent": 141.58827652774514
+            }
+          ],
+          "stack_cpu_percent": 141.58827652774514
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.01065993309021,
+              "cpu_ns": 1588193000,
+              "cpu_percent": 157.14415383460545
+            }
+          ],
+          "stack_cpu_percent": 157.14415383460545
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0162200927734375,
+              "cpu_ns": 1489088000,
+              "cpu_percent": 146.53203676932085
+            }
+          ],
+          "stack_cpu_percent": 146.53203676932085
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0113239288330078,
+              "cpu_ns": 1516293000,
+              "cpu_percent": 149.93148651685604
+            }
+          ],
+          "stack_cpu_percent": 149.93148651685604
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0069200992584229,
+              "cpu_ns": 1458535000,
+              "cpu_percent": 144.85111590027677
+            }
+          ],
+          "stack_cpu_percent": 144.85111590027677
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.012671947479248,
+              "cpu_ns": 1507453000,
+              "cpu_percent": 148.85896698850652
+            }
+          ],
+          "stack_cpu_percent": 148.85896698850652
+        }
+      ]
+    },
+    {
+      "product": "Ferry 1.1.0 candidate",
+      "run": "round2-final-short-180307",
+      "case": "json-64k-c32",
+      "repeat": 3,
+      "source_file": "ferry-opt-json-64k-c32-r3-resources.json",
+      "source_sha256": "6688f3f4d275b33d96742c3eec478de90f0ff4129a456a945df5e0671ac3b00e",
+      "peak_cpu_percent": 156.13214061480457,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0107481479644775,
+              "cpu_ns": 895578000,
+              "cpu_percent": 88.60545545431707
+            }
+          ],
+          "stack_cpu_percent": 88.60545545431707
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0208799839019775,
+              "cpu_ns": 1524108000,
+              "cpu_percent": 149.2935530163496
+            }
+          ],
+          "stack_cpu_percent": 149.2935530163496
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.008983850479126,
+              "cpu_ns": 1504161000,
+              "cpu_percent": 149.0768161735923
+            }
+          ],
+          "stack_cpu_percent": 149.0768161735923
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0151300430297852,
+              "cpu_ns": 1574883000,
+              "cpu_percent": 155.14100984535546
+            }
+          ],
+          "stack_cpu_percent": 155.14100984535546
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0057570934295654,
+              "cpu_ns": 1520289000,
+              "cpu_percent": 151.15866544037135
+            }
+          ],
+          "stack_cpu_percent": 151.15866544037135
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0100338459014893,
+              "cpu_ns": 1497897000,
+              "cpu_percent": 148.3016639569218
+            }
+          ],
+          "stack_cpu_percent": 148.3016639569218
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0062949657440186,
+              "cpu_ns": 1473015000,
+              "cpu_percent": 146.38004264593584
+            }
+          ],
+          "stack_cpu_percent": 146.38004264593584
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.01015305519104,
+              "cpu_ns": 1480680000,
+              "cpu_percent": 146.57976753037428
+            }
+          ],
+          "stack_cpu_percent": 146.57976753037428
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0092010498046875,
+              "cpu_ns": 1501590000,
+              "cpu_percent": 148.78997602019987
+            }
+          ],
+          "stack_cpu_percent": 148.78997602019987
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0139529705047607,
+              "cpu_ns": 1548953000,
+              "cpu_percent": 152.7637913254407
+            }
+          ],
+          "stack_cpu_percent": 152.7637913254407
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0122101306915283,
+              "cpu_ns": 1478277000,
+              "cpu_percent": 146.0444778388121
+            }
+          ],
+          "stack_cpu_percent": 146.0444778388121
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0116939544677734,
+              "cpu_ns": 1410247000,
+              "cpu_percent": 139.39462559523696
+            }
+          ],
+          "stack_cpu_percent": 139.39462559523696
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0143589973449707,
+              "cpu_ns": 1489269000,
+              "cpu_percent": 146.81873024225942
+            }
+          ],
+          "stack_cpu_percent": 146.81873024225942
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0163660049438477,
+              "cpu_ns": 1586874000,
+              "cpu_percent": 156.13214061480457
+            }
+          ],
+          "stack_cpu_percent": 156.13214061480457
+        },
+        {
+          "components": [
+            {
+              "component": "ferry-opt",
+              "seconds": 1.0155339241027832,
+              "cpu_ns": 1488670000,
+              "cpu_percent": 146.58988386973178
+            }
+          ],
+          "stack_cpu_percent": 146.58988386973178
+        }
+      ]
+    },
+    {
+      "product": "CLIProxyAPI 8.0.47",
+      "run": "comparison-164745",
+      "case": "json-1k-c32",
+      "repeat": 1,
+      "source_file": "cliproxy-json-1k-c32-r1-resources.json",
+      "source_sha256": "e22270fe4a3cf239794191d39dcd880ad19abf00362740ab9b7013b7eea4ac81",
+      "peak_cpu_percent": 151.56221286447428,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0108399391174316,
+              "cpu_ns": 1060931000,
+              "cpu_percent": 104.95538996275742
+            }
+          ],
+          "stack_cpu_percent": 104.95538996275742
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0189540386199951,
+              "cpu_ns": 1518731000,
+              "cpu_percent": 149.04803773650775
+            }
+          ],
+          "stack_cpu_percent": 149.04803773650775
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0088889598846436,
+              "cpu_ns": 1474818000,
+              "cpu_percent": 146.18239059416715
+            }
+          ],
+          "stack_cpu_percent": 146.18239059416715
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0080480575561523,
+              "cpu_ns": 1489036000,
+              "cpu_percent": 147.71478292512404
+            }
+          ],
+          "stack_cpu_percent": 147.71478292512404
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0073800086975098,
+              "cpu_ns": 1524102000,
+              "cpu_percent": 151.2936515357879
+            }
+          ],
+          "stack_cpu_percent": 151.2936515357879
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.013915777206421,
+              "cpu_ns": 1502558000,
+              "cpu_percent": 148.1935712786623
+            }
+          ],
+          "stack_cpu_percent": 148.1935712786623
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0079550743103027,
+              "cpu_ns": 1503640000,
+              "cpu_percent": 149.17728362336703
+            }
+          ],
+          "stack_cpu_percent": 149.17728362336703
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0145800113677979,
+              "cpu_ns": 1483726000,
+              "cpu_percent": 146.2404131143612
+            }
+          ],
+          "stack_cpu_percent": 146.2404131143612
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0153210163116455,
+              "cpu_ns": 1538843000,
+              "cpu_percent": 151.56221286447428
+            }
+          ],
+          "stack_cpu_percent": 151.56221286447428
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0197679996490479,
+              "cpu_ns": 1469119000,
+              "cpu_percent": 144.06404206697954
+            }
+          ],
+          "stack_cpu_percent": 144.06404206697954
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0125010013580322,
+              "cpu_ns": 1516893000,
+              "cpu_percent": 149.81644442479015
+            }
+          ],
+          "stack_cpu_percent": 149.81644442479015
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0149939060211182,
+              "cpu_ns": 1438501000,
+              "cpu_percent": 141.7250873592999
+            }
+          ],
+          "stack_cpu_percent": 141.7250873592999
+        }
+      ]
+    },
+    {
+      "product": "CLIProxyAPI 8.0.47",
+      "run": "comparison-164745",
+      "case": "json-1k-c32",
+      "repeat": 2,
+      "source_file": "cliproxy-json-1k-c32-r2-resources.json",
+      "source_sha256": "55bf621a965375c5ecd819f73842e27fe56f2f648abd040d46460a3673ce9941",
+      "peak_cpu_percent": 150.32336158616363,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0093250274658203,
+              "cpu_ns": 1087406000,
+              "cpu_percent": 107.73595922120577
+            }
+          ],
+          "stack_cpu_percent": 107.73595922120577
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0150039196014404,
+              "cpu_ns": 1458141000,
+              "cpu_percent": 143.65865705942943
+            }
+          ],
+          "stack_cpu_percent": 143.65865705942943
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0143771171569824,
+              "cpu_ns": 1522765000,
+              "cpu_percent": 150.11823258275854
+            }
+          ],
+          "stack_cpu_percent": 150.11823258275854
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0081119537353516,
+              "cpu_ns": 1495588000,
+              "cpu_percent": 148.35534827837384
+            }
+          ],
+          "stack_cpu_percent": 148.35534827837384
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.012157917022705,
+              "cpu_ns": 1475445000,
+              "cpu_percent": 145.77221352376205
+            }
+          ],
+          "stack_cpu_percent": 145.77221352376205
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0147411823272705,
+              "cpu_ns": 1477370000,
+              "cpu_percent": 145.590819189156
+            }
+          ],
+          "stack_cpu_percent": 145.590819189156
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.01106595993042,
+              "cpu_ns": 1447724000,
+              "cpu_percent": 143.18788856264436
+            }
+          ],
+          "stack_cpu_percent": 143.18788856264436
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0074028968811035,
+              "cpu_ns": 1511002000,
+              "cpu_percent": 149.98984067626048
+            }
+          ],
+          "stack_cpu_percent": 149.98984067626048
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0173630714416504,
+              "cpu_ns": 1521721000,
+              "cpu_percent": 149.57501827185956
+            }
+          ],
+          "stack_cpu_percent": 149.57501827185956
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.008072853088379,
+              "cpu_ns": 1515369000,
+              "cpu_percent": 150.32336158616363
+            }
+          ],
+          "stack_cpu_percent": 150.32336158616363
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0154030323028564,
+              "cpu_ns": 1491332000,
+              "cpu_percent": 146.87094213395966
+            }
+          ],
+          "stack_cpu_percent": 146.87094213395966
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0096681118011475,
+              "cpu_ns": 1472847000,
+              "cpu_percent": 145.8743702792185
+            }
+          ],
+          "stack_cpu_percent": 145.8743702792185
+        }
+      ]
+    },
+    {
+      "product": "CLIProxyAPI 8.0.47",
+      "run": "comparison-164745",
+      "case": "json-1k-c32",
+      "repeat": 3,
+      "source_file": "cliproxy-json-1k-c32-r3-resources.json",
+      "source_sha256": "0333b43a4346907685dea591174968dabd1a0a2fdaa3a10ec20fb9a9fbe7332d",
+      "peak_cpu_percent": 150.99529545008195,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.007256031036377,
+              "cpu_ns": 1057102000,
+              "cpu_percent": 104.94868905498991
+            }
+          ],
+          "stack_cpu_percent": 104.94868905498991
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.006922960281372,
+              "cpu_ns": 1474593000,
+              "cpu_percent": 146.44546387023922
+            }
+          ],
+          "stack_cpu_percent": 146.44546387023922
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0106148719787598,
+              "cpu_ns": 1481903000,
+              "cpu_percent": 146.63380097489258
+            }
+          ],
+          "stack_cpu_percent": 146.63380097489258
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0076179504394531,
+              "cpu_ns": 1461746000,
+              "cpu_percent": 145.0694679826305
+            }
+          ],
+          "stack_cpu_percent": 145.0694679826305
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0064020156860352,
+              "cpu_ns": 1460731000,
+              "cpu_percent": 145.14388656150118
+            }
+          ],
+          "stack_cpu_percent": 145.14388656150118
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0129461288452148,
+              "cpu_ns": 1529501000,
+              "cpu_percent": 150.99529545008195
+            }
+          ],
+          "stack_cpu_percent": 150.99529545008195
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.04469895362854,
+              "cpu_ns": 1571670000,
+              "cpu_percent": 150.44238290285807
+            }
+          ],
+          "stack_cpu_percent": 150.44238290285807
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0159599781036377,
+              "cpu_ns": 1495228000,
+              "cpu_percent": 147.17390765637742
+            }
+          ],
+          "stack_cpu_percent": 147.17390765637742
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.012186050415039,
+              "cpu_ns": 1458841000,
+              "cpu_percent": 144.12775194854873
+            }
+          ],
+          "stack_cpu_percent": 144.12775194854873
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0076658725738525,
+              "cpu_ns": 1442531000,
+              "cpu_percent": 143.1556867471738
+            }
+          ],
+          "stack_cpu_percent": 143.1556867471738
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0085442066192627,
+              "cpu_ns": 1439557000,
+              "cpu_percent": 142.73613298771838
+            }
+          ],
+          "stack_cpu_percent": 142.73613298771838
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0232348442077637,
+              "cpu_ns": 1446557000,
+              "cpu_percent": 141.37096759248774
+            }
+          ],
+          "stack_cpu_percent": 141.37096759248774
+        }
+      ]
+    },
+    {
+      "product": "CLIProxyAPI 8.0.47",
+      "run": "comparison-164745",
+      "case": "json-64k-c32",
+      "repeat": 1,
+      "source_file": "cliproxy-json-64k-c32-r1-resources.json",
+      "source_sha256": "66ea1c79b35e0641d4d51902cb61cfaa32ac5af6751f6c57e0820e97fdce837d",
+      "peak_cpu_percent": 152.33120876791597,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0083460807800293,
+              "cpu_ns": 926549000,
+              "cpu_percent": 91.88799536794417
+            }
+          ],
+          "stack_cpu_percent": 91.88799536794417
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.012665033340454,
+              "cpu_ns": 1509125000,
+              "cpu_percent": 149.02509223823847
+            }
+          ],
+          "stack_cpu_percent": 149.02509223823847
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0152029991149902,
+              "cpu_ns": 1546471000,
+              "cpu_percent": 152.33120876791597
+            }
+          ],
+          "stack_cpu_percent": 152.33120876791597
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.011631965637207,
+              "cpu_ns": 1474724000,
+              "cpu_percent": 145.77673008494747
+            }
+          ],
+          "stack_cpu_percent": 145.77673008494747
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0096919536590576,
+              "cpu_ns": 1508238000,
+              "cpu_percent": 149.37605420487347
+            }
+          ],
+          "stack_cpu_percent": 149.37605420487347
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0210330486297607,
+              "cpu_ns": 1543524000,
+              "cpu_percent": 151.17277565808755
+            }
+          ],
+          "stack_cpu_percent": 151.17277565808755
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0086469650268555,
+              "cpu_ns": 1504247000,
+              "cpu_percent": 149.13513371449534
+            }
+          ],
+          "stack_cpu_percent": 149.13513371449534
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0070710182189941,
+              "cpu_ns": 1484006000,
+              "cpu_percent": 147.35862448156493
+            }
+          ],
+          "stack_cpu_percent": 147.35862448156493
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.007965087890625,
+              "cpu_ns": 1501648000,
+              "cpu_percent": 148.97817573647401
+            }
+          ],
+          "stack_cpu_percent": 148.97817573647401
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0079360008239746,
+              "cpu_ns": 1496281000,
+              "cpu_percent": 148.45000067234523
+            }
+          ],
+          "stack_cpu_percent": 148.45000067234523
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0155749320983887,
+              "cpu_ns": 1480880000,
+              "cpu_percent": 145.81691150452033
+            }
+          ],
+          "stack_cpu_percent": 145.81691150452033
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.018786907196045,
+              "cpu_ns": 1480190000,
+              "cpu_percent": 145.28946039106953
+            }
+          ],
+          "stack_cpu_percent": 145.28946039106953
+        }
+      ]
+    },
+    {
+      "product": "CLIProxyAPI 8.0.47",
+      "run": "comparison-164745",
+      "case": "json-64k-c32",
+      "repeat": 2,
+      "source_file": "cliproxy-json-64k-c32-r2-resources.json",
+      "source_sha256": "29117ed82af6cc8595672bc5b37582a2e5123cce8667abf5cff6ad835e3934f5",
+      "peak_cpu_percent": 151.20297907086317,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0114428997039795,
+              "cpu_ns": 1019015000,
+              "cpu_percent": 100.74864337850772
+            }
+          ],
+          "stack_cpu_percent": 100.74864337850772
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0150959491729736,
+              "cpu_ns": 1517982000,
+              "cpu_percent": 149.54074058090185
+            }
+          ],
+          "stack_cpu_percent": 149.54074058090185
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0249769687652588,
+              "cpu_ns": 1546968000,
+              "cpu_percent": 150.92709857310834
+            }
+          ],
+          "stack_cpu_percent": 150.92709857310834
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0171160697937012,
+              "cpu_ns": 1494926000,
+              "cpu_percent": 146.97693256416758
+            }
+          ],
+          "stack_cpu_percent": 146.97693256416758
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0151340961456299,
+              "cpu_ns": 1473874000,
+              "cpu_percent": 145.1900793792823
+            }
+          ],
+          "stack_cpu_percent": 145.1900793792823
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0086979866027832,
+              "cpu_ns": 1477946000,
+              "cpu_percent": 146.5201695284044
+            }
+          ],
+          "stack_cpu_percent": 146.5201695284044
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0181360244750977,
+              "cpu_ns": 1539452000,
+              "cpu_percent": 151.20297907086317
+            }
+          ],
+          "stack_cpu_percent": 151.20297907086317
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0152699947357178,
+              "cpu_ns": 1487577000,
+              "cpu_percent": 146.52033525202594
+            }
+          ],
+          "stack_cpu_percent": 146.52033525202594
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0092248916625977,
+              "cpu_ns": 1471984000,
+              "cpu_percent": 145.85292259043004
+            }
+          ],
+          "stack_cpu_percent": 145.85292259043004
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0146090984344482,
+              "cpu_ns": 1455191000,
+              "cpu_percent": 143.4238074787003
+            }
+          ],
+          "stack_cpu_percent": 143.4238074787003
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.006545066833496,
+              "cpu_ns": 1441486000,
+              "cpu_percent": 143.21127264920094
+            }
+          ],
+          "stack_cpu_percent": 143.21127264920094
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0084428787231445,
+              "cpu_ns": 1444976000,
+              "cpu_percent": 143.2878381599143
+            }
+          ],
+          "stack_cpu_percent": 143.2878381599143
+        }
+      ]
+    },
+    {
+      "product": "CLIProxyAPI 8.0.47",
+      "run": "comparison-164745",
+      "case": "json-64k-c32",
+      "repeat": 3,
+      "source_file": "cliproxy-json-64k-c32-r3-resources.json",
+      "source_sha256": "b670f4878b7d8178b2da98361b0b44fb23426f56f12d1a3cc1123e329376544a",
+      "peak_cpu_percent": 148.98418065055384,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0066261291503906,
+              "cpu_ns": 985799000,
+              "cpu_percent": 97.93099656890796
+            }
+          ],
+          "stack_cpu_percent": 97.93099656890796
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0139968395233154,
+              "cpu_ns": 1493988000,
+              "cpu_percent": 147.3365538991552
+            }
+          ],
+          "stack_cpu_percent": 147.3365538991552
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0074760913848877,
+              "cpu_ns": 1500980000,
+              "cpu_percent": 148.98418065055384
+            }
+          ],
+          "stack_cpu_percent": 148.98418065055384
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0147449970245361,
+              "cpu_ns": 1470916000,
+              "cpu_percent": 144.95425001483736
+            }
+          ],
+          "stack_cpu_percent": 144.95425001483736
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0070350170135498,
+              "cpu_ns": 1479468000,
+              "cpu_percent": 146.91326269740762
+            }
+          ],
+          "stack_cpu_percent": 146.91326269740762
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0127978324890137,
+              "cpu_ns": 1481053000,
+              "cpu_percent": 146.23382401601512
+            }
+          ],
+          "stack_cpu_percent": 146.23382401601512
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0143461227416992,
+              "cpu_ns": 1510453000,
+              "cpu_percent": 148.9090327389789
+            }
+          ],
+          "stack_cpu_percent": 148.9090327389789
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0120329856872559,
+              "cpu_ns": 1488336000,
+              "cpu_percent": 147.06398121888233
+            }
+          ],
+          "stack_cpu_percent": 147.06398121888233
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0096850395202637,
+              "cpu_ns": 1454250000,
+              "cpu_percent": 144.0300631463218
+            }
+          ],
+          "stack_cpu_percent": 144.0300631463218
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0177478790283203,
+              "cpu_ns": 1460343000,
+              "cpu_percent": 143.48769769918272
+            }
+          ],
+          "stack_cpu_percent": 143.48769769918272
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0117301940917969,
+              "cpu_ns": 1448125000,
+              "cpu_percent": 143.1335160753943
+            }
+          ],
+          "stack_cpu_percent": 143.1335160753943
+        },
+        {
+          "components": [
+            {
+              "component": "cliproxy",
+              "seconds": 1.0164458751678467,
+              "cpu_ns": 1479969000,
+              "cpu_percent": 145.60234205836207
+            }
+          ],
+          "stack_cpu_percent": 145.60234205836207
+        }
+      ]
+    },
+    {
+      "product": "sub2api 0.2.19 + PG2",
+      "run": "sub2api-pg2-172436",
+      "case": "json-1k-c32",
+      "repeat": 1,
+      "source_file": "sub2api-json-1k-c32-r1-resources.json",
+      "source_sha256": "371816e23eef4dad973b9d4cdfbfad91937006435a390d40188d2905ecd34002",
+      "peak_cpu_percent": 390.1740542987971,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0203769207000732,
+              "cpu_ns": 942130000,
+              "cpu_percent": 92.33156698150438
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0193531513214111,
+              "cpu_ns": 1375998000,
+              "cpu_percent": 134.98736902086011
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0188398361206055,
+              "cpu_ns": 297314000,
+              "cpu_percent": 29.18162300485524
+            }
+          ],
+          "stack_cpu_percent": 256.50055900721975
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0126991271972656,
+              "cpu_ns": 1345175000,
+              "cpu_percent": 132.83066647078988
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0137758255004883,
+              "cpu_ns": 2036095000,
+              "cpu_percent": 200.84272565828897
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0148990154266357,
+              "cpu_ns": 426848000,
+              "cpu_percent": 42.058174607703684
+            }
+          ],
+          "stack_cpu_percent": 375.73156673678255
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0215020179748535,
+              "cpu_ns": 1401214000,
+              "cpu_percent": 137.17192676505255
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0238211154937744,
+              "cpu_ns": 2054346000,
+              "cpu_percent": 200.6547793272673
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0235719680786133,
+              "cpu_ns": 402006000,
+              "cpu_percent": 39.27481530728328
+            }
+          ],
+          "stack_cpu_percent": 377.10152139960314
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0195739269256592,
+              "cpu_ns": 1343914000,
+              "cpu_percent": 131.81133456916947
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0180509090423584,
+              "cpu_ns": 2049724000,
+              "cpu_percent": 201.33806490365959
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0190579891204834,
+              "cpu_ns": 410174000,
+              "cpu_percent": 40.250310029364286
+            }
+          ],
+          "stack_cpu_percent": 373.39970950219333
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0192539691925049,
+              "cpu_ns": 1353403000,
+              "cpu_percent": 132.78368698158926
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0184240341186523,
+              "cpu_ns": 2025529000,
+              "cpu_percent": 198.88857019688265
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0172650814056396,
+              "cpu_ns": 418165000,
+              "cpu_percent": 41.106787959553934
+            }
+          ],
+          "stack_cpu_percent": 372.7790451380258
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.014847993850708,
+              "cpu_ns": 1403418000,
+              "cpu_percent": 138.28849330183075
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0141351222991943,
+              "cpu_ns": 2029051000,
+              "cpu_percent": 200.07698731504746
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0131471157073975,
+              "cpu_ns": 436856000,
+              "cpu_percent": 43.11871328725832
+            }
+          ],
+          "stack_cpu_percent": 381.48419390413653
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.011728048324585,
+              "cpu_ns": 1362466000,
+              "cpu_percent": 134.66721637857472
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0119998455047607,
+              "cpu_ns": 2001586000,
+              "cpu_percent": 197.78520806015123
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0132219791412354,
+              "cpu_ns": 448434000,
+              "cpu_percent": 44.258218754795855
+            }
+          ],
+          "stack_cpu_percent": 376.71064319352183
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0154540538787842,
+              "cpu_ns": 1367276000,
+              "cpu_percent": 134.64676169023528
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0176169872283936,
+              "cpu_ns": 2027266000,
+              "cpu_percent": 199.2169967132242
+            },
+            {
+              "component": "redis",
+              "seconds": 1.017439842224121,
+              "cpu_ns": 432667000,
+              "cpu_percent": 42.52506949739564
+            }
+          ],
+          "stack_cpu_percent": 376.3888279008551
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0242600440979004,
+              "cpu_ns": 1405892000,
+              "cpu_percent": 137.2592837240093
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0224571228027344,
+              "cpu_ns": 2068472000,
+              "cpu_percent": 202.30403347672467
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0223419666290283,
+              "cpu_ns": 436020000,
+              "cpu_percent": 42.64913446111287
+            }
+          ],
+          "stack_cpu_percent": 382.21245166184684
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0160448551177979,
+              "cpu_ns": 1385621000,
+              "cpu_percent": 136.3739989450913
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.016523838043213,
+              "cpu_ns": 2019002000,
+              "cpu_percent": 198.61826397367489
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0167860984802246,
+              "cpu_ns": 450651000,
+              "cpu_percent": 44.32112129321806
+            }
+          ],
+          "stack_cpu_percent": 379.31338421198427
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0175461769104004,
+              "cpu_ns": 1398227000,
+              "cpu_percent": 137.41165086438338
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0182750225067139,
+              "cpu_ns": 2048279000,
+              "cpu_percent": 201.1518454962883
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0187721252441406,
+              "cpu_ns": 447898000,
+              "cpu_percent": 43.96449303053564
+            }
+          ],
+          "stack_cpu_percent": 382.5279893912073
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0183708667755127,
+              "cpu_ns": 1402316000,
+              "cpu_percent": 137.7018967991671
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0161609649658203,
+              "cpu_ns": 2026962000,
+              "cpu_percent": 199.4725314082675
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0140187740325928,
+              "cpu_ns": 443411000,
+              "cpu_percent": 43.72808584565199
+            }
+          ],
+          "stack_cpu_percent": 380.9025140530866
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0119469165802002,
+              "cpu_ns": 1345778000,
+              "cpu_percent": 132.9889916111368
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.013963222503662,
+              "cpu_ns": 2017555000,
+              "cpu_percent": 198.97713794966697
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0155460834503174,
+              "cpu_ns": 434001000,
+              "cpu_percent": 42.73572682447672
+            }
+          ],
+          "stack_cpu_percent": 374.7018563852805
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.01478910446167,
+              "cpu_ns": 1372579000,
+              "cpu_percent": 135.25756178946483
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.014206886291504,
+              "cpu_ns": 2035179000,
+              "cpu_percent": 200.66704609369486
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0143330097198486,
+              "cpu_ns": 407727000,
+              "cpu_percent": 40.19656228210607
+            }
+          ],
+          "stack_cpu_percent": 376.12117016526577
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0218729972839355,
+              "cpu_ns": 1409097000,
+              "cpu_percent": 137.8935546535898
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0218310356140137,
+              "cpu_ns": 2051231000,
+              "cpu_percent": 200.74072214565538
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0220520496368408,
+              "cpu_ns": 461805000,
+              "cpu_percent": 45.184098027501655
+            }
+          ],
+          "stack_cpu_percent": 383.81837482674683
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0337979793548584,
+              "cpu_ns": 1414521000,
+              "cpu_percent": 136.82760348232947
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0334789752960205,
+              "cpu_ns": 1970264000,
+              "cpu_percent": 190.64383960357347
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0332329273223877,
+              "cpu_ns": 399457000,
+              "cpu_percent": 38.660885598679926
+            }
+          ],
+          "stack_cpu_percent": 366.13232868458283
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0252881050109863,
+              "cpu_ns": 1730062000,
+              "cpu_percent": 168.7391077244051
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0249590873718262,
+              "cpu_ns": 1634980000,
+              "cpu_percent": 159.5166109695533
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0252289772033691,
+              "cpu_ns": 374762000,
+              "cpu_percent": 36.55398046027531
+            }
+          ],
+          "stack_cpu_percent": 364.8096991542337
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0184788703918457,
+              "cpu_ns": 1346379000,
+              "cpu_percent": 132.19508417312568
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0187809467315674,
+              "cpu_ns": 2035764000,
+              "cpu_percent": 199.82352502086903
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0185270309448242,
+              "cpu_ns": 441441000,
+              "cpu_percent": 43.3411177698939
+            }
+          ],
+          "stack_cpu_percent": 375.3597269638886
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0141940116882324,
+              "cpu_ns": 1436535000,
+              "cpu_percent": 141.64301735609112
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0211520195007324,
+              "cpu_ns": 2068624000,
+              "cpu_percent": 202.57747725078224
+            },
+            {
+              "component": "redis",
+              "seconds": 1.021333932876587,
+              "cpu_ns": 463863000,
+              "cpu_percent": 45.41736890044669
+            }
+          ],
+          "stack_cpu_percent": 389.63786350732005
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0244691371917725,
+              "cpu_ns": 1361665000,
+              "cpu_percent": 132.91420410501905
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0179789066314697,
+              "cpu_ns": 2023967000,
+              "cpu_percent": 198.82209609798127
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0174140930175781,
+              "cpu_ns": 441212000,
+              "cpu_percent": 43.36602009231035
+            }
+          ],
+          "stack_cpu_percent": 375.1023202953107
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0156059265136719,
+              "cpu_ns": 1450256000,
+              "cpu_percent": 142.7971186598306
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.015645980834961,
+              "cpu_ns": 2007063000,
+              "cpu_percent": 197.6144284399173
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0160980224609375,
+              "cpu_ns": 441120000,
+              "cpu_percent": 43.41313438752985
+            }
+          ],
+          "stack_cpu_percent": 383.82468148727776
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0163850784301758,
+              "cpu_ns": 1441521000,
+              "cpu_percent": 141.82823327418913
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0198521614074707,
+              "cpu_ns": 2044063000,
+              "cpu_percent": 200.4273832374923
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0182240009307861,
+              "cpu_ns": 454271000,
+              "cpu_percent": 44.61405344842967
+            }
+          ],
+          "stack_cpu_percent": 386.8696699601111
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0305979251861572,
+              "cpu_ns": 1372361000,
+              "cpu_percent": 133.161630395492
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0293998718261719,
+              "cpu_ns": 2051349000,
+              "cpu_percent": 199.2762051117098
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0305490493774414,
+              "cpu_ns": 432874000,
+              "cpu_percent": 42.004211275678806
+            }
+          ],
+          "stack_cpu_percent": 374.4420467828806
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0198500156402588,
+              "cpu_ns": 1419690000,
+              "cpu_percent": 139.20576341892027
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0174500942230225,
+              "cpu_ns": 2041317000,
+              "cpu_percent": 200.6306758032054
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0185039043426514,
+              "cpu_ns": 477765000,
+              "cpu_percent": 46.90850942867543
+            }
+          ],
+          "stack_cpu_percent": 386.7449486508011
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.023378849029541,
+              "cpu_ns": 1443791000,
+              "cpu_percent": 141.08079342944515
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0245850086212158,
+              "cpu_ns": 2071339000,
+              "cpu_percent": 202.16370360399875
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0267181396484375,
+              "cpu_ns": 473870000,
+              "cpu_percent": 46.153854860522834
+            }
+          ],
+          "stack_cpu_percent": 389.3983518939667
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0224940776824951,
+              "cpu_ns": 1442583000,
+              "cpu_percent": 141.084729142847
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.020340919494629,
+              "cpu_ns": 2009856000,
+              "cpu_percent": 196.97886868983696
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0160698890686035,
+              "cpu_ns": 447656000,
+              "cpu_percent": 44.05759926714794
+            }
+          ],
+          "stack_cpu_percent": 382.12119709983193
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0219740867614746,
+              "cpu_ns": 1446855000,
+              "cpu_percent": 141.57452901618348
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0235610008239746,
+              "cpu_ns": 2022815000,
+              "cpu_percent": 197.62525129148318
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0266571044921875,
+              "cpu_ns": 468535000,
+              "cpu_percent": 45.63695102774846
+            }
+          ],
+          "stack_cpu_percent": 384.8367313354151
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0228638648986816,
+              "cpu_ns": 1397434000,
+              "cpu_percent": 136.6197446165938
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.022097110748291,
+              "cpu_ns": 2041872000,
+              "cpu_percent": 199.77279835035617
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0204927921295166,
+              "cpu_ns": 449646000,
+              "cpu_percent": 44.061653690047116
+            }
+          ],
+          "stack_cpu_percent": 380.4541966569971
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0231451988220215,
+              "cpu_ns": 1473269000,
+              "cpu_percent": 143.99412729456384
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0249037742614746,
+              "cpu_ns": 2049880000,
+              "cpu_percent": 200.00706910042388
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0244719982147217,
+              "cpu_ns": 473028000,
+              "cpu_percent": 46.17285790380938
+            }
+          ],
+          "stack_cpu_percent": 390.1740542987971
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0333127975463867,
+              "cpu_ns": 1101591000,
+              "cpu_percent": 106.60769929645124
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0340712070465088,
+              "cpu_ns": 1567833000,
+              "cpu_percent": 151.6175084768108
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0410821437835693,
+              "cpu_ns": 353468000,
+              "cpu_percent": 33.95197988080012
+            }
+          ],
+          "stack_cpu_percent": 292.17718765406215
+        }
+      ]
+    },
+    {
+      "product": "sub2api 0.2.19 + PG2",
+      "run": "sub2api-pg2-172436",
+      "case": "json-64k-c32",
+      "repeat": 1,
+      "source_file": "sub2api-json-64k-c32-r1-resources.json",
+      "source_sha256": "b4a139aba10718f764e5b35400ea9ce06c6212d8578c87d7bcbdddb5b05c54ca",
+      "peak_cpu_percent": 406.2668268910953,
+      "intervals": [
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0151209831237793,
+              "cpu_ns": 1144402000,
+              "cpu_percent": 112.73552798390503
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0162608623504639,
+              "cpu_ns": 1602250000,
+              "cpu_percent": 157.66129144186743
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0152862071990967,
+              "cpu_ns": 271910000,
+              "cpu_percent": 26.78161074896575
+            }
+          ],
+          "stack_cpu_percent": 297.1784301747382
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0156610012054443,
+              "cpu_ns": 1624066000,
+              "cpu_percent": 159.90236880932378
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.014970064163208,
+              "cpu_ns": 1680228000,
+              "cpu_percent": 165.54458691205477
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0144619941711426,
+              "cpu_ns": 400731000,
+              "cpu_percent": 39.501824839422774
+            }
+          ],
+          "stack_cpu_percent": 364.9487805608013
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.017153024673462,
+              "cpu_ns": 1700941000,
+              "cpu_percent": 167.22567388973312
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0170979499816895,
+              "cpu_ns": 1789274000,
+              "cpu_percent": 175.91953656304312
+            },
+            {
+              "component": "redis",
+              "seconds": 1.017129898071289,
+              "cpu_ns": 425915000,
+              "cpu_percent": 41.87419923528275
+            }
+          ],
+          "stack_cpu_percent": 385.019409688059
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0198309421539307,
+              "cpu_ns": 1720200000,
+              "cpu_percent": 168.67501552432378
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0200550556182861,
+              "cpu_ns": 1804555000,
+              "cpu_percent": 176.9076080806447
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0213489532470703,
+              "cpu_ns": 410171000,
+              "cpu_percent": 40.15973176415223
+            }
+          ],
+          "stack_cpu_percent": 385.74235536912073
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0302491188049316,
+              "cpu_ns": 1724752000,
+              "cpu_percent": 167.4111599338884
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0328400135040283,
+              "cpu_ns": 1815954000,
+              "cpu_percent": 175.8214221231774
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0329320430755615,
+              "cpu_ns": 455047000,
+              "cpu_percent": 44.053914587168265
+            }
+          ],
+          "stack_cpu_percent": 387.28649664423403
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0231618881225586,
+              "cpu_ns": 1696034000,
+              "cpu_percent": 165.7639929407576
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0207719802856445,
+              "cpu_ns": 1740463000,
+              "cpu_percent": 170.50458218033796
+            },
+            {
+              "component": "redis",
+              "seconds": 1.02012300491333,
+              "cpu_ns": 418610000,
+              "cpu_percent": 41.035247512682574
+            }
+          ],
+          "stack_cpu_percent": 377.3038226337781
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0243849754333496,
+              "cpu_ns": 1748655000,
+              "cpu_percent": 170.7029136443806
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0247061252593994,
+              "cpu_ns": 1866900000,
+              "cpu_percent": 182.1888201875834
+            },
+            {
+              "component": "redis",
+              "seconds": 1.026155948638916,
+              "cpu_ns": 443045000,
+              "cpu_percent": 43.175211388449384
+            }
+          ],
+          "stack_cpu_percent": 396.06694522041334
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0214431285858154,
+              "cpu_ns": 1721278000,
+              "cpu_percent": 168.51432564660783
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.021068811416626,
+              "cpu_ns": 1876114000,
+              "cpu_percent": 183.74021212116827
+            },
+            {
+              "component": "redis",
+              "seconds": 1.018928050994873,
+              "cpu_ns": 446554000,
+              "cpu_percent": 43.825861851971624
+            }
+          ],
+          "stack_cpu_percent": 396.0803996197477
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0260508060455322,
+              "cpu_ns": 1728038000,
+              "cpu_percent": 168.41641659636454
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0253040790557861,
+              "cpu_ns": 1802626000,
+              "cpu_percent": 175.8137938610425
+            },
+            {
+              "component": "redis",
+              "seconds": 1.025264024734497,
+              "cpu_ns": 455967000,
+              "cpu_percent": 44.47312974997611
+            }
+          ],
+          "stack_cpu_percent": 388.7033402073832
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.013146162033081,
+              "cpu_ns": 1726383000,
+              "cpu_percent": 170.39821742360118
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0146989822387695,
+              "cpu_ns": 1785249000,
+              "cpu_percent": 175.93877901218903
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0150339603424072,
+              "cpu_ns": 412517000,
+              "cpu_percent": 40.640709189753935
+            }
+          ],
+          "stack_cpu_percent": 386.97770562554416
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0260169506072998,
+              "cpu_ns": 1759712000,
+              "cpu_percent": 171.50905732682347
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0248689651489258,
+              "cpu_ns": 1889279000,
+              "cpu_percent": 184.343468701432
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0274229049682617,
+              "cpu_ns": 443944000,
+              "cpu_percent": 43.209470788829066
+            }
+          ],
+          "stack_cpu_percent": 399.0619968170845
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0238289833068848,
+              "cpu_ns": 1731190000,
+              "cpu_percent": 169.0897628633638
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0241451263427734,
+              "cpu_ns": 1791839000,
+              "cpu_percent": 174.95948122105162
+            },
+            {
+              "component": "redis",
+              "seconds": 1.021517038345337,
+              "cpu_ns": 446139000,
+              "cpu_percent": 43.67416139457255
+            }
+          ],
+          "stack_cpu_percent": 387.72340547898796
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0490999221801758,
+              "cpu_ns": 1750505000,
+              "cpu_percent": 166.85779523862766
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.048642873764038,
+              "cpu_ns": 1832377000,
+              "cpu_percent": 174.73794423670637
+            },
+            {
+              "component": "redis",
+              "seconds": 1.048518180847168,
+              "cpu_ns": 403414000,
+              "cpu_percent": 38.47467858631262
+            }
+          ],
+          "stack_cpu_percent": 380.07041806164665
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.013517141342163,
+              "cpu_ns": 1742581000,
+              "cpu_percent": 171.93404323604875
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0139620304107666,
+              "cpu_ns": 1889995000,
+              "cpu_percent": 186.39701915014936
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0138797760009766,
+              "cpu_ns": 460483000,
+              "cpu_percent": 45.4179095884793
+            }
+          ],
+          "stack_cpu_percent": 403.74897197467743
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.021690845489502,
+              "cpu_ns": 1690297000,
+              "cpu_percent": 165.44114175655184
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0207030773162842,
+              "cpu_ns": 1744006000,
+              "cpu_percent": 170.86320583900684
+            },
+            {
+              "component": "redis",
+              "seconds": 1.020449161529541,
+              "cpu_ns": 422898000,
+              "cpu_percent": 41.442338917317784
+            }
+          ],
+          "stack_cpu_percent": 377.74668651287647
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0132911205291748,
+              "cpu_ns": 1774308000,
+              "cpu_percent": 175.10347856136315
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0150558948516846,
+              "cpu_ns": 1369892000,
+              "cpu_percent": 134.9572971250182
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0157890319824219,
+              "cpu_ns": 342951000,
+              "cpu_percent": 33.7620302249862
+            }
+          ],
+          "stack_cpu_percent": 343.82280591136754
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0168240070343018,
+              "cpu_ns": 1711479000,
+              "cpu_percent": 168.31614794302004
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0174531936645508,
+              "cpu_ns": 1846951000,
+              "cpu_percent": 181.5268762730849
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0170328617095947,
+              "cpu_ns": 421929000,
+              "cpu_percent": 41.48627009856426
+            }
+          ],
+          "stack_cpu_percent": 391.3292943146692
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0181350708007812,
+              "cpu_ns": 1699902000,
+              "cpu_percent": 166.9623263898568
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0167348384857178,
+              "cpu_ns": 1785503000,
+              "cpu_percent": 175.6114704065077
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0170471668243408,
+              "cpu_ns": 413152000,
+              "cpu_percent": 40.62269808882497
+            }
+          ],
+          "stack_cpu_percent": 383.19649488518945
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0195708274841309,
+              "cpu_ns": 1709134000,
+              "cpu_percent": 167.63268955207548
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.018963098526001,
+              "cpu_ns": 1710361000,
+              "cpu_percent": 167.8530854035983
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0179228782653809,
+              "cpu_ns": 430480000,
+              "cpu_percent": 42.29004074783849
+            }
+          ],
+          "stack_cpu_percent": 377.77581570351225
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0196051597595215,
+              "cpu_ns": 1642027000,
+              "cpu_percent": 161.04537960432444
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.020226001739502,
+              "cpu_ns": 1699559000,
+              "cpu_percent": 166.58652074170078
+            },
+            {
+              "component": "redis",
+              "seconds": 1.021277904510498,
+              "cpu_ns": 374672000,
+              "cpu_percent": 36.686586319478
+            }
+          ],
+          "stack_cpu_percent": 364.3184866655032
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0192928314208984,
+              "cpu_ns": 1399226000,
+              "cpu_percent": 137.27419215236444
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0190160274505615,
+              "cpu_ns": 1960383000,
+              "cpu_percent": 192.37999670178002
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0179390907287598,
+              "cpu_ns": 335639000,
+              "cpu_percent": 32.972405034539975
+            }
+          ],
+          "stack_cpu_percent": 362.6265938886844
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0165610313415527,
+              "cpu_ns": 1721363000,
+              "cpu_percent": 169.33198764547586
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.01674485206604,
+              "cpu_ns": 1833185000,
+              "cpu_percent": 180.2994130016928
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0177149772644043,
+              "cpu_ns": 411194000,
+              "cpu_percent": 40.40365025434533
+            }
+          ],
+          "stack_cpu_percent": 390.035050901514
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0197689533233643,
+              "cpu_ns": 1784649000,
+              "cpu_percent": 175.00522978111255
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0189361572265625,
+              "cpu_ns": 1905044000,
+              "cpu_percent": 186.9640199230274
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0203831195831299,
+              "cpu_ns": 452005000,
+              "cpu_percent": 44.29757718695536
+            }
+          ],
+          "stack_cpu_percent": 406.2668268910953
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0211009979248047,
+              "cpu_ns": 1728686000,
+              "cpu_percent": 169.2962795564032
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0216238498687744,
+              "cpu_ns": 1851578000,
+              "cpu_percent": 181.23872110442915
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0203368663787842,
+              "cpu_ns": 429528000,
+              "cpu_percent": 42.096685335345356
+            }
+          ],
+          "stack_cpu_percent": 392.6316859961777
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0163331031799316,
+              "cpu_ns": 1707501000,
+              "cpu_percent": 168.00604001360603
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0180840492248535,
+              "cpu_ns": 1787999000,
+              "cpu_percent": 175.62390859196177
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0191750526428223,
+              "cpu_ns": 401797000,
+              "cpu_percent": 39.42374756506259
+            }
+          ],
+          "stack_cpu_percent": 383.05369617063036
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0292150974273682,
+              "cpu_ns": 1700309000,
+              "cpu_percent": 165.2044362981171
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0283288955688477,
+              "cpu_ns": 1830524000,
+              "cpu_percent": 178.00958505473062
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0270540714263916,
+              "cpu_ns": 405064000,
+              "cpu_percent": 39.43940355909788
+            }
+          ],
+          "stack_cpu_percent": 382.6534249119456
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0217669010162354,
+              "cpu_ns": 1717631000,
+              "cpu_percent": 168.1039969382124
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0214591026306152,
+              "cpu_ns": 1807875000,
+              "cpu_percent": 176.9894649080015
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0219860076904297,
+              "cpu_ns": 421290000,
+              "cpu_percent": 41.22267788695726
+            }
+          ],
+          "stack_cpu_percent": 386.31613973317116
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.020432949066162,
+              "cpu_ns": 1743345000,
+              "cpu_percent": 170.84366019299972
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0200159549713135,
+              "cpu_ns": 1833728000,
+              "cpu_percent": 179.77444284698186
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0194518566131592,
+              "cpu_ns": 422834000,
+              "cpu_percent": 41.47660306439055
+            }
+          ],
+          "stack_cpu_percent": 392.0947061043721
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0139291286468506,
+              "cpu_ns": 1713979000,
+              "cpu_percent": 169.0432744828436
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0147249698638916,
+              "cpu_ns": 1839829000,
+              "cpu_percent": 181.31307050094395
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0143461227416992,
+              "cpu_ns": 372625000,
+              "cpu_percent": 36.73548817762751
+            }
+          ],
+          "stack_cpu_percent": 387.0918331614151
+        },
+        {
+          "components": [
+            {
+              "component": "sub2api",
+              "seconds": 1.0202460289001465,
+              "cpu_ns": 1149313000,
+              "cpu_percent": 112.65057323859338
+            },
+            {
+              "component": "postgres",
+              "seconds": 1.0197651386260986,
+              "cpu_ns": 1181581000,
+              "cpu_percent": 115.86795383022323
+            },
+            {
+              "component": "redis",
+              "seconds": 1.0191240310668945,
+              "cpu_ns": 284140000,
+              "cpu_percent": 27.88080658862898
+            }
+          ],
+          "stack_cpu_percent": 256.3993336574456
+        }
+      ]
+    }
+  ]
+}
